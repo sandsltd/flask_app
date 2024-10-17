@@ -36,11 +36,6 @@ def login():
             flash('Invalid username or password')
     return render_template('login.html')
 
-@app.route('/dashboard')
-@login_required
-def dashboard():
-    return "Welcome to the dashboard!"
-
 @app.route('/logout')
 @login_required
 def logout():
