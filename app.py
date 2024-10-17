@@ -47,5 +47,25 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
+# Add this below your login routes
+events = []
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html', events=events)
+
+# Route to create a new event
+@app.route('/create_event', methods=['GET', 'POST'])
+@login_required
+def create_event():
+    if request.method == 'POST':
+        event_name = request.form['event_name']
+        event_date = request.form['event_date']
+        events.append({'name': event_name, 'date': event_date})
+        flash('Event created successfully!')
+        return redirect(url_for('dashboard'))
+    return render_template('create_event.html')
+
 if __name__ == "__main__":
     app.run(debug=True)
