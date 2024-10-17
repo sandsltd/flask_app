@@ -58,8 +58,9 @@ def login():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    user_events = events_by_user.get(current_user.id, [])
+    user_events = Event.query.filter_by(user_id=current_user.id).all()
     return render_template('dashboard.html', events=user_events)
+
 
 @app.route('/create_event', methods=['GET', 'POST'])
 @login_required
@@ -67,7 +68,9 @@ def create_event():
     if request.method == 'POST':
         event_name = request.form['event_name']
         event_date = request.form['event_date']
-        events_by_user[current_user.id].append({'name': event_name, 'date': event_date})
+        new_event = Event(name=event_name, date=event_date, user_id=current_user.id)
+        db.session.add(new_event)
+        db.session.commit()
         flash('Event created successfully!')
         return redirect(url_for('dashboard'))
     return render_template('create_event.html')
