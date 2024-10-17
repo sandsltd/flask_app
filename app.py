@@ -103,7 +103,3 @@ class Event(db.Model):
     date = db.Column(db.String(120), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
-@app.route('/init_db')
-def init_db():
-    db.create_all()
-    return "Database tables created!"
