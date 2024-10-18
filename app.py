@@ -295,20 +295,19 @@ def create_checkout_session(event_id):
 
     # Calculate the platform fee (flat_rate as a percentage of total)
     flat_rate = user.flat_rate or 0.01  # Default to 1% if flat_rate is not set
-    platform_fee_amount = int(event.ticket_price * flat_rate * 100)  # Convert to pence
+    amount_to_transfer = int(event.ticket_price * (1 - flat_rate) * 100)  # Amount to transfer to connected account in pence
 
     try:
-        # Create a PaymentIntent instead of Checkout Session
+        # Create a Stripe PaymentIntent with transfer data
         payment_intent = stripe.PaymentIntent.create(
             amount=int(event.ticket_price * 100),  # Total ticket price in pence
             currency='gbp',
             payment_method_types=['card'],
-            # Split payment with transfer_data (for Stripe Connect)
+            # Split payment with transfer_data for connected account
             transfer_data={
-                'amount': int(event.ticket_price * (1 - flat_rate) * 100),  # Remaining amount after platform fee
-                'destination': user.stripe_connect_id,  # User's connected Stripe account
+                'amount': amount_to_transfer,  # Amount to send to the connected account
+                'destination': user.stripe_connect_id,  # Connected account's Stripe ID
             },
-            application_fee_amount=platform_fee_amount,  # Platform fee amount in pence
         )
 
         # Return the client_secret to complete payment on the front end
@@ -316,6 +315,7 @@ def create_checkout_session(event_id):
 
     except Exception as e:
         return {"error": str(e)}, 400
+
 
 
 # Success and cancel routes
