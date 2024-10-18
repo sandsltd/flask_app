@@ -255,36 +255,38 @@ def embed_events(unique_id):
 
     events_html += '''
     <script>
-        function buyTicket(eventId) {
-            fetch('https://flask-app-2gp0.onrender.com/create-checkout-session/' + eventId, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => {
-                // Check if the response is OK (status 200)
-                if (!response.ok) {
-                    return response.json().then(data => {
-                        throw new Error(data.error || "Unknown error occurred.");
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.client_secret) {
-                    // Redirect to Stripe's payment page
-                    window.location.href = 'https://yourdomain.com/success'; // Adjust to your success URL
-                } else {
-                    throw new Error("Missing client secret in the response.");
-                }
-            })
-            .catch(error => {
-                console.error("Error creating checkout session:", error.message);
-                alert("Error: " + error.message);  // Show a user-friendly error message
+<script>
+function buyTicket(eventId) {
+    fetch('https://flask-app-2gp0.onrender.com/create-checkout-session/' + eventId, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        // Check if the response is OK (status 200)
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || "Unknown error occurred.");
             });
         }
-        </script>
+        return response.json();
+    })
+    .then(data => {
+        if (data.url) {
+            // Redirect the user to Stripe Checkout
+            window.location.href = data.url;  // Stripe Checkout URL
+        } else {
+            throw new Error("Missing checkout session URL in the response.");
+        }
+    })
+    .catch(error => {
+        console.error("Error creating checkout session:", error.message);
+        alert("Error: " + error.message);  // Show a user-friendly error message
+    });
+}
+</script>
+
 
     '''
 
@@ -292,7 +294,6 @@ def embed_events(unique_id):
     return response, 200, {'Content-Type': 'application/javascript'}
 
 # Stripe Checkout session creation
-# Stripe PaymentIntent creation for handling payment split
 @app.route('/create-checkout-session/<int:event_id>', methods=['POST'])
 def create_checkout_session(event_id):
     event = Event.query.get(event_id)
@@ -308,30 +309,37 @@ def create_checkout_session(event_id):
 
     # Calculate the platform fee (flat_rate as a percentage of total)
     flat_rate = user.flat_rate or 0.01  # Default to 1% if flat_rate is not set
-    amount_to_transfer = int(event.ticket_price * (1 - flat_rate) * 100)  # Amount to transfer to connected account in pence
+    platform_fee_amount = int(event.ticket_price * flat_rate * 100)  # Convert to pence
 
     try:
-        # Create a Stripe PaymentIntent with transfer data
-        payment_intent = stripe.PaymentIntent.create(
-            amount=int(event.ticket_price * 100),  # Total ticket price in pence
-            currency='gbp',
+        # Create a Stripe Checkout session
+        checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'gbp',
+                    'product_data': {
+                        'name': event.name,
+                    },
+                    'unit_amount': int(event.ticket_price * 100),  # Convert to pence
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=url_for('success', _external=True),
+            cancel_url=url_for('cancel', _external=True),
             transfer_data={
-                'amount': amount_to_transfer,  # Amount to send to the connected account
-                'destination': user.stripe_connect_id,  # Connected account's Stripe ID
+                'amount': int(event.ticket_price * (1 - flat_rate) * 100),  # Amount to send to the connected account
+                'destination': user.stripe_connect_id,
             },
+            application_fee_amount=platform_fee_amount,  # Platform fee amount in pence
         )
 
-        # Return the client_secret to complete payment on the front end
-        return {"client_secret": payment_intent.client_secret}, 200
-
-    except stripe.error.StripeError as e:
-        # Handle known Stripe errors gracefully
-        return {"error": str(e)}, 400
+        # Return the checkout session URL for Stripe redirection
+        return {"url": checkout_session.url}, 200
 
     except Exception as e:
-        # Catch any other exceptions and return an error message
-        return {"error": f"Unexpected error: {str(e)}"}, 500
+        return {"error": str(e)}, 400
 
 
 
