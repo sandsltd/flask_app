@@ -274,7 +274,7 @@ def embed_events(unique_id):
     # Get all events for that user
     user_events = Event.query.filter_by(user_id=user.id).all()
 
-    # Generate the HTML for the events with full details and a 'Buy Ticket' button
+    # Generate the HTML for the events with a "Buy Ticket" button and embedded JavaScript
     events_html = '<ul>'
     for event in user_events:
         events_html += f'''
@@ -286,24 +286,44 @@ def embed_events(unique_id):
             Time: {event.start_time} - {event.end_time}<br>
             Ticket Quantity: {event.ticket_quantity}<br>
             Ticket Price: £{event.ticket_price}<br>
-            <form action="/create-checkout-session/{event.id}" method="POST">
-                <button type="submit">Buy Ticket</button>
-            </form>
+            <button onclick="buyTicket({event.id})">Buy Ticket</button>
         </li><br>
         '''
     events_html += '</ul>'
+
+    # Add JavaScript to handle the AJAX request and redirect to Stripe
+    events_html += '''
+    <script>
+    function buyTicket(eventId) {
+        fetch('https://flask-app-2gp0.onrender.com/create-checkout-session/' + eventId, {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                alert("Error: " + data.error);
+            }
+        })
+        .catch(error => console.error("Error creating checkout session:", error));
+    }
+    </script>
+    '''
 
     # Return the HTML content as a script that writes to the document
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
 
 
+
+
 @app.route('/create-checkout-session/<int:event_id>', methods=['POST'])
 def create_checkout_session(event_id):
     event = Event.query.get(event_id)
-    
+
     if not event:
-        return "Event not found", 404
+        return {"error": "Event not found"}, 404
 
     try:
         # Create a Stripe Checkout session
@@ -324,11 +344,12 @@ def create_checkout_session(event_id):
             cancel_url=url_for('cancel', _external=True),
         )
         
-        # This line redirects to the Stripe Checkout session URL
-        return redirect(checkout_session.url, code=303)
+        # Return the checkout session URL in a JSON response
+        return {"url": checkout_session.url}, 200
 
     except Exception as e:
-        return str(e), 400
+        return {"error": str(e)}, 400
+
 
 
 @app.route('/success')
