@@ -9,6 +9,12 @@ import string
 import random
 from werkzeug.security import generate_password_hash
 from flask import request, redirect, url_for, flash, render_template
+import stripe
+from flask import jsonify
+
+
+stripe.api_key = os.getenv("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")  # Your platform's secret key
+
 
 
 app = Flask(__name__)
@@ -271,7 +277,7 @@ def embed_events(unique_id):
     # Get all events for that user
     user_events = Event.query.filter_by(user_id=user.id).all()
 
-    # Generate the HTML for the events with full details
+    # Generate the HTML for the events with payment buttons
     events_html = '<ul>'
     for event in user_events:
         events_html += f'''
@@ -282,11 +288,74 @@ def embed_events(unique_id):
             Description: {event.description}<br>
             Time: {event.start_time} - {event.end_time}<br>
             Ticket Quantity: {event.ticket_quantity}<br>
-            Ticket Price: £{event.ticket_price}
+            Ticket Price: £{event.ticket_price}<br>
+            <button onclick="payForEvent('{event.id}', '{user.stripe_connect_id}', {event.ticket_price})">Buy Ticket</button>
         </li><br>
         '''
     events_html += '</ul>'
 
-    # Return the HTML content as a script that writes to the document
-    response = f"document.write(`{events_html}`);"
-    return response, 200, {'Content-Type': 'application/javascript'}
+    # JavaScript for Stripe payment
+    events_html += '''
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        function payForEvent(eventId, userStripeConnectId, ticketPrice) {
+            fetch('/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    event_id: eventId,
+                    stripe_connect_id: userStripeConnectId,
+                    ticket_price: ticketPrice
+                })
+            }).then(function(response) {
+                return response.json();
+            }).then(function(session) {
+                var stripe = Stripe('pk_live_51Pid0NAduQJv3VqCcZ53hYSqSaBIkjMpPIEaLATzkEQ0W6ZH19wtnKQAgmlmAzZJ1qqh4umJqx6vzsbmnZJXlvVQ00nIgg7EhQ');  // Your Stripe publishable key
+                stripe.redirectToCheckout({ sessionId: session.id });
+            }).catch(function(error) {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+    '''
+
+    return events_html, 200, {'Content-Type': 'application/javascript'}
+
+@app.route('/create-checkout-session', methods=['POST'])
+def create_checkout_session():
+    try:
+        data = request.get_json()
+        event_id = data['event_id']
+        user_stripe_connect_id = data['stripe_connect_id']
+        ticket_price = data['ticket_price']
+
+        # Create a Stripe Checkout Session
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'gbp',
+                    'product_data': {
+                        'name': f"Ticket for Event {event_id}",
+                    },
+                    'unit_amount': int(ticket_price * 100),  # Convert to pence
+                },
+                'quantity': 1,
+            }],
+            payment_intent_data={
+                'application_fee_amount': int(ticket_price * 100 * 0.1),  # 10% platform fee
+                'transfer_data': {
+                    'destination': user_stripe_connect_id,
+                },
+            },
+            mode='payment',
+            success_url='https://your-site.com/success',
+            cancel_url='https://your-site.com/cancel',
+        )
+
+        return jsonify({'id': session.id})
+    
+    except Exception as e:
+        return jsonify(error=str(e)), 403
