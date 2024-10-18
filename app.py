@@ -37,14 +37,17 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        email = request.form['email']
         password = request.form['password']
-        if username in users and check_password_hash(users[username]['password'], password):
-            user = User(id=username)
+
+        # Fetch the user by email
+        user = User.query.filter_by(email=email).first()
+        if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('dashboard'))
         else:
-            flash('Invalid username or password')
+            flash('Invalid email or password')
+    
     return render_template('login.html')
 
 @app.route('/dashboard')
@@ -73,9 +76,8 @@ db = SQLAlchemy(app)
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     unique_id = db.Column(db.String(36), unique=True, default=lambda: str(uuid.uuid4()))
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)  # Increased length for hashed password
+    email = db.Column(db.String(120), unique=True, nullable=False)  # Using email as the unique login field
+    password = db.Column(db.String(255), nullable=False)
     full_name = db.Column(db.String(120), nullable=False)
     phone_number = db.Column(db.String(20), nullable=False)
     business_name = db.Column(db.String(120), nullable=False)
