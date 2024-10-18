@@ -261,26 +261,28 @@ def reset_db():
 
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
-    # Fetch the user by their unique_id
+    # Fetch the user by their unique ID
     user = User.query.filter_by(unique_id=unique_id).first()
-
-    if user:
-        # Get the events associated with this user
-        events = Event.query.filter_by(user_id=user.id).all()
-
-        # Prepare event data to pass to the template
-        event_list = []
-        for event in events:
-            event_list.append({
-                'name': event.name,
-                'date': event.date,
-                'location': event.location,
-                'description': event.description,
-                'start_time': event.start_time,
-                'end_time': event.end_time,
-            })
-        
-        # Render the events in the embed template
-        return render_template('embed.html', events=event_list)
     
-    return "Invalid user ID."
+    # Check if user exists
+    if not user:
+        return "User not found", 404
+    
+    # Fetch the events for the user
+    user_events = Event.query.filter_by(user_id=user.id).all()
+    
+    # Create an HTML structure for the user's events
+    event_html = "<ul>"
+    for event in user_events:
+        event_html += f"<li>{event.name} - {event.date}</li>"
+    event_html += "</ul>"
+    
+    # Return the events wrapped in a <script> for document.write
+    return f"""
+    <script>
+        document.write(`
+        <h2>{user.business_name}'s Events:</h2>
+        {event_html}
+        `);
+    </script>
+    """
