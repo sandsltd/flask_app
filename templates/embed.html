@@ -5,13 +5,6 @@
         <li>
             <strong>{{ event.name }}</strong><br>
             Date: {{ event.date }}<br>
-            Location: {{ event.location }}<br>
-            Description: {{ event.description }}<br>
-            Time: {{ event.start_time }} - {{ event.end_time }}<br>
-            Ticket Price: £{{ event.ticket_price }}<br>
-            <form action="/buy_ticket/{{ event.id }}" method="POST">
-                <button type="submit">Buy Ticket</button>
-            </form>
         </li>
         {% else %}
         <li>No events yet.</li>

@@ -275,9 +275,12 @@ def embed_events(unique_id):
     # Get all events for that user
     user_events = Event.query.filter_by(user_id=user.id).all()
 
-    # Generate the HTML for the events, including the Stripe "Buy Ticket" button
+    # Generate the HTML for the events, including Stripe Payment Links
     events_html = '<ul>'
     for event in user_events:
+        # Create a payment link for this event
+        payment_link = create_stripe_payment_link(event)
+
         events_html += f'''
         <li>
             <strong>{event.name}</strong><br>
@@ -287,7 +290,7 @@ def embed_events(unique_id):
             Time: {event.start_time} - {event.end_time}<br>
             Ticket Quantity: {event.ticket_quantity}<br>
             Ticket Price: £{event.ticket_price}<br>
-            <button onclick="window.location.href='/create_checkout/{event.id}'">Buy Ticket</button>
+            <button onclick="window.location.href='{payment_link}'">Buy Ticket</button>
         </li><br>
         '''
     events_html += '</ul>'
@@ -295,6 +298,39 @@ def embed_events(unique_id):
     # Return the HTML content as a script that writes to the document
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
+# Function to create a Stripe Payment Link
+def create_stripe_payment_link(event):
+    user = event.user
+    stripe_account_id = user.stripe_connect_id
+
+    try:
+        # Create a Stripe Payment Link for the event
+        payment_link = stripe.PaymentLink.create(
+            line_items=[{
+                'price_data': {
+                    'currency': 'gbp',
+                    'product_data': {
+                        'name': event.name,
+                    },
+                    'unit_amount': int(event.ticket_price * 100),  # Stripe expects amount in pence
+                },
+                'quantity': 1,
+            }],
+            payment_intent_data={
+                'application_fee_amount': 200,  # Platform fee in pence (e.g., £2.00)
+                'transfer_data': {
+                    'destination': stripe_account_id,  # Transfer to the event owner's Stripe account
+                },
+            },
+        )
+
+        # Return the URL for the Payment Link
+        return payment_link.url
+    except Exception as e:
+        print(f"Error creating payment link: {e}")
+        return "#"
+
 
 
 
