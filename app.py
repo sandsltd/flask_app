@@ -16,17 +16,12 @@ app.secret_key = 'supersecretkey'
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-# Store users and events in memory (for now)
-users = {}
-events_by_user = {}
 
 from flask_login import UserMixin
 
 @login_manager.user_loader
 def load_user(user_id):
-    if user_id in users:
-        return User(id=user_id)
-    return None
+    return User.query.get(int(user_id))
 
 @app.route('/')
 def home():
