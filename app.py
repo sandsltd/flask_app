@@ -4,9 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 import os
 from flask_migrate import Migrate
-
-# Initialize Flask-Migrate
-migrate = Migrate(app, db)
+import uuid
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -94,9 +92,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# User and Event models
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    unique_id = db.Column(db.String(36), unique=True, default=str(uuid.uuid4()))  # New unique_id column
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
