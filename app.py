@@ -3,6 +3,10 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 import os
+from flask_migrate import Migrate
+
+# Initialize Flask-Migrate
+migrate = Migrate(app, db)
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -94,12 +98,38 @@ db = SQLAlchemy(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
+    full_name = db.Column(db.String(120), nullable=False)
+    phone_number = db.Column(db.String(20), nullable=False)
+    business_name = db.Column(db.String(120), nullable=False)
+    website_url = db.Column(db.String(200), nullable=True)  # Optional
+    vat_number = db.Column(db.String(50), nullable=True)    # Optional
+    stripe_connect_id = db.Column(db.String(120), nullable=False)
+
     events = db.relationship('Event', backref='user', lazy=True)
+
 
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     date = db.Column(db.String(120), nullable=False)
+    location = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    start_time = db.Column(db.String(50), nullable=False)
+    end_time = db.Column(db.String(50), nullable=False)
+    ticket_quantity = db.Column(db.Integer, nullable=False)
+    ticket_price = db.Column(db.Float, nullable=False)
+    event_image = db.Column(db.String(300), nullable=True)  # Image URL
+
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
+
+
+@app.route('/init_db')
+
+@app.route('/reset_db')
+def reset_db():
+    db.drop_all()  # This will drop all tables in the database
+    db.create_all()  # This will create all tables with the new models
+    return "Database reset and tables created!"
