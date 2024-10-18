@@ -324,11 +324,12 @@ def create_checkout_session(event_id):
             cancel_url=url_for('cancel', _external=True),
         )
         
-        # Redirect to the Stripe Checkout URL
+        # This line redirects to the Stripe Checkout session URL
         return redirect(checkout_session.url, code=303)
 
     except Exception as e:
         return str(e), 400
+
 
 @app.route('/success')
 def success():
