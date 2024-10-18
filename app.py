@@ -10,10 +10,9 @@ import random
 from werkzeug.security import generate_password_hash
 from flask import request, redirect, url_for, flash, render_template
 import stripe
-from flask import jsonify
 
+# Set your Stripe secret key from the environment variable
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -275,12 +274,9 @@ def embed_events(unique_id):
     # Get all events for that user
     user_events = Event.query.filter_by(user_id=user.id).all()
 
-    # Generate the HTML for the events, including Stripe Payment Links
+    # Generate the HTML for the events with full details and a 'Buy Ticket' button
     events_html = '<ul>'
     for event in user_events:
-        # Create a payment link for this event
-        payment_link = create_stripe_payment_link(event)
-
         events_html += f'''
         <li>
             <strong>{event.name}</strong><br>
@@ -290,7 +286,9 @@ def embed_events(unique_id):
             Time: {event.start_time} - {event.end_time}<br>
             Ticket Quantity: {event.ticket_quantity}<br>
             Ticket Price: £{event.ticket_price}<br>
-            <button onclick="window.location.href='{payment_link}'">Buy Ticket</button>
+            <form action="/create-checkout-session/{event.id}" method="POST">
+                <button type="submit">Buy Ticket</button>
+            </form>
         </li><br>
         '''
     events_html += '</ul>'
@@ -299,100 +297,15 @@ def embed_events(unique_id):
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
 
-# Function to create a Stripe Payment Link
-def create_stripe_payment_link(event):
-    user = event.user
-    stripe_account_id = user.stripe_connect_id
 
-    try:
-        # Create a Stripe Payment Link for the event
-        payment_link = stripe.PaymentLink.create(
-            line_items=[{
-                'price_data': {
-                    'currency': 'gbp',
-                    'product_data': {
-                        'name': event.name,
-                    },
-                    'unit_amount': int(event.ticket_price * 100),  # Stripe expects amount in pence
-                },
-                'quantity': 1,
-            }],
-            payment_intent_data={
-                'application_fee_amount': 200,  # Platform fee in pence (e.g., £2.00)
-                'transfer_data': {
-                    'destination': stripe_account_id,  # Transfer to the event owner's Stripe account
-                },
-            },
-        )
-
-        # Return the URL for the Payment Link
-        return payment_link.url
-    except Exception as e:
-        print(f"Error creating payment link: {e}")
-        return "#"
-
-
-
-
-
-@app.route('/create_checkout/<event_id>', methods=['GET'])
-def create_checkout(event_id):
-    # Fetch the event details using the event_id
+@app.route('/create-checkout-session/<int:event_id>', methods=['POST'])
+def create_checkout_session(event_id):
     event = Event.query.get(event_id)
     
     if not event:
         return "Event not found", 404
 
-    # Get the current user (event owner) and their Stripe Connect account ID
-    user = event.user
-    stripe_account_id = user.stripe_connect_id
-
-    # Create a Stripe Checkout session
     try:
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'gbp',
-                    'product_data': {
-                        'name': event.name,
-                    },
-                    'unit_amount': int(event.ticket_price * 100),  # Stripe expects amount in pence
-                },
-                'quantity': 1,
-            }],
-            mode='payment',
-            success_url=url_for('home', _external=True) + '?success=true',
-            cancel_url=url_for('home', _external=True) + '?canceled=true',
-            payment_intent_data={
-                'application_fee_amount': 200,  # Platform fee in pence (e.g., £2.00)
-                'transfer_data': {
-                    'destination': stripe_account_id,  # The event creator's Stripe account
-                },
-            },
-        )
-
-        # Redirect to the Stripe Checkout URL
-        return redirect(checkout_session.url)
-    except Exception as e:
-        return str(e), 500
-
-
-
-@app.route('/buy_ticket/<int:event_id>', methods=['POST'])
-@login_required
-def buy_ticket(event_id):
-    try:
-        # Fetch the event from the database
-        event = Event.query.get(event_id)
-        if not event:
-            return "Event not found", 404
-
-        # Fetch the user's Stripe Connect account ID from the database
-        user = User.query.get(event.user_id)
-        if not user or not user.stripe_connect_id:
-            return "Seller not registered with Stripe", 400
-
         # Create a Stripe Checkout session
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
@@ -406,29 +319,21 @@ def buy_ticket(event_id):
                 },
                 'quantity': 1,
             }],
-            payment_intent_data={
-                'application_fee_amount': int(event.ticket_price * 100 * 0.1),  # 10% platform fee
-                'transfer_data': {
-                    'destination': user.stripe_connect_id,  # Client's Stripe Connect ID
-                },
-            },
             mode='payment',
             success_url=url_for('success', _external=True),
             cancel_url=url_for('cancel', _external=True),
         )
-
-        # Redirect the user to the Stripe Checkout page
+        
+        # Redirect to the Stripe Checkout URL
         return redirect(checkout_session.url, code=303)
 
     except Exception as e:
-        print(f"Error during checkout: {str(e)}")
-        return str(e), 500
-
+        return str(e), 400
 
 @app.route('/success')
 def success():
-    return "Payment was successful!"
+    return "Payment successful! Thank you for purchasing a ticket."
 
 @app.route('/cancel')
 def cancel():
-    return "Payment was cancelled."
+    return "Payment canceled. You can try again."
