@@ -147,7 +147,7 @@ def register():
             locality = request.form['locality']  # Locality
             town = request.form['town']  # Town
             postcode = request.form['postcode']  # Postcode
-            
+
             # New fields for rates
             flat_rate = request.form.get('flat_rate', type=float)  # Flat rate
             promo_rate = request.form.get('promo_rate', type=float)  # Promotional rate
@@ -203,8 +203,6 @@ def register():
         return f"An error occurred during registration: {str(e)}"
 
     return render_template('register.html')
-
-
 
 
 @app.route('/create_event', methods=['GET', 'POST'])
