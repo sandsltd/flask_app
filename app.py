@@ -277,7 +277,7 @@ def embed_events(unique_id):
     # Get all events for that user
     user_events = Event.query.filter_by(user_id=user.id).all()
 
-    # Generate the HTML for the events with payment buttons
+    # Generate the HTML for the events including the "Buy Ticket" button
     events_html = '<ul>'
     for event in user_events:
         events_html += f'''
@@ -289,39 +289,15 @@ def embed_events(unique_id):
             Time: {event.start_time} - {event.end_time}<br>
             Ticket Quantity: {event.ticket_quantity}<br>
             Ticket Price: £{event.ticket_price}<br>
-            <button onclick="payForEvent('{event.id}', '{user.stripe_connect_id}', {event.ticket_price})">Buy Ticket</button>
+            <button onclick="window.location.href='/buy_ticket/{event.id}'">Buy Ticket</button>
         </li><br>
         '''
     events_html += '</ul>'
 
-    # JavaScript for Stripe payment
-    events_html += '''
-    <script src="https://js.stripe.com/v3/"></script>
-    <script>
-        function payForEvent(eventId, userStripeConnectId, ticketPrice) {
-            fetch('/create-checkout-session', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    event_id: eventId,
-                    stripe_connect_id: userStripeConnectId,
-                    ticket_price: ticketPrice
-                })
-            }).then(function(response) {
-                return response.json();
-            }).then(function(session) {
-                var stripe = Stripe('pk_live_51Pid0NAduQJv3VqCcZ53hYSqSaBIkjMpPIEaLATzkEQ0W6ZH19wtnKQAgmlmAzZJ1qqh4umJqx6vzsbmnZJXlvVQ00nIgg7EhQ');  // Your Stripe publishable key
-                stripe.redirectToCheckout({ sessionId: session.id });
-            }).catch(function(error) {
-                console.error('Error:', error);
-            });
-        }
-    </script>
-    '''
+    # Return the HTML content as a script that writes to the document
+    response = f"document.write(`{events_html}`);"
+    return response, 200, {'Content-Type': 'application/javascript'}
 
-    return events_html, 200, {'Content-Type': 'application/javascript'}
 
 @app.route('/create-checkout-session', methods=['POST'])
 def create_checkout_session():
