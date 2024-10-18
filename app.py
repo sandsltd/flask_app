@@ -42,13 +42,22 @@ def login():
 
         # Fetch the user by email
         user = User.query.filter_by(email=email).first()
+        if user:
+            print(f"User found: {user.email}")
+        else:
+            print("User not found")
+
         if user and check_password_hash(user.password, password):
+            print("Password check successful")
             login_user(user)
             return redirect(url_for('dashboard'))
         else:
             flash('Invalid email or password')
+            print("Password check failed")
     
     return render_template('login.html')
+
+
 
 @app.route('/dashboard')
 @login_required
