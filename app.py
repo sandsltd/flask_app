@@ -287,7 +287,9 @@ def embed_events(unique_id):
             Time: {event.start_time} - {event.end_time}<br>
             Ticket Quantity: {event.ticket_quantity}<br>
             Ticket Price: £{event.ticket_price}<br>
-            <button onclick="window.location.href='/buy_ticket/{event.id}'">Buy Ticket</button>
+            <form action="/buy_ticket/{event.id}" method="POST">
+                <button type="submit">Buy Ticket</button>
+            </form>
         </li><br>
         '''
     events_html += '</ul>'
@@ -295,6 +297,7 @@ def embed_events(unique_id):
     # Return the HTML content as a script that writes to the document
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 @app.route('/create-checkout-session', methods=['POST'])
