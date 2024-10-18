@@ -7,121 +7,57 @@ from flask_migrate import Migrate
 import uuid
 import string
 import random
-from werkzeug.security import generate_password_hash
-from flask import request, redirect, url_for, flash, render_template
 import stripe
-from flask import Flask
 from flask_cors import CORS
 
 app = Flask(__name__)
 
-# Explicitly enable CORS for all routes
-CORS(app, supports_credentials=True)
-
-# Your existing routes and configuration...
-
+# Enable CORS for all routes and origins
+CORS(app)  # This will allow all origins by default, but you can restrict it if needed.
 
 # Set your Stripe secret key from the environment variable
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
-app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 login_manager = LoginManager()
 login_manager.init_app(app)
-
-
-from flask_login import UserMixin
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-@app.route('/')
-def home():
-    return "Hello, World!"
-
-
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-
-        # Fetch the user by email
-        user = User.query.filter_by(email=email).first()
-        if user:
-            print(f"User found: {user.email}")
-        else:
-            print("User not found")
-
-        if user and check_password_hash(user.password, password):
-            print("Password check successful")
-            login_user(user)
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid email or password')
-            print("Password check failed")
-    
-    return render_template('login.html')
-
-
-
-@app.route('/dashboard')
-@login_required
-def dashboard():
-    user_events = Event.query.filter_by(user_id=current_user.id).all()
-    
-    # Pass current_user (which contains user details like unique_id) to the template
-    return render_template('dashboard.html', events=user_events, user=current_user)
-
-
-
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('home'))
-
-if __name__ == "__main__":
-    app.run(debug=True)
 
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
+# User model
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     unique_id = db.Column(db.String(36), unique=True, default=lambda: str(uuid.uuid4()))
-    email = db.Column(db.String(120), unique=True, nullable=False)  # Using email as the unique login field
+    email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    first_name = db.Column(db.String(120), nullable=False)         # First name
-    last_name = db.Column(db.String(120), nullable=False)          # Last name
+    first_name = db.Column(db.String(120), nullable=False)
+    last_name = db.Column(db.String(120), nullable=False)
     phone_number = db.Column(db.String(20), nullable=False)
     business_name = db.Column(db.String(120), nullable=False)
-    website_url = db.Column(db.String(200), nullable=True)         # Optional
-    vat_number = db.Column(db.String(50), nullable=True)           # Optional
+    website_url = db.Column(db.String(200), nullable=True)  # Optional
+    vat_number = db.Column(db.String(50), nullable=True)  # Optional
     stripe_connect_id = db.Column(db.String(120), nullable=False)
 
     # Address fields
-    house_name_or_number = db.Column(db.String(255), nullable=False)  # House name/number
-    street = db.Column(db.String(255), nullable=False)                 # Street
-    locality = db.Column(db.String(255), nullable=True)                # Locality
-    town = db.Column(db.String(100), nullable=False)                   # Town
-    postcode = db.Column(db.String(20), nullable=False)                # Postcode
+    house_name_or_number = db.Column(db.String(255), nullable=False)
+    street = db.Column(db.String(255), nullable=False)
+    locality = db.Column(db.String(255), nullable=True)
+    town = db.Column(db.String(100), nullable=False)
+    postcode = db.Column(db.String(20), nullable=False)
 
-    # New fields for rates
-    flat_rate = db.Column(db.Float, nullable=True)                    # Flat rate
-    promo_rate = db.Column(db.Float, nullable=True)                   # Promotional rate
-    promo_rate_date_end = db.Column(db.Date, nullable=True)           # End date for promotional rate
+    # Additional fields for rates
+    flat_rate = db.Column(db.Float, nullable=True)  # Flat rate
+    promo_rate = db.Column(db.Float, nullable=True)  # Promotional rate
+    promo_rate_date_end = db.Column(db.Date, nullable=True)
 
     events = db.relationship('Event', backref='user', lazy=True)
 
-
-
+# Event model
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
@@ -132,24 +68,55 @@ class Event(db.Model):
     end_time = db.Column(db.String(50), nullable=False)
     ticket_quantity = db.Column(db.Integer, nullable=False)
     ticket_price = db.Column(db.Float, nullable=False)
-    event_image = db.Column(db.String(300), nullable=True)  # Image URL
+    event_image = db.Column(db.String(300), nullable=True)  # Optional event image URL
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
-
-
-# Function to generate a random unique ID with 15 characters
+# Generate a random unique ID with 15 characters
 def generate_unique_id():
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(15))
+
+# User Loader
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# Routes for login, logout, registration
+@app.route('/')
+def home():
+    return "Hello, World!"
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+
+        user = User.query.filter_by(email=email).first()
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid email or password')
+    return render_template('login.html')
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    user_events = Event.query.filter_by(user_id=current_user.id).all()
+    return render_template('dashboard.html', events=user_events, user=current_user)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     try:
         if request.method == 'POST':
-            print(request.form)  # Log the form data received
-
-            # Extracting form data
             email = request.form['email']
             password = request.form['password']
             first_name = request.form['first_name']
@@ -157,35 +124,23 @@ def register():
             phone_number = request.form['phone_number']
             business_name = request.form['business_name']
             website_url = request.form.get('website_url', '')  # Optional
-            vat_number = request.form.get('vat_number', '')      # Optional
-            country = request.form.get('country', '')             # Optional
+            vat_number = request.form.get('vat_number', '')  # Optional
             house_name_or_number = request.form['house_name_or_number']
             street = request.form['street']
-            locality = request.form.get('locality', '')          # Optional
+            locality = request.form.get('locality', '')  # Optional
             town = request.form['town']
             postcode = request.form['postcode']
-
-            # New fields for rates (if you still need them)
             flat_rate = request.form.get('flat_rate', type=float)  # Optional
             promo_rate = request.form.get('promo_rate', type=float)  # Optional
             promo_rate_date_end = request.form.get('promo_rate_date_end')  # Optional
 
-            # Debug: Log the incoming data
-            print(f"Registering user: {email}, {first_name} {last_name}, Phone: {phone_number}")
-            print(f"Address: {house_name_or_number}, {street}, {locality}, {town}, {postcode}")
-
-            # Check if the email already exists
             user = User.query.filter_by(email=email).first()
             if user:
-                return render_template('register.html', error="Email already in use, please contact us on 0330 043 6608")
+                return render_template('register.html', error="Email already in use")
 
-            # Generate a unique ID for the user
             unique_id = generate_unique_id()
-
-            # Hash the password for security
             hashed_password = generate_password_hash(password)
 
-            # Create the new user
             new_user = User(
                 unique_id=unique_id,
                 email=email,
@@ -196,7 +151,7 @@ def register():
                 business_name=business_name,
                 website_url=website_url,
                 vat_number=vat_number,
-                stripe_connect_id="",  # Initialize with empty string
+                stripe_connect_id="",
                 house_name_or_number=house_name_or_number,
                 street=street,
                 locality=locality,
@@ -207,7 +162,6 @@ def register():
                 promo_rate_date_end=promo_rate_date_end,
             )
 
-            # Add the new user to the database
             db.session.add(new_user)
             db.session.commit()
 
@@ -220,7 +174,7 @@ def register():
 
     return render_template('register.html')
 
-
+# Event creation route
 @app.route('/create_event', methods=['GET', 'POST'])
 @login_required
 def create_event():
@@ -235,7 +189,6 @@ def create_event():
         ticket_price = request.form['ticket_price']
         event_image = request.form['event_image']
 
-        # Create a new event, linked to the current logged-in user
         new_event = Event(
             name=name,
             date=date,
@@ -249,7 +202,6 @@ def create_event():
             user_id=current_user.id
         )
 
-        # Add the new event to the database
         db.session.add(new_event)
         db.session.commit()
 
@@ -258,33 +210,26 @@ def create_event():
 
     return render_template('create_event.html')
 
-
-if __name__ == "__main__":
-    app.run(debug=True)
-
-
+# Reset database
 @app.route('/reset_db')
 def reset_db():
     try:
-        # Drop all tables and recreate them
-        db.drop_all()  # This deletes all the tables
-        db.create_all()  # This recreates the tables based on the models
+        db.drop_all()
+        db.create_all()
         return "Database reset and tables recreated!"
     except Exception as e:
         return f"An error occurred during reset: {str(e)}"
 
+# Embed route for displaying events
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
-    # Find the user by their unique ID
     user = User.query.filter_by(unique_id=unique_id).first()
 
     if not user:
         return "User not found", 404
 
-    # Get all events for that user
     user_events = Event.query.filter_by(user_id=user.id).all()
 
-    # Generate the HTML for the events with a "Buy Ticket" button and embedded JavaScript
     events_html = '<ul>'
     for event in user_events:
         events_html += f'''
@@ -301,31 +246,32 @@ def embed_events(unique_id):
         '''
     events_html += '</ul>'
 
-    # Add JavaScript to handle the AJAX request and redirect to Stripe
     events_html += '''
     <script>
     function buyTicket(eventId) {
         fetch('https://flask-app-2gp0.onrender.com/create-checkout-session/' + eventId, {
             method: 'POST',
-            mode: 'no-cors'  // Disable CORS for testing, this won't let you access response
+            headers: {
+                'Content-Type': 'application/json'
+            }
         })
-        .then(response => {
-            // Since we're using no-cors, we can't access the full response
-            window.location.href = 'https://flask-app-2gp0.onrender.com/success';  // Redirect manually after success
+        .then(response => response.json())
+        .then(data => {
+            if (data.url) {
+                window.location.href = data.url;  // Redirect to Stripe Checkout
+            } else {
+                alert("Error: " + data.error);
+            }
         })
         .catch(error => console.error("Error creating checkout session:", error));
     }
     </script>
     '''
 
-    # Return the HTML content as a script that writes to the document
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
 
-
-
-
-
+# Stripe Checkout session creation
 @app.route('/create-checkout-session/<int:event_id>', methods=['POST'])
 def create_checkout_session(event_id):
     event = Event.query.get(event_id)
@@ -334,7 +280,6 @@ def create_checkout_session(event_id):
         return {"error": "Event not found"}, 404
 
     try:
-        # Create a Stripe Checkout session
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
@@ -351,15 +296,12 @@ def create_checkout_session(event_id):
             success_url=url_for('success', _external=True),
             cancel_url=url_for('cancel', _external=True),
         )
-        
-        # Return the checkout session URL in a JSON response
         return {"url": checkout_session.url}, 200
 
     except Exception as e:
         return {"error": str(e)}, 400
 
-
-
+# Success and cancel routes
 @app.route('/success')
 def success():
     return "Payment successful! Thank you for purchasing a ticket."
@@ -367,3 +309,6 @@ def success():
 @app.route('/cancel')
 def cancel():
     return "Payment canceled. You can try again."
+
+if __name__ == "__main__":
+    app.run(debug=True)
