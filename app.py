@@ -33,20 +33,7 @@ def load_user(user_id):
 def home():
     return "Hello, World!"
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        if username in users:
-            flash('Username already exists!')
-        else:
-            hashed_password = generate_password_hash(password)
-            users[username] = {'password': hashed_password}
-            events_by_user[username] = []  # Each user gets their own event list
-            flash('Registration successful! You can now log in.')
-            return redirect(url_for('login'))
-    return render_template('register.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -68,18 +55,6 @@ def dashboard():
     return render_template('dashboard.html', events=user_events)
 
 
-@app.route('/create_event', methods=['GET', 'POST'])
-@login_required
-def create_event():
-    if request.method == 'POST':
-        event_name = request.form['event_name']
-        event_date = request.form['event_date']
-        new_event = Event(name=event_name, date=event_date, user_id=current_user.id)
-        db.session.add(new_event)
-        db.session.commit()
-        flash('Event created successfully!')
-        return redirect(url_for('dashboard'))
-    return render_template('create_event.html')
 
 @app.route('/logout')
 @login_required
