@@ -29,7 +29,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-# User model
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     unique_id = db.Column(db.String(36), unique=True, default=lambda: str(uuid.uuid4()))
@@ -50,12 +49,15 @@ class User(db.Model, UserMixin):
     town = db.Column(db.String(100), nullable=False)
     postcode = db.Column(db.String(20), nullable=False)
 
-    # Additional fields for rates
-    flat_rate = db.Column(db.Float, nullable=True)  # Flat rate
+    # Default flat_rate set to 0.01
+    flat_rate = db.Column(db.Float, nullable=True, default=0.01)  # Flat rate with default value
+
+    # Optional promotional fields
     promo_rate = db.Column(db.Float, nullable=True)  # Promotional rate
     promo_rate_date_end = db.Column(db.Date, nullable=True)
 
     events = db.relationship('Event', backref='user', lazy=True)
+
 
 # Event model
 class Event(db.Model):
@@ -130,6 +132,10 @@ def register():
             locality = request.form.get('locality', '')  # Optional
             town = request.form['town']
             postcode = request.form['postcode']
+            
+            # Extract the Stripe Connect Account ID from the form
+            stripe_connect_id = request.form['stripe_connect_id']
+
             flat_rate = request.form.get('flat_rate', type=float)  # Optional
             promo_rate = request.form.get('promo_rate', type=float)  # Optional
             promo_rate_date_end = request.form.get('promo_rate_date_end')  # Optional
@@ -151,7 +157,7 @@ def register():
                 business_name=business_name,
                 website_url=website_url,
                 vat_number=vat_number,
-                stripe_connect_id="",
+                stripe_connect_id=stripe_connect_id,  # Save the Stripe Connect ID from the form
                 house_name_or_number=house_name_or_number,
                 street=street,
                 locality=locality,
@@ -173,6 +179,7 @@ def register():
         return render_template('register.html', error="An error occurred during registration.")
 
     return render_template('register.html')
+
 
 # Event creation route
 @app.route('/create_event', methods=['GET', 'POST'])
