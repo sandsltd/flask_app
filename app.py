@@ -114,8 +114,9 @@ def generate_unique_id():
 def register():
     try:
         if request.method == 'POST':
+            print(request.form)  # Log the form data received
+
             email = request.form['email']
-            username = request.form['username']
             password = request.form['password']
             full_name = request.form['full_name']
             phone_number = request.form['phone_number']
@@ -138,7 +139,6 @@ def register():
             # Create the new user
             new_user = User(
                 unique_id=unique_id,
-                username=username,
                 email=email,
                 password=hashed_password,
                 full_name=full_name,
@@ -162,6 +162,7 @@ def register():
         return f"An error occurred during registration: {str(e)}"
 
     return render_template('register.html')
+
 
 
 @app.route('/create_event', methods=['GET', 'POST'])
