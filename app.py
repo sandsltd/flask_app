@@ -75,7 +75,7 @@ class User(db.Model, UserMixin):
     unique_id = db.Column(db.String(36), unique=True, default=lambda: str(uuid.uuid4()))
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
+    password = db.Column(db.String(255), nullable=False)  # Increased length for hashed password
     full_name = db.Column(db.String(120), nullable=False)
     phone_number = db.Column(db.String(20), nullable=False)
     business_name = db.Column(db.String(120), nullable=False)
@@ -110,50 +110,57 @@ def generate_unique_id():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if request.method == 'POST':
-        email = request.form['email']
-        username = request.form['username']
-        password = request.form['password']
-        full_name = request.form['full_name']
-        phone_number = request.form['phone_number']
-        business_name = request.form['business_name']
-        website_url = request.form.get('website_url')
-        vat_number = request.form.get('vat_number')
-        stripe_connect_id = request.form['stripe_connect_id']
+    try:
+        if request.method == 'POST':
+            email = request.form['email']
+            username = request.form['username']
+            password = request.form['password']
+            full_name = request.form['full_name']
+            phone_number = request.form['phone_number']
+            business_name = request.form['business_name']
+            website_url = request.form.get('website_url')
+            vat_number = request.form.get('vat_number')
+            stripe_connect_id = request.form['stripe_connect_id']
 
-        # Check if the email already exists
-        user = User.query.filter_by(email=email).first()
-        if user:
-            return render_template('register.html', error="Email already in use, please contact us on 0330 043 6608")
+            # Check if the email already exists
+            user = User.query.filter_by(email=email).first()
+            if user:
+                return render_template('register.html', error="Email already in use, please contact us on 0330 043 6608")
 
-        # Generate a unique ID for the user
-        unique_id = generate_unique_id()
+            # Generate a unique ID for the user
+            unique_id = generate_unique_id()
 
-        # Hash the password for security
-        hashed_password = generate_password_hash(password)
+            # Hash the password for security
+            hashed_password = generate_password_hash(password)
 
-        # Create the new user
-        new_user = User(
-            unique_id=unique_id,
-            username=username,
-            email=email,
-            password=hashed_password,
-            full_name=full_name,
-            phone_number=phone_number,
-            business_name=business_name,
-            website_url=website_url,
-            vat_number=vat_number,
-            stripe_connect_id=stripe_connect_id
-        )
+            # Create the new user
+            new_user = User(
+                unique_id=unique_id,
+                username=username,
+                email=email,
+                password=hashed_password,
+                full_name=full_name,
+                phone_number=phone_number,
+                business_name=business_name,
+                website_url=website_url,
+                vat_number=vat_number,
+                stripe_connect_id=stripe_connect_id
+            )
 
-        # Add the new user to the database
-        db.session.add(new_user)
-        db.session.commit()
+            # Add the new user to the database
+            db.session.add(new_user)
+            db.session.commit()
 
-        flash('Account created successfully! Please log in.')
-        return redirect(url_for('login'))
+            flash('Account created successfully! Please log in.')
+            return redirect(url_for('login'))
+
+    except Exception as e:
+        # Print the error to the logs or to the console
+        print(f"Error during registration: {e}")
+        return "An error occurred during registration."
 
     return render_template('register.html')
+
 
 @app.route('/create_event', methods=['GET', 'POST'])
 @login_required
@@ -191,3 +198,18 @@ def create_event():
         return redirect(url_for('dashboard'))
 
     return render_template('create_event.html')
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
+@app.route('/reset_db')
+def reset_db():
+    try:
+        # Drop all tables and recreate them
+        db.drop_all()  # This deletes all the tables
+        db.create_all()  # This recreates the tables based on the models
+        return "Database reset and tables recreated!"
+    except Exception as e:
+        return f"An error occurred during reset: {str(e)}"
