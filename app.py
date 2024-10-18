@@ -256,3 +256,29 @@ def reset_db():
         return "Database reset and tables recreated!"
     except Exception as e:
         return f"An error occurred during reset: {str(e)}"
+
+@app.route('/embed/<unique_id>')
+def embed_events(unique_id):
+    # Fetch the user by their unique_id
+    user = User.query.filter_by(unique_id=unique_id).first()
+
+    if user:
+        # Get the events associated with this user
+        events = Event.query.filter_by(user_id=user.id).all()
+
+        # Prepare event data to pass to the template
+        event_list = []
+        for event in events:
+            event_list.append({
+                'name': event.name,
+                'date': event.date,
+                'location': event.location,
+                'description': event.description,
+                'start_time': event.start_time,
+                'end_time': event.end_time,
+            })
+        
+        # Render the events in the embed template
+        return render_template('embed.html', events=event_list)
+    
+    return "Invalid user ID."
