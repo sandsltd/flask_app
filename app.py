@@ -133,25 +133,30 @@ def register():
         if request.method == 'POST':
             print(request.form)  # Log the form data received
 
+            # Extracting form data
             email = request.form['email']
             password = request.form['password']
-            first_name = request.form['first_name']  # First name
-            last_name = request.form['last_name']    # Last name
+            first_name = request.form['first_name']
+            last_name = request.form['last_name']
             phone_number = request.form['phone_number']
             business_name = request.form['business_name']
-            website_url = request.form.get('website_url')
-            vat_number = request.form.get('vat_number')
-            country = request.form['country']  # Country
-            house_name_or_number = request.form['house_name_or_number']  # House name/number
-            street = request.form['street']  # Street
-            locality = request.form['locality']  # Locality
-            town = request.form['town']  # Town
-            postcode = request.form['postcode']  # Postcode
+            website_url = request.form.get('website_url', '')  # Optional
+            vat_number = request.form.get('vat_number', '')      # Optional
+            country = request.form.get('country', '')             # Optional
+            house_name_or_number = request.form['house_name_or_number']
+            street = request.form['street']
+            locality = request.form.get('locality', '')          # Optional
+            town = request.form['town']
+            postcode = request.form['postcode']
 
-            # New fields for rates
-            flat_rate = request.form.get('flat_rate', type=float)  # Flat rate
-            promo_rate = request.form.get('promo_rate', type=float)  # Promotional rate
-            promo_rate_date_end = request.form.get('promo_rate_date_end')  # End date for promo rate
+            # New fields for rates (if you still need them)
+            flat_rate = request.form.get('flat_rate', type=float)  # Optional
+            promo_rate = request.form.get('promo_rate', type=float)  # Optional
+            promo_rate_date_end = request.form.get('promo_rate_date_end')  # Optional
+
+            # Debug: Log the incoming data
+            print(f"Registering user: {email}, {first_name} {last_name}, Phone: {phone_number}")
+            print(f"Address: {house_name_or_number}, {street}, {locality}, {town}, {postcode}")
 
             # Check if the email already exists
             user = User.query.filter_by(email=email).first()
@@ -190,17 +195,12 @@ def register():
             db.session.add(new_user)
             db.session.commit()
 
-            # Create the Stripe account (currently commented out)
-            """
-            # Stripe account creation code here (commented out)
-            """
-
             flash('Account created successfully! Please log in.')
             return redirect(url_for('login'))
 
     except Exception as e:
         print(f"Error during registration: {str(e)}")
-        return f"An error occurred during registration: {str(e)}"
+        return render_template('register.html', error="An error occurred during registration.")
 
     return render_template('register.html')
 
