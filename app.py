@@ -275,7 +275,7 @@ def embed_events(unique_id):
     # Get all events for that user
     user_events = Event.query.filter_by(user_id=user.id).all()
 
-    # Generate the HTML for the events including the "Buy Ticket" button
+    # Generate the HTML for the events, including the Stripe "Buy Ticket" button
     events_html = '<ul>'
     for event in user_events:
         events_html += f'''
@@ -287,9 +287,7 @@ def embed_events(unique_id):
             Time: {event.start_time} - {event.end_time}<br>
             Ticket Quantity: {event.ticket_quantity}<br>
             Ticket Price: £{event.ticket_price}<br>
-            <form action="/buy_ticket/{event.id}" method="POST">
-                <button type="submit">Buy Ticket</button>
-            </form>
+            <button onclick="window.location.href='/create_checkout/{event.id}'">Buy Ticket</button>
         </li><br>
         '''
     events_html += '</ul>'
@@ -300,42 +298,49 @@ def embed_events(unique_id):
 
 
 
-@app.route('/create-checkout-session', methods=['POST'])
-def create_checkout_session():
-    try:
-        data = request.get_json()
-        event_id = data['event_id']
-        user_stripe_connect_id = data['stripe_connect_id']
-        ticket_price = data['ticket_price']
 
-        # Create a Stripe Checkout Session
-        session = stripe.checkout.Session.create(
+@app.route('/create_checkout/<event_id>', methods=['GET'])
+def create_checkout(event_id):
+    # Fetch the event details using the event_id
+    event = Event.query.get(event_id)
+    
+    if not event:
+        return "Event not found", 404
+
+    # Get the current user (event owner) and their Stripe Connect account ID
+    user = event.user
+    stripe_account_id = user.stripe_connect_id
+
+    # Create a Stripe Checkout session
+    try:
+        checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
                     'currency': 'gbp',
                     'product_data': {
-                        'name': f"Ticket for Event {event_id}",
+                        'name': event.name,
                     },
-                    'unit_amount': int(ticket_price * 100),  # Convert to pence
+                    'unit_amount': int(event.ticket_price * 100),  # Stripe expects amount in pence
                 },
                 'quantity': 1,
             }],
+            mode='payment',
+            success_url=url_for('home', _external=True) + '?success=true',
+            cancel_url=url_for('home', _external=True) + '?canceled=true',
             payment_intent_data={
-                'application_fee_amount': int(ticket_price * 100 * 0.1),  # 10% platform fee
+                'application_fee_amount': 200,  # Platform fee in pence (e.g., £2.00)
                 'transfer_data': {
-                    'destination': user_stripe_connect_id,
+                    'destination': stripe_account_id,  # The event creator's Stripe account
                 },
             },
-            mode='payment',
-            success_url='https://your-site.com/success',
-            cancel_url='https://your-site.com/cancel',
         )
 
-        return jsonify({'id': session.id})
-    
+        # Redirect to the Stripe Checkout URL
+        return redirect(checkout_session.url)
     except Exception as e:
-        return jsonify(error=str(e)), 403
+        return str(e), 500
+
 
 
 @app.route('/buy_ticket/<int:event_id>', methods=['POST'])
