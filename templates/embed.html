@@ -9,7 +9,9 @@
             Description: {{ event.description }}<br>
             Time: {{ event.start_time }} - {{ event.end_time }}<br>
             Ticket Price: £{{ event.ticket_price }}<br>
-            <button onclick="window.location.href='/buy_ticket/{{ event.id }}'">Buy Ticket</button>
+            <form action="/buy_ticket/{{ event.id }}" method="POST">
+                <button type="submit">Buy Ticket</button>
+            </form>
         </li>
         {% else %}
         <li>No events yet.</li>

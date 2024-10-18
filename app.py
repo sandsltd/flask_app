@@ -335,20 +335,22 @@ def create_checkout_session():
         return jsonify(error=str(e)), 403
 
 
-@app.route('/buy_ticket/<event_id>', methods=['GET'])
+@app.route('/buy_ticket/<int:event_id>', methods=['POST'])
+@login_required
 def buy_ticket(event_id):
-    event = Event.query.get(event_id)
-    
-    if not event:
-        return "Event not found", 404
-
     try:
-        # Get the current user's stripe account and the platform's stripe account
-        user = event.user
-        stripe_connect_id = user.stripe_connect_id
+        # Fetch the event from the database
+        event = Event.query.get(event_id)
+        if not event:
+            return "Event not found", 404
 
-        # Create a Stripe Checkout Session
-        session = stripe.checkout.Session.create(
+        # Fetch the user's Stripe Connect account ID from the database
+        user = User.query.get(event.user_id)
+        if not user or not user.stripe_connect_id:
+            return "Seller not registered with Stripe", 400
+
+        # Create a Stripe Checkout session
+        checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
@@ -356,22 +358,33 @@ def buy_ticket(event_id):
                     'product_data': {
                         'name': event.name,
                     },
-                    'unit_amount': int(event.ticket_price * 100),  # Stripe accepts amounts in cents
+                    'unit_amount': int(event.ticket_price * 100),  # Convert to pence
                 },
                 'quantity': 1,
             }],
-            mode='payment',
-            success_url='https://yourdomain.com/success',
-            cancel_url='https://yourdomain.com/cancel',
             payment_intent_data={
                 'application_fee_amount': int(event.ticket_price * 100 * 0.1),  # 10% platform fee
                 'transfer_data': {
-                    'destination': stripe_connect_id,  # Send the rest to the user's Stripe account
+                    'destination': user.stripe_connect_id,  # Client's Stripe Connect ID
                 },
             },
+            mode='payment',
+            success_url=url_for('success', _external=True),
+            cancel_url=url_for('cancel', _external=True),
         )
 
-        return redirect(session.url, code=303)
+        # Redirect the user to the Stripe Checkout page
+        return redirect(checkout_session.url, code=303)
 
     except Exception as e:
-        return str(e)
+        print(f"Error during checkout: {str(e)}")
+        return str(e), 500
+
+
+@app.route('/success')
+def success():
+    return "Payment was successful!"
+
+@app.route('/cancel')
+def cancel():
+    return "Payment was cancelled."
