@@ -330,9 +330,8 @@ def create_checkout_session(event_id):
             cancel_url=url_for('cancel', _external=True),
             transfer_data={
                 'amount': int(event.ticket_price * (1 - flat_rate) * 100),  # Amount to send to the connected account
-                'destination': user.stripe_connect_id,
-            },
-            application_fee_amount=platform_fee_amount,  # Platform fee amount in pence
+                'destination': user.stripe_connect_id,  # User's connected Stripe account
+            }
         )
 
         # Return the checkout session URL for Stripe redirection
@@ -340,8 +339,6 @@ def create_checkout_session(event_id):
 
     except Exception as e:
         return {"error": str(e)}, 400
-
-
 
 
 # Success and cancel routes
