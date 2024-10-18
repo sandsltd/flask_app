@@ -6,14 +6,36 @@
     <title>Create Event</title>
 </head>
 <body>
-    <h1>Create a New Event</h1>
-    <form method="POST" action="/create_event">
-        <label for="event_name">Event Name:</label>
-        <input type="text" id="event_name" name="event_name" required><br>
-        <label for="event_date">Event Date:</label>
-        <input type="date" id="event_date" name="event_date" required><br>
+    <h1>Create an Event</h1>
+    <form action="/create_event" method="POST">
+        <label for="name">Event Name:</label>
+        <input type="text" id="name" name="name" required><br>
+
+        <label for="date">Event Date:</label>
+        <input type="date" id="date" name="date" required><br>
+
+        <label for="location">Event Location:</label>
+        <input type="text" id="location" name="location" required><br>
+
+        <label for="description">Event Description:</label>
+        <textarea id="description" name="description" required></textarea><br>
+
+        <label for="start_time">Start Time:</label>
+        <input type="time" id="start_time" name="start_time" required><br>
+
+        <label for="end_time">End Time:</label>
+        <input type="time" id="end_time" name="end_time" required><br>
+
+        <label for="ticket_quantity">Ticket Quantity:</label>
+        <input type="number" id="ticket_quantity" name="ticket_quantity" required><br>
+
+        <label for="ticket_price">Ticket Price (£):</label>
+        <input type="number" id="ticket_price" name="ticket_price" step="0.01" required><br>
+
+        <label for="event_image">Event Image (URL):</label>
+        <input type="url" id="event_image" name="event_image"><br>
+
         <input type="submit" value="Create Event">
     </form>
-    <a href="/dashboard">Back to Dashboard</a>
 </body>
 </html>

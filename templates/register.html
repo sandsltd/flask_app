@@ -7,22 +7,38 @@
 </head>
 <body>
     <h1>Register</h1>
-    <form method="POST" action="/register">
+    <form action="/register" method="POST">
         <label for="username">Username:</label>
         <input type="text" id="username" name="username" required><br>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required><br>
+
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" required><br>
+
+        <label for="full_name">Full Name:</label>
+        <input type="text" id="full_name" name="full_name" required><br>
+
+        <label for="phone_number">Phone Number:</label>
+        <input type="text" id="phone_number" name="phone_number" required><br>
+
+        <label for="business_name">Business Name:</label>
+        <input type="text" id="business_name" name="business_name" required><br>
+
+        <label for="website_url">Website URL (optional):</label>
+        <input type="url" id="website_url" name="website_url"><br>
+
+        <label for="vat_number">VAT Number (optional):</label>
+        <input type="text" id="vat_number" name="vat_number"><br>
+
+        <label for="stripe_connect_id">Stripe Connect Account ID:</label>
+        <input type="text" id="stripe_connect_id" name="stripe_connect_id" required><br>
+
         <input type="submit" value="Register">
     </form>
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <ul>
-                {% for message in messages %}
-                    <li>{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
-    <a href="/login">Already have an account? Log in</a>
+    {% if error %}
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
 </body>
 </html>

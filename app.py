@@ -5,6 +5,10 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 from flask_migrate import Migrate
 import uuid
+import string
+import random
+from werkzeug.security import generate_password_hash
+from flask import request, redirect, url_for, flash, render_template
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -124,10 +128,91 @@ class Event(db.Model):
 
 
 
-@app.route('/init_db')
+# Function to generate a random unique ID with 15 characters
+def generate_unique_id():
+    characters = string.ascii_letters + string.digits
+    return ''.join(random.choice(characters) for _ in range(15))
 
-@app.route('/reset_db')
-def reset_db():
-    db.drop_all()  # This will drop all tables in the database
-    db.create_all()  # This will create all tables with the new models
-    return "Database reset and tables created!"
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        email = request.form['email']
+        username = request.form['username']
+        password = request.form['password']
+        full_name = request.form['full_name']
+        phone_number = request.form['phone_number']
+        business_name = request.form['business_name']
+        website_url = request.form.get('website_url')
+        vat_number = request.form.get('vat_number')
+        stripe_connect_id = request.form['stripe_connect_id']
+
+        # Check if the email already exists
+        user = User.query.filter_by(email=email).first()
+        if user:
+            return render_template('register.html', error="Email already in use, please contact us on 0330 043 6608")
+
+        # Generate a unique ID for the user
+        unique_id = generate_unique_id()
+
+        # Hash the password for security
+        hashed_password = generate_password_hash(password)
+
+        # Create the new user
+        new_user = User(
+            unique_id=unique_id,
+            username=username,
+            email=email,
+            password=hashed_password,
+            full_name=full_name,
+            phone_number=phone_number,
+            business_name=business_name,
+            website_url=website_url,
+            vat_number=vat_number,
+            stripe_connect_id=stripe_connect_id
+        )
+
+        # Add the new user to the database
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash('Account created successfully! Please log in.')
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
+
+@app.route('/create_event', methods=['GET', 'POST'])
+@login_required
+def create_event():
+    if request.method == 'POST':
+        name = request.form['name']
+        date = request.form['date']
+        location = request.form['location']
+        description = request.form['description']
+        start_time = request.form['start_time']
+        end_time = request.form['end_time']
+        ticket_quantity = request.form['ticket_quantity']
+        ticket_price = request.form['ticket_price']
+        event_image = request.form['event_image']
+
+        # Create a new event, linked to the current logged-in user
+        new_event = Event(
+            name=name,
+            date=date,
+            location=location,
+            description=description,
+            start_time=start_time,
+            end_time=end_time,
+            ticket_quantity=ticket_quantity,
+            ticket_price=ticket_price,
+            event_image=event_image,
+            user_id=current_user.id
+        )
+
+        # Add the new event to the database
+        db.session.add(new_event)
+        db.session.commit()
+
+        flash('Event created successfully!')
+        return redirect(url_for('dashboard'))
+
+    return render_template('create_event.html')
