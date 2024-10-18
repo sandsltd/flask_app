@@ -57,9 +57,10 @@ def login():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    print(f"Unique ID for current user: {current_user.unique_id}")
     user_events = Event.query.filter_by(user_id=current_user.id).all()
-    return render_template('dashboard.html', events=user_events)
+    
+    # Pass current_user (which contains user details like unique_id) to the template
+    return render_template('dashboard.html', events=user_events, user=current_user)
 
 
 
