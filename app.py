@@ -279,14 +279,31 @@ def embed_events(unique_id):
     return response, 200, {'Content-Type': 'application/javascript'}
 
 # Stripe Checkout session creation
+# Stripe Checkout session creation
 @app.route('/create-checkout-session/<int:event_id>', methods=['POST'])
 def create_checkout_session(event_id):
+    # Fetch the event by its ID
     event = Event.query.get(event_id)
 
     if not event:
         return {"error": "Event not found"}, 404
 
+    # Get the user who created the event
+    user = User.query.get(event.user_id)
+
+    if not user:
+        return {"error": "User not found"}, 404
+
+    # Calculate the platform fee (flat_rate as a percentage of total)
+    flat_rate = user.flat_rate or 0.01  # Default to 1% if flat_rate is not set
+    platform_fee_percentage = flat_rate * 100  # Convert to percentage for Stripe
+
+    # Calculate the remaining percentage for the connected user's account
+    # If platform takes 10%, user gets 90%
+    transfer_percentage = 100 - platform_fee_percentage
+
     try:
+        # Create a Stripe Checkout session
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
@@ -295,18 +312,29 @@ def create_checkout_session(event_id):
                     'product_data': {
                         'name': event.name,
                     },
-                    'unit_amount': int(event.ticket_price * 100),  # Convert to pence
+                    'unit_amount': int(event.ticket_price * 100),  # Convert price to pence
                 },
                 'quantity': 1,
             }],
             mode='payment',
+            # Success and cancel URLs
             success_url=url_for('success', _external=True),
             cancel_url=url_for('cancel', _external=True),
+            # Transfer remaining funds to the user's Stripe Connect account
+            transfer_data={
+                'destination': user.stripe_connect_id,  # User's connected account ID
+                'amount': int(event.ticket_price * transfer_percentage)  # Transfer remaining funds
+            },
+            # Application fee to be retained by the platform
+            application_fee_amount=int(event.ticket_price * flat_rate * 100),  # Platform fee in pence
         )
+
+        # Return the Stripe checkout URL
         return {"url": checkout_session.url}, 200
 
     except Exception as e:
         return {"error": str(e)}, 400
+
 
 # Success and cancel routes
 @app.route('/success')
