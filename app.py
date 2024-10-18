@@ -13,7 +13,7 @@ import stripe
 from flask import jsonify
 
 
-stripe.api_key = os.getenv("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")  # Your platform's secret key
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
 
 
@@ -359,3 +359,45 @@ def create_checkout_session():
     
     except Exception as e:
         return jsonify(error=str(e)), 403
+
+
+@app.route('/buy_ticket/<event_id>', methods=['GET'])
+def buy_ticket(event_id):
+    event = Event.query.get(event_id)
+    
+    if not event:
+        return "Event not found", 404
+
+    try:
+        # Get the current user's stripe account and the platform's stripe account
+        user = event.user
+        stripe_connect_id = user.stripe_connect_id
+
+        # Create a Stripe Checkout Session
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'gbp',
+                    'product_data': {
+                        'name': event.name,
+                    },
+                    'unit_amount': int(event.ticket_price * 100),  # Stripe accepts amounts in cents
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url='https://yourdomain.com/success',
+            cancel_url='https://yourdomain.com/cancel',
+            payment_intent_data={
+                'application_fee_amount': int(event.ticket_price * 100 * 0.1),  # 10% platform fee
+                'transfer_data': {
+                    'destination': stripe_connect_id,  # Send the rest to the user's Stripe account
+                },
+            },
+        )
+
+        return redirect(session.url, code=303)
+
+    except Exception as e:
+        return str(e)
