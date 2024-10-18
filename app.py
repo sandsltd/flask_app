@@ -10,6 +10,7 @@ import random
 from werkzeug.security import generate_password_hash
 from flask import request, redirect, url_for, flash, render_template
 
+
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 login_manager = LoginManager()
@@ -19,9 +20,7 @@ login_manager.init_app(app)
 users = {}
 events_by_user = {}
 
-class User(UserMixin):
-    def __init__(self, id):
-        self.id = id
+from flask_login import UserMixin
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -71,9 +70,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    unique_id = db.Column(db.String(36), unique=True, default=str(uuid.uuid4()))  # New unique_id column
+    unique_id = db.Column(db.String(36), unique=True, default=lambda: str(uuid.uuid4()))
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
@@ -85,6 +84,7 @@ class User(db.Model):
     stripe_connect_id = db.Column(db.String(120), nullable=False)
 
     events = db.relationship('Event', backref='user', lazy=True)
+
 
 
 class Event(db.Model):
