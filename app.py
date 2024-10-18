@@ -12,9 +12,7 @@ from flask import request, redirect, url_for, flash, render_template
 import stripe
 from flask import jsonify
 
-
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-
 
 
 app = Flask(__name__)
