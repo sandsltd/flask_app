@@ -82,12 +82,25 @@ class User(db.Model, UserMixin):
     unique_id = db.Column(db.String(36), unique=True, default=lambda: str(uuid.uuid4()))
     email = db.Column(db.String(120), unique=True, nullable=False)  # Using email as the unique login field
     password = db.Column(db.String(255), nullable=False)
-    full_name = db.Column(db.String(120), nullable=False)
+    first_name = db.Column(db.String(120), nullable=False)         # First name
+    last_name = db.Column(db.String(120), nullable=False)          # Last name
     phone_number = db.Column(db.String(20), nullable=False)
     business_name = db.Column(db.String(120), nullable=False)
-    website_url = db.Column(db.String(200), nullable=True)  # Optional
-    vat_number = db.Column(db.String(50), nullable=True)    # Optional
+    website_url = db.Column(db.String(200), nullable=True)         # Optional
+    vat_number = db.Column(db.String(50), nullable=True)           # Optional
     stripe_connect_id = db.Column(db.String(120), nullable=False)
+
+    # Address fields
+    house_name_or_number = db.Column(db.String(255), nullable=False)  # House name/number
+    street = db.Column(db.String(255), nullable=False)                 # Street
+    locality = db.Column(db.String(255), nullable=True)                # Locality
+    town = db.Column(db.String(100), nullable=False)                   # Town
+    postcode = db.Column(db.String(20), nullable=False)                # Postcode
+
+    # New fields for rates
+    flat_rate = db.Column(db.Float, nullable=True)                    # Flat rate
+    promo_rate = db.Column(db.Float, nullable=True)                   # Promotional rate
+    promo_rate_date_end = db.Column(db.Date, nullable=True)           # End date for promotional rate
 
     events = db.relationship('Event', backref='user', lazy=True)
 
@@ -122,12 +135,23 @@ def register():
 
             email = request.form['email']
             password = request.form['password']
-            full_name = request.form['full_name']
+            first_name = request.form['first_name']  # First name
+            last_name = request.form['last_name']    # Last name
             phone_number = request.form['phone_number']
             business_name = request.form['business_name']
             website_url = request.form.get('website_url')
             vat_number = request.form.get('vat_number')
-            stripe_connect_id = request.form['stripe_connect_id']
+            country = request.form['country']  # Country
+            house_name_or_number = request.form['house_name_or_number']  # House name/number
+            street = request.form['street']  # Street
+            locality = request.form['locality']  # Locality
+            town = request.form['town']  # Town
+            postcode = request.form['postcode']  # Postcode
+            
+            # New fields for rates
+            flat_rate = request.form.get('flat_rate', type=float)  # Flat rate
+            promo_rate = request.form.get('promo_rate', type=float)  # Promotional rate
+            promo_rate_date_end = request.form.get('promo_rate_date_end')  # End date for promo rate
 
             # Check if the email already exists
             user = User.query.filter_by(email=email).first()
@@ -145,27 +169,41 @@ def register():
                 unique_id=unique_id,
                 email=email,
                 password=hashed_password,
-                full_name=full_name,
+                first_name=first_name,
+                last_name=last_name,
                 phone_number=phone_number,
                 business_name=business_name,
                 website_url=website_url,
                 vat_number=vat_number,
-                stripe_connect_id=stripe_connect_id
+                stripe_connect_id="",  # Initialize with empty string
+                house_name_or_number=house_name_or_number,
+                street=street,
+                locality=locality,
+                town=town,
+                postcode=postcode,
+                flat_rate=flat_rate,
+                promo_rate=promo_rate,
+                promo_rate_date_end=promo_rate_date_end,
             )
 
             # Add the new user to the database
             db.session.add(new_user)
             db.session.commit()
 
+            # Create the Stripe account (currently commented out)
+            """
+            # Stripe account creation code here (commented out)
+            """
+
             flash('Account created successfully! Please log in.')
             return redirect(url_for('login'))
 
     except Exception as e:
-        # Print the actual error to the logs
         print(f"Error during registration: {str(e)}")
         return f"An error occurred during registration: {str(e)}"
 
     return render_template('register.html')
+
 
 
 
