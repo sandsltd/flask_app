@@ -155,9 +155,9 @@ def register():
             return redirect(url_for('login'))
 
     except Exception as e:
-        # Print the error to the logs or to the console
-        print(f"Error during registration: {e}")
-        return "An error occurred during registration."
+        # Print the actual error to the logs
+        print(f"Error during registration: {str(e)}")
+        return f"An error occurred during registration: {str(e)}"
 
     return render_template('register.html')
 
