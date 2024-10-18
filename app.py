@@ -262,21 +262,28 @@ def reset_db():
 
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
-    # Find the user by their unique ID
     user = User.query.filter_by(unique_id=unique_id).first()
 
     if not user:
-        return "User not found", 404
+        return "Invalid user"
 
-    # Get all events for that user
     user_events = Event.query.filter_by(user_id=user.id).all()
 
-    # Generate the HTML for the events (you can adjust the format as needed)
-    events_html = '<ul>'
+    events_html = "<ul>"
     for event in user_events:
-        events_html += f'<li>{event.name} - {event.date}</li>'
-    events_html += '</ul>'
+        events_html += f"""
+            <li>
+                <strong>{event.name}</strong><br>
+                Date: {event.date}<br>
+                Location: {event.location}<br>
+                Description: {event.description}<br>
+                Start Time: {event.start_time}<br>
+                End Time: {event.end_time}<br>
+                Tickets Available: {event.ticket_quantity}<br>
+                Ticket Price: ${event.ticket_price}<br>
+            </li><br>
+        """
+    events_html += "</ul>"
 
-    # Now return the HTML content as a script that writes to the document
-    response = f"document.write(`{events_html}`);"
-    return response, 200, {'Content-Type': 'application/javascript'}
+    # Return the event data as a JavaScript document.write call
+    return f"<script>document.write(`{events_html}`);</script>"
