@@ -10,6 +10,10 @@ import random
 from werkzeug.security import generate_password_hash
 from flask import request, redirect, url_for, flash, render_template
 import stripe
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)  # This will allow all origins for now
 
 # Set your Stripe secret key from the environment variable
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
