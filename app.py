@@ -254,40 +254,38 @@ def embed_events(unique_id):
     events_html += '</ul>'
 
     events_html += '''
+    
     <script>
-<script>
-function buyTicket(eventId) {
-    fetch('https://flask-app-2gp0.onrender.com/create-checkout-session/' + eventId, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => {
-        // Check if the response is OK (status 200)
-        if (!response.ok) {
-            return response.json().then(data => {
-                throw new Error(data.error || "Unknown error occurred.");
+        function buyTicket(eventId) {
+            fetch('https://flask-app-2gp0.onrender.com/create-checkout-session/' + eventId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                // Check if the response is OK (status 200)
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || "Unknown error occurred.");
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.url) {
+                    // Redirect the user to Stripe Checkout
+                    window.location.href = data.url;  // Stripe Checkout URL
+                } else {
+                    throw new Error("Missing checkout session URL in the response.");
+                }
+            })
+            .catch(error => {
+                console.error("Error creating checkout session:", error.message);
+                alert("Error: " + error.message);  // Show a user-friendly error message
             });
         }
-        return response.json();
-    })
-    .then(data => {
-        if (data.url) {
-            // Redirect the user to Stripe Checkout
-            window.location.href = data.url;  // Stripe Checkout URL
-        } else {
-            throw new Error("Missing checkout session URL in the response.");
-        }
-    })
-    .catch(error => {
-        console.error("Error creating checkout session:", error.message);
-        alert("Error: " + error.message);  // Show a user-friendly error message
-    });
-}
-</script>
-
-
+    </script>
     '''
 
     response = f"document.write(`{events_html}`);"
