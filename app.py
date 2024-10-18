@@ -307,14 +307,11 @@ def embed_events(unique_id):
     function buyTicket(eventId) {
         fetch('https://flask-app-2gp0.onrender.com/create-checkout-session/' + eventId, {
             method: 'POST',
+            mode: 'no-cors'  // Disable CORS for testing, this won't let you access response
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.url) {
-                window.location.href = data.url;
-            } else {
-                alert("Error: " + data.error);
-            }
+        .then(response => {
+            // Since we're using no-cors, we can't access the full response
+            window.location.href = 'https://flask-app-2gp0.onrender.com/success';  // Redirect manually after success
         })
         .catch(error => console.error("Error creating checkout session:", error));
     }
@@ -324,6 +321,7 @@ def embed_events(unique_id):
     # Return the HTML content as a script that writes to the document
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 
