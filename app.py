@@ -279,10 +279,9 @@ def embed_events(unique_id):
     return response, 200, {'Content-Type': 'application/javascript'}
 
 # Stripe Checkout session creation
-# Stripe Checkout session creation
+# Stripe PaymentIntent creation for handling payment split
 @app.route('/create-checkout-session/<int:event_id>', methods=['POST'])
 def create_checkout_session(event_id):
-    # Fetch the event by its ID
     event = Event.query.get(event_id)
 
     if not event:
@@ -296,41 +295,24 @@ def create_checkout_session(event_id):
 
     # Calculate the platform fee (flat_rate as a percentage of total)
     flat_rate = user.flat_rate or 0.01  # Default to 1% if flat_rate is not set
-    platform_fee_percentage = flat_rate * 100  # Convert to percentage for Stripe
-
-    # Calculate the remaining percentage for the connected user's account
-    # If platform takes 10%, user gets 90%
-    transfer_percentage = 100 - platform_fee_percentage
+    platform_fee_amount = int(event.ticket_price * flat_rate * 100)  # Convert to pence
 
     try:
-        # Create a Stripe Checkout session
-        checkout_session = stripe.checkout.Session.create(
+        # Create a PaymentIntent instead of Checkout Session
+        payment_intent = stripe.PaymentIntent.create(
+            amount=int(event.ticket_price * 100),  # Total ticket price in pence
+            currency='gbp',
             payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'gbp',
-                    'product_data': {
-                        'name': event.name,
-                    },
-                    'unit_amount': int(event.ticket_price * 100),  # Convert price to pence
-                },
-                'quantity': 1,
-            }],
-            mode='payment',
-            # Success and cancel URLs
-            success_url=url_for('success', _external=True),
-            cancel_url=url_for('cancel', _external=True),
-            # Transfer remaining funds to the user's Stripe Connect account
+            # Split payment with transfer_data (for Stripe Connect)
             transfer_data={
-                'destination': user.stripe_connect_id,  # User's connected account ID
-                'amount': int(event.ticket_price * transfer_percentage)  # Transfer remaining funds
+                'amount': int(event.ticket_price * (1 - flat_rate) * 100),  # Remaining amount after platform fee
+                'destination': user.stripe_connect_id,  # User's connected Stripe account
             },
-            # Application fee to be retained by the platform
-            application_fee_amount=int(event.ticket_price * flat_rate * 100),  # Platform fee in pence
+            application_fee_amount=platform_fee_amount,  # Platform fee amount in pence
         )
 
-        # Return the Stripe checkout URL
-        return {"url": checkout_session.url}, 200
+        # Return the client_secret to complete payment on the front end
+        return {"client_secret": payment_intent.client_secret}, 200
 
     except Exception as e:
         return {"error": str(e)}, 400
