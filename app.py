@@ -254,7 +254,7 @@ def embed_events(unique_id):
     events_html += '</ul>'
 
     events_html += '''
-    
+
     <script>
         function buyTicket(eventId) {
             fetch('https://flask-app-2gp0.onrender.com/create-checkout-session/' + eventId, {
@@ -319,24 +319,25 @@ def create_checkout_session(event_id):
                     'product_data': {
                         'name': event.name,
                     },
-                    'unit_amount': int(event.ticket_price * 100),  # Convert to pence
+                    'unit_amount': int(event.ticket_price * 100),  # Total ticket price in pence
                 },
                 'quantity': 1,
             }],
             mode='payment',
             success_url=url_for('success', _external=True),
             cancel_url=url_for('cancel', _external=True),
-            transfer_data={
-                'amount': int(event.ticket_price * (1 - flat_rate) * 100),  # Amount to send to the connected account
-                'destination': user.stripe_connect_id,  # User's connected Stripe account
-            }
+            payment_intent_data={
+                'application_fee_amount': platform_fee_amount,  # Platform fee
+                'transfer_data': {
+                    'destination': user.stripe_connect_id,  # User's connected Stripe account
+                },
+            },
         )
-
-        # Return the checkout session URL for Stripe redirection
         return {"url": checkout_session.url}, 200
 
     except Exception as e:
         return {"error": str(e)}, 400
+
 
 
 # Success and cancel routes
