@@ -255,24 +255,37 @@ def embed_events(unique_id):
 
     events_html += '''
     <script>
-    function buyTicket(eventId) {
-        fetch('https://flask-app-2gp0.onrender.com/create-checkout-session/' + eventId, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.url) {
-                window.location.href = data.url;  // Redirect to Stripe Checkout
-            } else {
-                alert("Error: " + data.error);
-            }
-        })
-        .catch(error => console.error("Error creating checkout session:", error));
-    }
-    </script>
+        function buyTicket(eventId) {
+            fetch('https://flask-app-2gp0.onrender.com/create-checkout-session/' + eventId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                // Check if the response is OK (status 200)
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || "Unknown error occurred.");
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.client_secret) {
+                    // Redirect to Stripe's payment page
+                    window.location.href = 'https://yourdomain.com/success'; // Adjust to your success URL
+                } else {
+                    throw new Error("Missing client secret in the response.");
+                }
+            })
+            .catch(error => {
+                console.error("Error creating checkout session:", error.message);
+                alert("Error: " + error.message);  // Show a user-friendly error message
+            });
+        }
+        </script>
+
     '''
 
     response = f"document.write(`{events_html}`);"
@@ -303,7 +316,6 @@ def create_checkout_session(event_id):
             amount=int(event.ticket_price * 100),  # Total ticket price in pence
             currency='gbp',
             payment_method_types=['card'],
-            # Split payment with transfer_data for connected account
             transfer_data={
                 'amount': amount_to_transfer,  # Amount to send to the connected account
                 'destination': user.stripe_connect_id,  # Connected account's Stripe ID
@@ -313,8 +325,14 @@ def create_checkout_session(event_id):
         # Return the client_secret to complete payment on the front end
         return {"client_secret": payment_intent.client_secret}, 200
 
-    except Exception as e:
+    except stripe.error.StripeError as e:
+        # Handle known Stripe errors gracefully
         return {"error": str(e)}, 400
+
+    except Exception as e:
+        # Catch any other exceptions and return an error message
+        return {"error": f"Unexpected error: {str(e)}"}, 500
+
 
 
 
