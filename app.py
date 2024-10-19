@@ -407,53 +407,6 @@ def manage_default_questions():
     return render_template('manage_default_questions.html', questions=default_questions)
 
 
-@app.route('/answer-questions/<int:event_id>/<int:ticket_quantity>', methods=['GET', 'POST'])
-@login_required
-def answer_questions(event_id, ticket_quantity):
-    event = Event.query.get(event_id)
-
-    if not event:
-        flash("Event not found.")
-        return redirect(url_for('dashboard'))
-
-    # Get default questions for the user
-    default_questions = DefaultQuestion.query.filter_by(user_id=event.user_id).all()
-
-    # Prepare the default question texts
-    default_question_texts = [dq.question for dq in default_questions]
-
-    # Collect custom questions from the event
-    custom_questions = [
-        event.custom_question_1, event.custom_question_2, event.custom_question_3,
-        event.custom_question_4, event.custom_question_5, event.custom_question_6,
-        event.custom_question_7, event.custom_question_8, event.custom_question_9,
-        event.custom_question_10
-    ]
-    
-    # Remove any None values from the custom questions list
-    custom_questions = [q for q in custom_questions if q]
-
-    if request.method == 'POST':
-        answers = []
-        
-        # Loop through each ticket and collect the answers
-        for i in range(ticket_quantity):
-            ticket_answers = {}
-            for idx, question in enumerate(default_question_texts + custom_questions):
-                answer_key = f'answer_{i+1}_{idx+1}'  # Unique key for each answer
-                ticket_answers[question] = request.form.get(answer_key)
-            answers.append(ticket_answers)
-
-        # TODO: Save answers to the database if needed
-
-        # Redirect to Stripe checkout
-        return redirect(url_for('create_checkout_session', event_id=event_id))
-
-    return render_template('answer_questions.html', 
-                           event=event, 
-                           ticket_quantity=ticket_quantity, 
-                           default_questions=default_question_texts,
-                           custom_questions=custom_questions)
 
 
 @app.route('/answer-questions/<int:event_id>/<int:ticket_quantity>', methods=['GET', 'POST'])
@@ -503,3 +456,4 @@ def answer_questions(event_id, ticket_quantity):
                            ticket_quantity=ticket_quantity, 
                            default_questions=default_question_texts,
                            custom_questions=custom_questions)
+
