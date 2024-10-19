@@ -10,6 +10,9 @@ import random
 import stripe
 from flask_cors import CORS
 import json
+from flask import request, redirect, url_for, render_template, flash
+from urllib.parse import urlparse
+
 
 app = Flask(__name__)
 
@@ -428,6 +431,14 @@ def purchase(event_id):
             flash('Requested number of tickets exceeds available tickets.')
             return redirect(url_for('purchase', event_id=event_id))
         
+        # Validate that the terms checkboxes are checked
+        if not request.form.get('accept_organizer_terms'):
+            flash('You must accept the event organizer\'s Terms and Conditions.')
+            return redirect(url_for('purchase', event_id=event_id))
+        if not request.form.get('accept_platform_terms'):
+            flash('You must accept the platform\'s Terms and Conditions.')
+            return redirect(url_for('purchase', event_id=event_id))
+        
         # Collect answers for each ticket
         tickets = []
         for i in range(number_of_tickets):
@@ -483,4 +494,33 @@ def purchase(event_id):
             return redirect(url_for('purchase', event_id=event_id))
 
     else:
-        return render_template('purchase.html', event=event, questions=all_questions)
+        # Provide placeholder link for platform terms if you don't have one yet
+        platform_terms_link = 'https://your-platform-domain.com/terms-and-conditions'
+
+        # Use the organizer's terms link from the user model; if not set, provide a default message or link
+        organizer_terms_link = user.terms or '#'
+
+        # Ensure the URL is absolute
+        def ensure_absolute_url(url):
+            if url:
+                parsed_url = urlparse(url)
+                if not parsed_url.scheme:
+                    # No scheme provided, default to https
+                    return 'https://' + url
+                else:
+                    return url
+            else:
+                return '#'
+
+        organizer_terms_link = ensure_absolute_url(organizer_terms_link)
+
+        # Debugging statement
+        print(f"Organizer terms link: {organizer_terms_link}")
+
+        return render_template(
+            'purchase.html',
+            event=event,
+            questions=all_questions,
+            organizer_terms_link=organizer_terms_link,
+            platform_terms_link=platform_terms_link
+        )
