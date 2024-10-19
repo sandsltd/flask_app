@@ -50,7 +50,7 @@ class User(db.Model, UserMixin):
     town = db.Column(db.String(100), nullable=False)
     postcode = db.Column(db.String(20), nullable=False)
 
-    terms = db.Column(db.String(255), nullable=False)
+    terms = db.Column(db.String(255), nullable=True)
 
     # Default flat_rate set to 0.01
     flat_rate = db.Column(db.Float, nullable=True, default=0.01)  # Flat rate with default value
