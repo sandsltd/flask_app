@@ -26,17 +26,15 @@
         <!-- Terms and Conditions Checkboxes -->
         <h3>Terms and Conditions</h3>
         <div>
+            <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
+            <label for="accept_organizer_terms">
+                I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organizer's Terms and Conditions</a>.
+            </label>
+        </div>
+        <div>
             <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
             <label for="accept_platform_terms">
                 I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>.
-            </label>
-        </div>
-        
-        {% if organizer_terms_link != '#' %}
-        <div>
-            <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
-            <label for="accept_organizer_terms">
-                I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organiser's Terms and Conditions</a>.
             </label>
         </div>
 
