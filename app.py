@@ -223,21 +223,15 @@ def create_event():
 
     return render_template('create_event.html')
 
-@app.route('/reset-db')
+# Reset database
+@app.route('/reset_db')
 def reset_db():
     try:
-        # Drop all the tables and recreate them
-        db.drop_all()  # Deletes all tables
-        db.create_all()  # Recreates all tables based on the models
-
-        # If you're using migrations, run the upgrade here
-        from flask_migrate import upgrade
-        upgrade()  # Run any outstanding migrations
-
-        return "Database reset and tables recreated successfully!"
-
+        db.drop_all()
+        db.create_all()
+        return "Database reset and tables recreated!"
     except Exception as e:
-        return f"An error occurred: {str(e)}"
+        return f"An error occurred during reset: {str(e)}"
 
 # Embed route for displaying events
 @app.route('/embed/<unique_id>')
