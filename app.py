@@ -291,7 +291,7 @@ def embed_events(unique_id):
     if not user_events:
         return "No events found.", 404
 
-    # Generate the events HTML
+    # Start generating the HTML content as a string
     events_html = '<ul>'
     for event in user_events:
         events_html += f'''
@@ -308,30 +308,30 @@ def embed_events(unique_id):
         '''
     events_html += '</ul>'
 
-    # Add the JavaScript for redirecting to the answer questions page
+    # JavaScript for handling ticket purchases
     events_html += '''
     <script>
         function goToQuestions(eventId) {
-            // Ask for the number of tickets before redirecting
             let ticketQuantity = prompt("How many tickets would you like to buy?");
-            
             if (ticketQuantity && !isNaN(ticketQuantity) && ticketQuantity > 0) {
-                // Redirect to the questions page
                 window.location.href = `/answer-questions/${eventId}/${ticketQuantity}`;
             } else {
                 alert("Please enter a valid number of tickets.");
             }
         }
+
+        // Insert the generated HTML into the embedding page
+        document.addEventListener('DOMContentLoaded', function() {
+            var container = document.getElementById("embed-container");
+            if (container) {
+                container.innerHTML = `''' + events_html + '''`;
+            }
+        });
     </script>
     '''
 
-    # Return the generated HTML as JavaScript
-    response = f"document.write(`{events_html}`);"
-    return response, 200, {'Content-Type': 'application/javascript'}
-
-
-
-
+    # Return the script that dynamically injects the content into the DOM
+    return events_html, 200, {'Content-Type': 'application/javascript'}
 
 
 # Stripe Checkout session creation
