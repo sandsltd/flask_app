@@ -13,6 +13,7 @@ import json
 from flask import request, redirect, url_for, render_template, flash
 from urllib.parse import urlparse
 from datetime import datetime
+import json
 
 
 
@@ -615,4 +616,19 @@ def view_attendees(event_id):
         return redirect(url_for('dashboard'))
 
     attendees = Attendee.query.filter_by(event_id=event_id, payment_status='succeeded').all()
+
+    # Parse the JSON fields
+    for attendee in attendees:
+        # Parse ticket_answers JSON
+        if attendee.ticket_answers:
+            attendee.ticket_answers = json.loads(attendee.ticket_answers)
+        else:
+            attendee.ticket_answers = []
+
+        # Parse billing_details JSON
+        if attendee.billing_details:
+            attendee.billing_details = json.loads(attendee.billing_details)
+        else:
+            attendee.billing_details = {}
+
     return render_template('view_attendees.html', event=event, attendees=attendees)

@@ -18,8 +18,7 @@
         <tr>
             <td>{{ attendee.id }}</td>
             <td>
-                {% set tickets = attendee.ticket_answers | fromjson %}
-                {% for ticket in tickets %}
+                {% for ticket in attendee.ticket_answers %}
                     <ul>
                         {% for question, answer in ticket.items() %}
                             <li><strong>{{ question }}:</strong> {{ answer }}</li>
@@ -27,9 +26,8 @@
                     </ul>
                 {% endfor %}
             </td>
-            {% set billing = attendee.billing_details | fromjson %}
-            <td>{{ billing.name }}</td>
-            <td>{{ billing.email }}</td>
+            <td>{{ attendee.billing_details.name }}</td>
+            <td>{{ attendee.billing_details.email }}</td>
             <td>{{ attendee.payment_status }}</td>
             <td>{{ attendee.created_at }}</td>
         </tr>
