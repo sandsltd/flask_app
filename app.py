@@ -291,6 +291,9 @@ def embed_events(unique_id):
     if not user_events:
         return "No events found.", 404
 
+    # Base URL for absolute paths
+    base_url = request.url_root.rstrip('/')
+
     # Generate the events HTML
     events_html = '<ul>'
     for event in user_events:
@@ -309,19 +312,20 @@ def embed_events(unique_id):
     events_html += '</ul>'
 
     # Add the JavaScript for redirecting to the answer questions page
-    events_html += '''
+    # Use absolute URLs in the redirect
+    events_html += f'''
     <script>
-        function goToQuestions(eventId) {
+        function goToQuestions(eventId) {{
             // Ask for the number of tickets before redirecting
             let ticketQuantity = prompt("How many tickets would you like to buy?");
             
-            if (ticketQuantity && !isNaN(ticketQuantity) && ticketQuantity > 0) {
-                // Redirect to the questions page
-                window.location.href = `/answer-questions/${eventId}/${ticketQuantity}`;
-            } else {
+            if (ticketQuantity && !isNaN(ticketQuantity) && ticketQuantity > 0) {{
+                // Redirect to the questions page using absolute URL
+                window.location.href = '{base_url}/answer-questions/' + eventId + '/' + ticketQuantity;
+            }} else {{
                 alert("Please enter a valid number of tickets.");
-            }
-        }
+            }}
+        }}
     </script>
     '''
 
@@ -339,6 +343,7 @@ def embed_events(unique_id):
     }})();
     '''
     return script, 200, {'Content-Type': 'application/javascript'}
+
 
 # Stripe Checkout session creation
 @app.route('/create-checkout-session/<int:event_id>', methods=['POST'])
