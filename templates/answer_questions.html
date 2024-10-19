@@ -1,32 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Answer Questions</title>
-</head>
-<body>
-    <h1>Answer Event Questions</h1>
+<form method="POST">
+    <h1>Answer the Questions for {{ event.name }}</h1>
     
-    <form method="POST">
-        {% for i in range(1, ticket_quantity + 1) %}
-            <h3>Ticket {{ i }}</h3>
-            
-            <!-- Display Default Questions -->
-            {% for idx, question in enumerate(default_questions) %}
-                <label for="answer_{{ i }}_{{ idx+1 }}">{{ question }}</label><br>
-                <input type="text" id="answer_{{ i }}_{{ idx+1 }}" name="answer_{{ i }}_{{ idx+1 }}" required><br><br>
-            {% endfor %}
+    {% for i in range(ticket_quantity) %}
+        <h2>Ticket {{ i+1 }}</h2>
 
-            <!-- Display Custom Questions -->
-            {% for idx, question in enumerate(custom_questions, start=len(default_questions)+1) %}
-                <label for="answer_{{ i }}_{{ idx+1 }}">{{ question }}</label><br>
-                <input type="text" id="answer_{{ i }}_{{ idx+1 }}" name="answer_{{ i }}_{{ idx+1 }}" required><br><br>
-            {% endfor %}
-            
+        {% for idx, question in enumerate(default_questions + custom_questions) %}
+            <label for="answer_{{ i+1 }}_{{ idx+1 }}">{{ question }}</label>
+            <input type="text" id="answer_{{ i+1 }}_{{ idx+1 }}" name="answer_{{ i+1 }}_{{ idx+1 }}">
         {% endfor %}
-        
-        <input type="submit" value="Proceed to Checkout">
-    </form>
-</body>
-</html>
+        <br><br>
+    {% endfor %}
+    
+    <button type="submit">Proceed to Payment</button>
+</form>

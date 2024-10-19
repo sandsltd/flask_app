@@ -285,10 +285,7 @@ def embed_events(unique_id):
         return "User not found", 404
 
     user_events = Event.query.filter_by(user_id=user.id).all()
-    
-    # Debug: print the events to see if they are being fetched
-    print(f"Events for user {user.id}: {user_events}")
-    
+
     events_html = '<ul>'
     for event in user_events:
         events_html += f'''
@@ -306,22 +303,22 @@ def embed_events(unique_id):
     events_html += '</ul>'
 
     events_html += '''
-
     <script>
-    function buyTicket(eventId) {
-        let ticketQuantity = prompt("How many tickets would you like to buy?");
-        
-        if (ticketQuantity && !isNaN(ticketQuantity) && ticketQuantity > 0) {
-            window.location.href = `/answer-questions/${eventId}/${ticketQuantity}`;
-        } else {
-            alert("Please enter a valid number of tickets.");
+        function buyTicket(eventId) {
+            let ticketQuantity = prompt("How many tickets would you like to buy?");
+            
+            if (ticketQuantity && !isNaN(ticketQuantity) && ticketQuantity > 0) {
+                window.location.href = `/answer-questions/${eventId}/${ticketQuantity}`;
+            } else {
+                alert("Please enter a valid number of tickets.");
+            }
         }
-    }
     </script>
     '''
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 # Stripe Checkout session creation
@@ -373,6 +370,7 @@ def create_checkout_session(event_id):
 
 
 
+
 # Success and cancel routes
 @app.route('/success')
 def success():
@@ -407,6 +405,55 @@ def manage_default_questions():
     default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
 
     return render_template('manage_default_questions.html', questions=default_questions)
+
+
+@app.route('/answer-questions/<int:event_id>/<int:ticket_quantity>', methods=['GET', 'POST'])
+@login_required
+def answer_questions(event_id, ticket_quantity):
+    event = Event.query.get(event_id)
+
+    if not event:
+        flash("Event not found.")
+        return redirect(url_for('dashboard'))
+
+    # Get default questions for the user
+    default_questions = DefaultQuestion.query.filter_by(user_id=event.user_id).all()
+
+    # Prepare the default question texts
+    default_question_texts = [dq.question for dq in default_questions]
+
+    # Collect custom questions from the event
+    custom_questions = [
+        event.custom_question_1, event.custom_question_2, event.custom_question_3,
+        event.custom_question_4, event.custom_question_5, event.custom_question_6,
+        event.custom_question_7, event.custom_question_8, event.custom_question_9,
+        event.custom_question_10
+    ]
+    
+    # Remove any None values from the custom questions list
+    custom_questions = [q for q in custom_questions if q]
+
+    if request.method == 'POST':
+        answers = []
+        
+        # Loop through each ticket and collect the answers
+        for i in range(ticket_quantity):
+            ticket_answers = {}
+            for idx, question in enumerate(default_question_texts + custom_questions):
+                answer_key = f'answer_{i+1}_{idx+1}'  # Unique key for each answer
+                ticket_answers[question] = request.form.get(answer_key)
+            answers.append(ticket_answers)
+
+        # TODO: Save answers to the database if needed
+
+        # Redirect to Stripe checkout
+        return redirect(url_for('create_checkout_session', event_id=event_id))
+
+    return render_template('answer_questions.html', 
+                           event=event, 
+                           ticket_quantity=ticket_quantity, 
+                           default_questions=default_question_texts,
+                           custom_questions=custom_questions)
 
 
 @app.route('/answer-questions/<int:event_id>/<int:ticket_quantity>', methods=['GET', 'POST'])
