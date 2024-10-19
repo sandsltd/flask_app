@@ -602,8 +602,12 @@ def handle_checkout_session(session):
         print("No payment intent ID found in session.")
         return
 
-    payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-    charges = payment_intent.get('charges', {}).get('data', [])
+    # Expand the charges when retrieving the PaymentIntent
+    payment_intent = stripe.PaymentIntent.retrieve(
+        payment_intent_id,
+        expand=['charges']
+    )
+    charges = payment_intent.charges.data
     if not charges:
         print("No charges found in payment intent.")
         return
@@ -617,6 +621,7 @@ def handle_checkout_session(session):
     db.session.commit()
 
     print(f"Attendee {attendee_id} updated with payment details.")
+
 
 
 @app.route('/event/<int:event_id>/attendees')
