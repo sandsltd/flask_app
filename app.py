@@ -261,7 +261,10 @@ def create_event():
         flash('Event created successfully!')
         return redirect(url_for('dashboard'))
 
-    return render_template('create_event.html')
+    # Pass the default questions to the form so they can be displayed
+    default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
+    return render_template('create_event.html', default_questions=default_questions)
+
 
 
 # Reset database
