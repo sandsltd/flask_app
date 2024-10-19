@@ -29,6 +29,8 @@ app.secret_key = 'supersecretkey'
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
+
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -485,7 +487,6 @@ def purchase(event_id):
         platform_fee_amount = int(total_amount * flat_rate * 100)  # Convert to pence
 
         try:
-            # Create a Stripe Checkout session
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
@@ -510,6 +511,8 @@ def purchase(event_id):
                         'attendee_id': attendee_id
                     }
                 },
+                billing_address_collection='required',
+                customer_email=request.form.get('email')  # Collect email from your form if available
             )
             return redirect(checkout_session.url)
 
@@ -549,6 +552,7 @@ def purchase(event_id):
     
 @app.route('/stripe-webhook', methods=['POST'])
 def stripe_webhook():
+    print("Webhook received")
     payload = request.data
     sig_header = request.headers.get('Stripe-Signature')
     webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
@@ -557,6 +561,7 @@ def stripe_webhook():
         event = stripe.Webhook.construct_event(
             payload, sig_header, webhook_secret
         )
+        print(f"Webhook event constructed: {event['type']}")
     except ValueError as e:
         # Invalid payload
         print(f"Invalid payload: {e}")
@@ -569,10 +574,14 @@ def stripe_webhook():
     # Handle the event
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
+        print("Handling checkout.session.completed event")
         handle_checkout_session(session)
+    else:
+        print(f"Unhandled event type: {event['type']}")
 
     return '', 200
 def handle_checkout_session(session):
+    print(f"Handling session: {session.id}")
     # Retrieve the attendee ID from the session's metadata
     attendee_id = session['metadata'].get('attendee_id')
     if not attendee_id:
@@ -606,6 +615,7 @@ def handle_checkout_session(session):
     db.session.commit()
 
     print(f"Attendee {attendee_id} updated with payment details.")
+
 
 @app.route('/event/<int:event_id>/attendees')
 @login_required
