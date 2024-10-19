@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Purchase Tickets</title>
+</head>
+<body>
+    <h1>Purchase Tickets for {{ event.name }}</h1>
+    <p>{{ event.description }}</p>
+    <p>Date: {{ event.date }}</p>
+    <p>Location: {{ event.location }}</p>
+    <p>Price per ticket: £{{ event.ticket_price }}</p>
+    <form method="POST">
+        <label for="number_of_tickets">Number of Tickets:</label>
+        <input
+            type="number"
+            id="number_of_tickets"
+            name="number_of_tickets"
+            min="1"
+            max="{{ event.ticket_quantity }}"
+            required
+            onchange="updateQuestionForms()"
+        >
+        <div id="question_forms">
+            <!-- Question forms will be dynamically added here -->
+        </div>
+        <button type="submit">Proceed to Payment</button>
+    </form>
+
+    <!-- Include your JavaScript code after the form -->
+    <script type="application/json" id="questions-data">
+        {{ questions | tojson }}
+    </script>
+
+    <script>
+        // Parse the questions data from the script tag
+        var questionsDataElement = document.getElementById('questions-data');
+        var questions = JSON.parse(questionsDataElement.textContent);
+
+        function updateQuestionForms() {
+            var numberOfTickets = document.getElementById('number_of_tickets').value;
+            var formsContainer = document.getElementById('question_forms');
+            formsContainer.innerHTML = '';
+
+            for (var i = 0; i < numberOfTickets; i++) {
+                var ticketDiv = document.createElement('div');
+                ticketDiv.innerHTML = '<h3>Ticket ' + (i + 1) + '</h3>';
+
+                for (var j = 0; j < questions.length; j++) {
+                    var label = document.createElement('label');
+                    label.innerHTML = questions[j];
+
+                    var input = document.createElement('input');
+                    input.type = 'text';
+                    input.name = 'ticket_' + i + '_question_' + j;
+                    input.required = true;
+
+                    var br = document.createElement('br');
+
+                    ticketDiv.appendChild(label);
+                    ticketDiv.appendChild(input);
+                    ticketDiv.appendChild(br);
+                }
+
+                formsContainer.appendChild(ticketDiv);
+            }
+        }
+    </script>
+</body>
+</html>

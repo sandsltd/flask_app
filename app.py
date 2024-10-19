@@ -9,6 +9,7 @@ import string
 import random
 import stripe
 from flask_cors import CORS
+import json
 
 app = Flask(__name__)
 
@@ -284,17 +285,8 @@ def embed_events(unique_id):
     if not user:
         return "User not found", 404
 
-    # Fetch the events for the user
     user_events = Event.query.filter_by(user_id=user.id).all()
 
-    # If no events found, display a message
-    if not user_events:
-        return "No events found.", 404
-
-    # Base URL for absolute paths
-    base_url = request.url_root.rstrip('/')
-
-    # Generate the events HTML
     events_html = '<ul>'
     for event in user_events:
         events_html += f'''
@@ -305,44 +297,14 @@ def embed_events(unique_id):
             Description: {event.description}<br>
             Time: {event.start_time} - {event.end_time}<br>
             Ticket Quantity: {event.ticket_quantity}<br>
-            Ticket Price: &pound;{event.ticket_price}<br>
-            <button onclick="goToQuestions({event.id})">Buy Ticket</button>
+            Ticket Price: £{event.ticket_price}<br>
+            <button onclick="window.location.href='https://your-platform-domain.com/purchase/{event.id}'">Buy Ticket</button>
         </li><br>
         '''
     events_html += '</ul>'
 
-    # Add the JavaScript for redirecting to the answer questions page
-    # Use absolute URLs in the redirect
-    events_html += f'''
-    <script>
-        function goToQuestions(eventId) {{
-            // Ask for the number of tickets before redirecting
-            let ticketQuantity = prompt("How many tickets would you like to buy?");
-            
-            if (ticketQuantity && !isNaN(ticketQuantity) && ticketQuantity > 0) {{
-                // Redirect to the questions page using absolute URL
-                window.location.href = '{base_url}/answer-questions/' + eventId + '/' + ticketQuantity;
-            }} else {{
-                alert("Please enter a valid number of tickets.");
-            }}
-        }}
-    </script>
-    '''
-
-    # Wrap the events_html in a JavaScript function that inserts it into the DOM
-    script = f'''
-    (function() {{
-        var events_html = `{events_html}`;
-        var scriptTag = document.currentScript || (function() {{
-            var scripts = document.getElementsByTagName('script');
-            return scripts[scripts.length - 1];
-        }})();
-        var container = document.createElement('div');
-        container.innerHTML = events_html;
-        scriptTag.parentNode.insertBefore(container, scriptTag);
-    }})();
-    '''
-    return script, 200, {'Content-Type': 'application/javascript'}
+    response = f"document.write(`{events_html}`);"
+    return response, 200, {'Content-Type': 'application/javascript'}
 
 
 # Stripe Checkout session creation
@@ -394,7 +356,6 @@ def create_checkout_session(event_id):
 
 
 
-
 # Success and cancel routes
 @app.route('/success')
 def success():
@@ -430,54 +391,92 @@ def manage_default_questions():
 
     return render_template('manage_default_questions.html', questions=default_questions)
 
+from flask import request, redirect, url_for, render_template, flash
 
-
-
-@app.route('/answer-questions/<int:event_id>/<int:ticket_quantity>', methods=['GET', 'POST'])
-@login_required
-def answer_questions(event_id, ticket_quantity):
+@app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
+def purchase(event_id):
     event = Event.query.get(event_id)
-
     if not event:
-        flash("Event not found.")
-        return redirect(url_for('dashboard'))
+        return "Event not found", 404
 
-    # Get default questions for the user
-    default_questions = DefaultQuestion.query.filter_by(user_id=event.user_id).all()
+    user = User.query.get(event.user_id)
+    if not user:
+        return "Event organizer not found", 404
 
-    # Prepare the default question texts
+    # Fetch default questions
+    default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
     default_question_texts = [dq.question for dq in default_questions]
 
-    # Collect custom questions from the event
-    custom_questions = [
-        event.custom_question_1, event.custom_question_2, event.custom_question_3,
-        event.custom_question_4, event.custom_question_5, event.custom_question_6,
-        event.custom_question_7, event.custom_question_8, event.custom_question_9,
-        event.custom_question_10
-    ]
-    
-    # Remove any None values from the custom questions list
-    custom_questions = [q for q in custom_questions if q]
+    # Fetch custom questions from the event
+    custom_questions = []
+    for i in range(1, 11):
+        question = getattr(event, f'custom_question_{i}')
+        if question:
+            custom_questions.append(question)
+
+    all_questions = default_question_texts + custom_questions
 
     if request.method == 'POST':
-        answers = []
+        # Process the form data
+        number_of_tickets = int(request.form['number_of_tickets'])
         
-        # Loop through each ticket and collect the answers
-        for i in range(ticket_quantity):
+        if number_of_tickets > event.ticket_quantity:
+            flash('Requested number of tickets exceeds available tickets.')
+            return redirect(url_for('purchase', event_id=event_id))
+        
+        # Collect answers for each ticket
+        tickets = []
+        for i in range(number_of_tickets):
             ticket_answers = {}
-            for idx, question in enumerate(default_question_texts + custom_questions):
-                answer_key = f'answer_{i+1}_{idx+1}'  # Unique key for each answer
-                ticket_answers[question] = request.form.get(answer_key)
-            answers.append(ticket_answers)
+            for q_index, question in enumerate(all_questions):
+                answer_key = f'ticket_{i}_question_{q_index}'
+                answer = request.form.get(answer_key)
+                if not answer:
+                    flash(f'Please answer all questions for Ticket {i + 1}.')
+                    return redirect(url_for('purchase', event_id=event_id))
+                ticket_answers[question] = answer
+            tickets.append(ticket_answers)
 
-        # TODO: Save answers to the database if needed
+        # Calculate total amount
+        total_amount = event.ticket_price * number_of_tickets
 
-        # Redirect to Stripe checkout
-        return redirect(url_for('create_checkout_session', event_id=event_id))
+        # Calculate platform fee
+        flat_rate = user.flat_rate or 0.01  # Default to 1% if not set
+        platform_fee_amount = int(total_amount * flat_rate * 100)  # Convert to pence
 
-    return render_template('answer_questions.html', 
-                           event=event, 
-                           ticket_quantity=ticket_quantity, 
-                           default_questions=default_question_texts,
-                           custom_questions=custom_questions)
+        try:
+            # Create a Stripe Checkout session
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'gbp',
+                        'product_data': {
+                            'name': event.name,
+                        },
+                        'unit_amount': int(event.ticket_price * 100),
+                    },
+                    'quantity': number_of_tickets,
+                }],
+                mode='payment',
+                success_url=url_for('success', _external=True),
+                cancel_url=url_for('cancel', _external=True),
+                payment_intent_data={
+                    'application_fee_amount': platform_fee_amount,
+                    'transfer_data': {
+                        'destination': user.stripe_connect_id,
+                    },
+                    'metadata': {
+                        'ticket_answers': json.dumps(tickets)
+                    }
+                },
+            )
+            return redirect(checkout_session.url)
 
+        except Exception as e:
+            print(f"Error creating checkout session: {str(e)}")
+            flash('An error occurred while processing your payment.')
+            return redirect(url_for('purchase', event_id=event_id))
+
+    else:
+        return render_template('purchase.html', event=event, questions=all_questions)
