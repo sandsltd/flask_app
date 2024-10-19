@@ -74,6 +74,12 @@ class Event(db.Model):
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
+
+class DefaultQuestion(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    question = db.Column(db.String(255), nullable=False)
+
 # Generate a random unique ID with 15 characters
 def generate_unique_id():
     characters = string.ascii_letters + string.digits
@@ -217,15 +223,21 @@ def create_event():
 
     return render_template('create_event.html')
 
-# Reset database
-@app.route('/reset_db')
+@app.route('/reset-db')
 def reset_db():
     try:
-        db.drop_all()
-        db.create_all()
-        return "Database reset and tables recreated!"
+        # Drop all the tables and recreate them
+        db.drop_all()  # Deletes all tables
+        db.create_all()  # Recreates all tables based on the models
+
+        # If you're using migrations, run the upgrade here
+        from flask_migrate import upgrade
+        upgrade()  # Run any outstanding migrations
+
+        return "Database reset and tables recreated successfully!"
+
     except Exception as e:
-        return f"An error occurred during reset: {str(e)}"
+        return f"An error occurred: {str(e)}"
 
 # Embed route for displaying events
 @app.route('/embed/<unique_id>')
@@ -351,3 +363,26 @@ def cancel():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+@app.route('/manage-default-questions', methods=['GET', 'POST'])
+@login_required
+def manage_default_questions():
+    if request.method == 'POST':
+        questions = request.form.getlist('questions[]')  # Get all questions from the form
+
+        # First, delete existing default questions for this user
+        DefaultQuestion.query.filter_by(user_id=current_user.id).delete()
+
+        # Then, add the new questions
+        for question in questions:
+            if question.strip():  # Avoid adding empty questions
+                new_question = DefaultQuestion(user_id=current_user.id, question=question)
+                db.session.add(new_question)
+        
+        db.session.commit()
+        flash('Default questions updated successfully!')
+
+    # Retrieve current default questions for the user
+    default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
+
+    return render_template('manage_default_questions.html', questions=default_questions)

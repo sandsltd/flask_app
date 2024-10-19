@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Default Questions</title>
+</head>
+<body>
+    <h1>Manage Default Questions</h1>
+
+    <form action="/manage-default-questions" method="POST">
+        {% for question in questions %}
+        <label for="question{{ loop.index }}">Question {{ loop.index }}:</label>
+        <input type="text" id="question{{ loop.index }}" name="questions[]" value="{{ question.question }}"><br>
+        {% endfor %}
+
+        {% for i in range(10 - questions|length) %}
+        <label for="new_question{{ i + questions|length + 1 }}">Question {{ i + questions|length + 1 }}:</label>
+        <input type="text" id="new_question{{ i + questions|length + 1 }}" name="questions[]"><br>
+        {% endfor %}
+
+        <input type="submit" value="Save Questions">
+    </form>
+
+    <a href="/dashboard">Back to Dashboard</a>
+
+    {% if error %}
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
+</body>
+</html>
