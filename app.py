@@ -72,7 +72,20 @@ class Event(db.Model):
     ticket_price = db.Column(db.Float, nullable=False)
     event_image = db.Column(db.String(300), nullable=True)  # Optional event image URL
 
+    # Custom questions
+    custom_question_1 = db.Column(db.String(255), nullable=True)
+    custom_question_2 = db.Column(db.String(255), nullable=True)
+    custom_question_3 = db.Column(db.String(255), nullable=True)
+    custom_question_4 = db.Column(db.String(255), nullable=True)
+    custom_question_5 = db.Column(db.String(255), nullable=True)
+    custom_question_6 = db.Column(db.String(255), nullable=True)
+    custom_question_7 = db.Column(db.String(255), nullable=True)
+    custom_question_8 = db.Column(db.String(255), nullable=True)
+    custom_question_9 = db.Column(db.String(255), nullable=True)
+    custom_question_10 = db.Column(db.String(255), nullable=True)
+
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
 
 
 class DefaultQuestion(db.Model):
@@ -200,8 +213,26 @@ def create_event():
         end_time = request.form['end_time']
         ticket_quantity = request.form['ticket_quantity']
         ticket_price = request.form['ticket_price']
-        event_image = request.form['event_image']
 
+        # Capture custom questions for the event
+        custom_question_1 = request.form.get('custom_question_1')
+        custom_question_2 = request.form.get('custom_question_2')
+        custom_question_3 = request.form.get('custom_question_3')
+        custom_question_4 = request.form.get('custom_question_4')
+        custom_question_5 = request.form.get('custom_question_5')
+        custom_question_6 = request.form.get('custom_question_6')
+        custom_question_7 = request.form.get('custom_question_7')
+        custom_question_8 = request.form.get('custom_question_8')
+        custom_question_9 = request.form.get('custom_question_9')
+        custom_question_10 = request.form.get('custom_question_10')
+
+        # Fetch default questions from the database
+        default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
+
+        # We can now add these default questions to the custom ones
+        default_question_texts = [dq.question for dq in default_questions]
+
+        # Create the new event
         new_event = Event(
             name=name,
             date=date,
@@ -211,7 +242,16 @@ def create_event():
             end_time=end_time,
             ticket_quantity=ticket_quantity,
             ticket_price=ticket_price,
-            event_image=event_image,
+            custom_question_1=custom_question_1 or (default_question_texts[0] if len(default_question_texts) > 0 else None),
+            custom_question_2=custom_question_2 or (default_question_texts[1] if len(default_question_texts) > 1 else None),
+            custom_question_3=custom_question_3 or (default_question_texts[2] if len(default_question_texts) > 2 else None),
+            custom_question_4=custom_question_4 or (default_question_texts[3] if len(default_question_texts) > 3 else None),
+            custom_question_5=custom_question_5 or (default_question_texts[4] if len(default_question_texts) > 4 else None),
+            custom_question_6=custom_question_6 or (default_question_texts[5] if len(default_question_texts) > 5 else None),
+            custom_question_7=custom_question_7 or (default_question_texts[6] if len(default_question_texts) > 6 else None),
+            custom_question_8=custom_question_8 or (default_question_texts[7] if len(default_question_texts) > 7 else None),
+            custom_question_9=custom_question_9 or (default_question_texts[8] if len(default_question_texts) > 8 else None),
+            custom_question_10=custom_question_10 or (default_question_texts[9] if len(default_question_texts) > 9 else None),
             user_id=current_user.id
         )
 
@@ -222,6 +262,7 @@ def create_event():
         return redirect(url_for('dashboard'))
 
     return render_template('create_event.html')
+
 
 # Reset database
 @app.route('/reset_db')
