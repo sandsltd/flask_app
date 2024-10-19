@@ -502,18 +502,20 @@ def purchase(event_id):
                 mode='payment',
                 success_url=url_for('success', attendee_id=attendee_id, _external=True),
                 cancel_url=url_for('cancel', attendee_id=attendee_id, _external=True),
+                metadata={
+                    'attendee_id': attendee_id
+                },
                 payment_intent_data={
                     'application_fee_amount': platform_fee_amount,
                     'transfer_data': {
                         'destination': user.stripe_connect_id,
                     },
-                    'metadata': {
-                        'attendee_id': attendee_id
-                    }
+                    # You can remove 'metadata' from here if it's not needed
                 },
                 billing_address_collection='required',
-                customer_email=request.form.get('email')  # Collect email from your form if available
+                customer_email=request.form.get('email')  # Ensure you collect email in your form
             )
+
             return redirect(checkout_session.url)
 
         except Exception as e:
@@ -583,7 +585,7 @@ def stripe_webhook():
 def handle_checkout_session(session):
     print(f"Handling session: {session.id}")
     # Retrieve the attendee ID from the session's metadata
-    attendee_id = session['metadata'].get('attendee_id')
+    attendee_id = session.get('metadata', {}).get('attendee_id')
     if not attendee_id:
         print("No attendee ID found in session metadata.")
         return
