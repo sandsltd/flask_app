@@ -12,6 +12,8 @@ from flask_cors import CORS
 import json
 from flask import request, redirect, url_for, render_template, flash
 from urllib.parse import urlparse
+from datetime import datetime
+
 
 
 app = Flask(__name__)
@@ -92,6 +94,17 @@ class Event(db.Model):
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
+class Attendee(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    ticket_answers = db.Column(db.Text, nullable=False)
+    billing_details = db.Column(db.Text, nullable=True)
+    stripe_charge_id = db.Column(db.String(255), nullable=True)
+    payment_status = db.Column(db.String(50), nullable=False, default='pending')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationship to the Event model
+    event = db.relationship('Event', backref=db.backref('attendees', lazy=True))
 
 
 class DefaultQuestion(db.Model):
@@ -410,11 +423,10 @@ def purchase(event_id):
     if not user:
         return "Event organizer not found", 404
 
-    # Fetch default questions
+    # Fetch default and custom questions
     default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
     default_question_texts = [dq.question for dq in default_questions]
 
-    # Fetch custom questions from the event
     custom_questions = []
     for i in range(1, 11):
         question = getattr(event, f'custom_question_{i}')
@@ -452,6 +464,18 @@ def purchase(event_id):
                 ticket_answers[question] = answer
             tickets.append(ticket_answers)
 
+        # Create an attendee record with payment_status 'pending'
+        attendee = Attendee(
+            event_id=event_id,
+            ticket_answers=json.dumps(tickets),
+            payment_status='pending'
+        )
+        db.session.add(attendee)
+        db.session.commit()
+
+        # Store the attendee ID to pass to Stripe
+        attendee_id = attendee.id
+
         # Calculate total amount
         total_amount = event.ticket_price * number_of_tickets
 
@@ -474,15 +498,15 @@ def purchase(event_id):
                     'quantity': number_of_tickets,
                 }],
                 mode='payment',
-                success_url=url_for('success', _external=True),
-                cancel_url=url_for('cancel', _external=True),
+                success_url=url_for('success', attendee_id=attendee_id, _external=True),
+                cancel_url=url_for('cancel', attendee_id=attendee_id, _external=True),
                 payment_intent_data={
                     'application_fee_amount': platform_fee_amount,
                     'transfer_data': {
                         'destination': user.stripe_connect_id,
                     },
                     'metadata': {
-                        'ticket_answers': json.dumps(tickets)
+                        'attendee_id': attendee_id
                     }
                 },
             )
@@ -494,18 +518,18 @@ def purchase(event_id):
             return redirect(url_for('purchase', event_id=event_id))
 
     else:
-        # Provide placeholder link for platform terms if you don't have one yet
+        # GET request: render the purchase page
+        # Ensure you pass organizer_terms_link and platform_terms_link
         platform_terms_link = 'https://your-platform-domain.com/terms-and-conditions'
-
-        # Use the organizer's terms link from the user model; if not set, provide a default message or link
         organizer_terms_link = user.terms or '#'
 
         # Ensure the URL is absolute
+        from urllib.parse import urlparse
+
         def ensure_absolute_url(url):
             if url:
                 parsed_url = urlparse(url)
                 if not parsed_url.scheme:
-                    # No scheme provided, default to https
                     return 'https://' + url
                 else:
                     return url
@@ -514,9 +538,6 @@ def purchase(event_id):
 
         organizer_terms_link = ensure_absolute_url(organizer_terms_link)
 
-        # Debugging statement
-        print(f"Organizer terms link: {organizer_terms_link}")
-
         return render_template(
             'purchase.html',
             event=event,
@@ -524,3 +545,74 @@ def purchase(event_id):
             organizer_terms_link=organizer_terms_link,
             platform_terms_link=platform_terms_link
         )
+    
+@app.route('/stripe-webhook', methods=['POST'])
+def stripe_webhook():
+    payload = request.data
+    sig_header = request.headers.get('Stripe-Signature')
+    webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, webhook_secret
+        )
+    except ValueError as e:
+        # Invalid payload
+        print(f"Invalid payload: {e}")
+        return '', 400
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        print(f"Invalid signature: {e}")
+        return '', 400
+
+    # Handle the event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        handle_checkout_session(session)
+
+    return '', 200
+def handle_checkout_session(session):
+    # Retrieve the attendee ID from the session's metadata
+    attendee_id = session['metadata'].get('attendee_id')
+    if not attendee_id:
+        print("No attendee ID found in session metadata.")
+        return
+
+    # Retrieve the attendee from the database
+    attendee = Attendee.query.get(attendee_id)
+    if not attendee:
+        print(f"No attendee found with ID {attendee_id}.")
+        return
+
+    # Retrieve the PaymentIntent to get the charge and billing details
+    payment_intent_id = session.get('payment_intent')
+    if not payment_intent_id:
+        print("No payment intent ID found in session.")
+        return
+
+    payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+    charges = payment_intent.get('charges', {}).get('data', [])
+    if not charges:
+        print("No charges found in payment intent.")
+        return
+
+    charge = charges[0]  # Assuming one charge per payment intent
+
+    # Update the attendee record
+    attendee.billing_details = json.dumps(charge.get('billing_details', {}))
+    attendee.stripe_charge_id = charge.get('id')
+    attendee.payment_status = 'succeeded'
+    db.session.commit()
+
+    print(f"Attendee {attendee_id} updated with payment details.")
+
+@app.route('/event/<int:event_id>/attendees')
+@login_required
+def view_attendees(event_id):
+    event = Event.query.get(event_id)
+    if not event or event.user_id != current_user.id:
+        flash("Event not found or you don't have permission to view it.")
+        return redirect(url_for('dashboard'))
+
+    attendees = Attendee.query.filter_by(event_id=event_id, payment_status='succeeded').all()
+    return render_template('view_attendees.html', event=event, attendees=attendees)

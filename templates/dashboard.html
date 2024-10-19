@@ -18,6 +18,10 @@
         {% endfor %}
     </ul>
 
+    <!-- Inside your loop displaying events -->
+    <a href="{{ url_for('view_attendees', event_id=event.id) }}">View Attendees</a>
+
+
     <h3>Your Embed Code:</h3>
     <pre>
         &lt;script src="https://flask-app-2gp0.onrender.com/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
