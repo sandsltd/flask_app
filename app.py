@@ -375,6 +375,7 @@ if __name__ == "__main__":
 def manage_default_questions():
     if request.method == 'POST':
         questions = request.form.getlist('questions[]')  # Get all questions from the form
+        terms_link = request.form.get('terms_link')  # Get the terms and conditions link
 
         # First, delete existing default questions for this user
         DefaultQuestion.query.filter_by(user_id=current_user.id).delete()
@@ -385,15 +386,16 @@ def manage_default_questions():
                 new_question = DefaultQuestion(user_id=current_user.id, question=question)
                 db.session.add(new_question)
         
+        # Update the user's terms and conditions link
+        current_user.terms = terms_link
+
         db.session.commit()
-        flash('Default questions updated successfully!')
+        flash('Default questions and Terms and Conditions updated successfully!')
 
     # Retrieve current default questions for the user
     default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
+    return render_template('manage_default_questions.html', questions=default_questions, user=current_user)
 
-    return render_template('manage_default_questions.html', questions=default_questions)
-
-from flask import request, redirect, url_for, render_template, flash
 
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
 def purchase(event_id):
