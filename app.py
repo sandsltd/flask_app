@@ -50,7 +50,7 @@ class User(db.Model, UserMixin):
     town = db.Column(db.String(100), nullable=False)
     postcode = db.Column(db.String(20), nullable=False)
 
-    terms = db.Column(db.String(255), nullable=True)
+    terms = db.Column(db.String(255), nullable=True)  # Changed from False to True
 
     # Default flat_rate set to 0.01
     flat_rate = db.Column(db.Float, nullable=True, default=0.01)  # Flat rate with default value
@@ -395,6 +395,12 @@ def manage_default_questions():
     # Retrieve current default questions for the user
     default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
     return render_template('manage_default_questions.html', questions=default_questions, user=current_user)
+
+    # After retrieving the terms_link
+    print(f"Received terms_link: {terms_link}")
+
+    # After setting current_user.terms
+    print(f"current_user.terms set to: {current_user.terms}")
 
 
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
