@@ -291,7 +291,7 @@ def embed_events(unique_id):
     if not user_events:
         return "No events found.", 404
 
-    # Start generating the HTML content as a string
+    # Generate the events HTML
     events_html = '<ul>'
     for event in user_events:
         events_html += f'''
@@ -308,31 +308,37 @@ def embed_events(unique_id):
         '''
     events_html += '</ul>'
 
-    # JavaScript for handling ticket purchases
+    # Add the JavaScript for redirecting to the answer questions page
     events_html += '''
     <script>
         function goToQuestions(eventId) {
+            // Ask for the number of tickets before redirecting
             let ticketQuantity = prompt("How many tickets would you like to buy?");
+            
             if (ticketQuantity && !isNaN(ticketQuantity) && ticketQuantity > 0) {
+                // Redirect to the questions page
                 window.location.href = `/answer-questions/${eventId}/${ticketQuantity}`;
             } else {
                 alert("Please enter a valid number of tickets.");
             }
         }
-
-        // Insert the generated HTML into the embedding page
-        document.addEventListener('DOMContentLoaded', function() {
-            var container = document.getElementById("embed-container");
-            if (container) {
-                container.innerHTML = `''' + events_html + '''`;
-            }
-        });
     </script>
     '''
 
-    # Return the script that dynamically injects the content into the DOM
-    return events_html, 200, {'Content-Type': 'application/javascript'}
-
+    # Wrap the events_html in a JavaScript function that inserts it into the DOM
+    script = f'''
+    (function() {{
+        var events_html = `{events_html}`;
+        var scriptTag = document.currentScript || (function() {{
+            var scripts = document.getElementsByTagName('script');
+            return scripts[scripts.length - 1];
+        }})();
+        var container = document.createElement('div');
+        container.innerHTML = events_html;
+        scriptTag.parentNode.insertBefore(container, scriptTag);
+    }})();
+    '''
+    return script, 200, {'Content-Type': 'application/javascript'}
 
 # Stripe Checkout session creation
 @app.route('/create-checkout-session/<int:event_id>', methods=['POST'])
