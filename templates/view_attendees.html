@@ -5,22 +5,26 @@
 </head>
 <body>
     <h1>Attendees for {{ event.name }}</h1>
-    <table border="1">
-        <tr>
-            <th>ID</th>
-            <th>Ticket Answers</th>
-            <th>Billing Name</th>
-            <th>Billing Email</th>
-            <th>Payment Status</th>
-            <th>Date Purchased</th>
-        </tr>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Phone Number</th>
+                <th>Tickets Purchased</th>
+                <th>Ticket Answers</th>
+                <th>Payment Status</th>
+                <th>Date Purchased</th>
+            </tr>
+        </thead>
+        <tbody>
             {% for attendee in attendees %}
             <tr>
                 <td>{{ attendee.id }}</td>
                 <td>{{ attendee.full_name }}</td>
+                <td>{{ attendee.email }}</td>
                 <td>{{ attendee.phone_number }}</td>
-                <td>{{ attendee.address | nl2br }}</td>
-                <td>{{ attendee.billing_details.email if attendee.billing_details else '' }}</td>
                 <td>{{ attendee.tickets_purchased }}</td>
                 <td>
                     {% for ticket in attendee.ticket_answers %}
@@ -35,7 +39,8 @@
                 <td>{{ attendee.created_at }}</td>
             </tr>
             {% endfor %}
-    </table>
+        </tbody>
+    </table>    
     <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
 </body>
 </html>

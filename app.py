@@ -106,8 +106,15 @@ class Attendee(db.Model):
     payment_status = db.Column(db.String(50), nullable=False, default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # New fields
+    full_name = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), nullable=False)
+    phone_number = db.Column(db.String(50), nullable=False)
+    tickets_purchased = db.Column(db.Integer, nullable=False)
+
     # Relationship to the Event model
     event = db.relationship('Event', backref=db.backref('attendees', lazy=True))
+
 
 
 class DefaultQuestion(db.Model):
@@ -439,21 +446,29 @@ def purchase(event_id):
     all_questions = default_question_texts + custom_questions
 
     if request.method == 'POST':
-        # Process the form data
-        number_of_tickets = int(request.form['number_of_tickets'])
-        
+        # Collect form data
+        full_name = request.form.get('full_name')
+        email = request.form.get('email')
+        phone_number = request.form.get('phone_number')
+        number_of_tickets = int(request.form.get('number_of_tickets', 1))
+
+        # Validate required fields
+        if not all([full_name, email, phone_number]):
+            flash('Please fill in all required fields.')
+            return redirect(url_for('purchase', event_id=event_id))
+
         if number_of_tickets > event.ticket_quantity:
             flash('Requested number of tickets exceeds available tickets.')
             return redirect(url_for('purchase', event_id=event_id))
-        
-        # Validate that the terms checkboxes are checked
+
+        # Validate terms acceptance
         if not request.form.get('accept_organizer_terms'):
             flash('You must accept the event organizer\'s Terms and Conditions.')
             return redirect(url_for('purchase', event_id=event_id))
         if not request.form.get('accept_platform_terms'):
             flash('You must accept the platform\'s Terms and Conditions.')
             return redirect(url_for('purchase', event_id=event_id))
-        
+
         # Collect answers for each ticket
         tickets = []
         for i in range(number_of_tickets):
@@ -471,7 +486,12 @@ def purchase(event_id):
         attendee = Attendee(
             event_id=event_id,
             ticket_answers=json.dumps(tickets),
-            payment_status='pending'
+            payment_status='pending',
+            full_name=full_name,
+            email=email,
+            phone_number=phone_number,
+            tickets_purchased=number_of_tickets,
+            created_at=datetime.utcnow()
         )
         db.session.add(attendee)
         db.session.commit()
@@ -510,10 +530,9 @@ def purchase(event_id):
                     'transfer_data': {
                         'destination': user.stripe_connect_id,
                     },
-                    # You can remove 'metadata' from here if it's not needed
                 },
                 billing_address_collection='required',
-                customer_email=request.form.get('email')  # Ensure you collect email in your form
+                customer_email=email
             )
 
             return redirect(checkout_session.url)
@@ -525,7 +544,6 @@ def purchase(event_id):
 
     else:
         # GET request: render the purchase page
-        # Ensure you pass organizer_terms_link and platform_terms_link
         platform_terms_link = 'https://your-platform-domain.com/terms-and-conditions'
         organizer_terms_link = user.terms or '#'
 
@@ -551,6 +569,7 @@ def purchase(event_id):
             organizer_terms_link=organizer_terms_link,
             platform_terms_link=platform_terms_link
         )
+
     
 @app.route('/stripe-webhook', methods=['POST'])
 def stripe_webhook():
@@ -631,7 +650,7 @@ def view_attendees(event_id):
         flash("Event not found or you don't have permission to view it.")
         return redirect(url_for('dashboard'))
 
-    attendees = Attendee.query.filter_by(event_id=event_id, payment_status='succeeded').all()
+    attendees = Attendee.query.filter_by(event_id=event_id).all()
 
     # Parse the JSON fields
     for attendee in attendees:
@@ -641,7 +660,7 @@ def view_attendees(event_id):
         else:
             attendee.ticket_answers = []
 
-        # Parse billing_details JSON
+        # Parse billing_details JSON (if needed)
         if attendee.billing_details:
             attendee.billing_details = json.loads(attendee.billing_details)
         else:
