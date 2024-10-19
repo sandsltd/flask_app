@@ -302,22 +302,43 @@ def embed_events(unique_id):
         '''
     events_html += '</ul>'
 
+    # The JavaScript for the Buy button
     events_html += '''
     <script>
         function buyTicket(eventId) {
-            let ticketQuantity = prompt("How many tickets would you like to buy?");
-            
-            if (ticketQuantity && !isNaN(ticketQuantity) && ticketQuantity > 0) {
-                window.location.href = `/answer-questions/${eventId}/${ticketQuantity}`;
-            } else {
-                alert("Please enter a valid number of tickets.");
-            }
+            fetch('https://flask-app-2gp0.onrender.com/create-checkout-session/' + eventId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || "Unknown error occurred.");
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.url) {
+                    window.location.href = data.url;  // Redirect to Stripe Checkout
+                } else {
+                    throw new Error("Missing checkout session URL in the response.");
+                }
+            })
+            .catch(error => {
+                console.error("Error creating checkout session:", error.message);
+                alert("Error: " + error.message);
+            });
         }
     </script>
     '''
 
+    # Return the response as a JavaScript document
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 
