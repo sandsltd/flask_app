@@ -284,8 +284,14 @@ def embed_events(unique_id):
     if not user:
         return "User not found", 404
 
+    # Fetch the events for the user
     user_events = Event.query.filter_by(user_id=user.id).all()
 
+    # If no events found, display a message
+    if not user_events:
+        return "No events found.", 404
+
+    # Generate the events HTML
     events_html = '<ul>'
     for event in user_events:
         events_html += f'''
@@ -296,13 +302,13 @@ def embed_events(unique_id):
             Description: {event.description}<br>
             Time: {event.start_time} - {event.end_time}<br>
             Ticket Quantity: {event.ticket_quantity}<br>
-            Ticket Price: £{event.ticket_price}<br>
+            Ticket Price: &pound;{event.ticket_price}<br>
             <button onclick="goToQuestions({event.id})">Buy Ticket</button>
         </li><br>
         '''
     events_html += '</ul>'
 
-    # Update the JavaScript to redirect to the answer-questions page
+    # Add the JavaScript for redirecting to the answer questions page
     events_html += '''
     <script>
         function goToQuestions(eventId) {
@@ -319,9 +325,10 @@ def embed_events(unique_id):
     </script>
     '''
 
-    # Return the response as JavaScript
+    # Return the generated HTML as JavaScript
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 
