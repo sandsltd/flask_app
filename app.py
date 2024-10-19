@@ -105,7 +105,13 @@ class Attendee(db.Model):
     stripe_charge_id = db.Column(db.String(255), nullable=True)
     payment_status = db.Column(db.String(50), nullable=False, default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
+    
+    # New fields
+    full_name = db.Column(db.String(255), nullable=False)
+    phone_number = db.Column(db.String(50), nullable=False)
+    address = db.Column(db.Text, nullable=False)
+    tickets_purchased = db.Column(db.Integer, nullable=False)
+    
     # Relationship to the Event model
     event = db.relationship('Event', backref=db.backref('attendees', lazy=True))
 
@@ -427,43 +433,50 @@ def purchase(event_id):
         return "Event organizer not found", 404
 
     # Fetch default and custom questions
-    default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
-    default_question_texts = [dq.question for dq in default_questions]
+    default_questions = json.loads(user.default_questions) if user.default_questions else []
+    custom_questions = json.loads(event.custom_questions) if event.custom_questions else []
+    all_questions = default_questions + custom_questions
 
-    custom_questions = []
-    for i in range(1, 11):
-        question = getattr(event, f'custom_question_{i}')
-        if question:
-            custom_questions.append(question)
-
-    all_questions = default_question_texts + custom_questions
+    # Fetch organizer and platform terms links
+    organizer_terms_link = user.terms_link
+    platform_terms_link = "https://yourplatform.com/terms"  # Replace with your platform's terms URL
 
     if request.method == 'POST':
-        # Process the form data
-        number_of_tickets = int(request.form['number_of_tickets'])
-        
+        # Collect form data
+        full_name = request.form.get('full_name')
+        phone_number = request.form.get('phone_number')
+        address = request.form.get('address')
+        email = request.form.get('email')  # Ensure this is collected
+
+        number_of_tickets = int(request.form.get('number_of_tickets', 1))
+
+        # Validate required fields
+        if not all([full_name, phone_number, address, email]):
+            flash('Please fill in all required fields.')
+            return redirect(url_for('purchase', event_id=event_id))
+
         if number_of_tickets > event.ticket_quantity:
             flash('Requested number of tickets exceeds available tickets.')
             return redirect(url_for('purchase', event_id=event_id))
-        
-        # Validate that the terms checkboxes are checked
-        if not request.form.get('accept_organizer_terms'):
-            flash('You must accept the event organizer\'s Terms and Conditions.')
+
+        # Validate terms acceptance
+        platform_terms_accepted = request.form.get('platform_terms_accepted')
+        organizer_terms_accepted = request.form.get('organizer_terms_accepted')
+
+        if platform_terms_link and not platform_terms_accepted:
+            flash('You must accept the platform terms and conditions.')
             return redirect(url_for('purchase', event_id=event_id))
-        if not request.form.get('accept_platform_terms'):
-            flash('You must accept the platform\'s Terms and Conditions.')
+
+        if organizer_terms_link and not organizer_terms_accepted:
+            flash('You must accept the organizer terms and conditions.')
             return redirect(url_for('purchase', event_id=event_id))
-        
+
         # Collect answers for each ticket
         tickets = []
-        for i in range(number_of_tickets):
+        for ticket_num in range(1, number_of_tickets + 1):
             ticket_answers = {}
-            for q_index, question in enumerate(all_questions):
-                answer_key = f'ticket_{i}_question_{q_index}'
-                answer = request.form.get(answer_key)
-                if not answer:
-                    flash(f'Please answer all questions for Ticket {i + 1}.')
-                    return redirect(url_for('purchase', event_id=event_id))
+            for question_num, question in enumerate(all_questions, start=1):
+                answer = request.form.get(f'ticket_{ticket_num}_question_{question_num}')
                 ticket_answers[question] = answer
             tickets.append(ticket_answers)
 
@@ -471,12 +484,17 @@ def purchase(event_id):
         attendee = Attendee(
             event_id=event_id,
             ticket_answers=json.dumps(tickets),
-            payment_status='pending'
+            payment_status='pending',
+            full_name=full_name,
+            phone_number=phone_number,
+            address=address,
+            tickets_purchased=number_of_tickets,
+            created_at=datetime.utcnow()
         )
         db.session.add(attendee)
         db.session.commit()
 
-        # Store the attendee ID to pass to Stripe
+        # Store the attendee ID to associate with the payment
         attendee_id = attendee.id
 
         # Calculate total amount
@@ -484,18 +502,19 @@ def purchase(event_id):
 
         # Calculate platform fee
         flat_rate = user.flat_rate or 0.01  # Default to 1% if not set
-        platform_fee_amount = int(total_amount * flat_rate * 100)  # Convert to pence
+        platform_fee_amount = int(total_amount * flat_rate * 100)  # Convert to cents/pence
 
         try:
+            # Create a Stripe Checkout session
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
                     'price_data': {
-                        'currency': 'gbp',
+                        'currency': 'gbp',  # Update currency if needed
                         'product_data': {
                             'name': event.name,
                         },
-                        'unit_amount': int(event.ticket_price * 100),
+                        'unit_amount': int(event.ticket_price * 100),  # Convert to cents/pence
                     },
                     'quantity': number_of_tickets,
                 }],
@@ -510,12 +529,10 @@ def purchase(event_id):
                     'transfer_data': {
                         'destination': user.stripe_connect_id,
                     },
-                    # You can remove 'metadata' from here if it's not needed
                 },
                 billing_address_collection='required',
-                customer_email=request.form.get('email')  # Ensure you collect email in your form
+                customer_email=email
             )
-
             return redirect(checkout_session.url)
 
         except Exception as e:
@@ -525,25 +542,6 @@ def purchase(event_id):
 
     else:
         # GET request: render the purchase page
-        # Ensure you pass organizer_terms_link and platform_terms_link
-        platform_terms_link = 'https://your-platform-domain.com/terms-and-conditions'
-        organizer_terms_link = user.terms or '#'
-
-        # Ensure the URL is absolute
-        from urllib.parse import urlparse
-
-        def ensure_absolute_url(url):
-            if url:
-                parsed_url = urlparse(url)
-                if not parsed_url.scheme:
-                    return 'https://' + url
-                else:
-                    return url
-            else:
-                return '#'
-
-        organizer_terms_link = ensure_absolute_url(organizer_terms_link)
-
         return render_template(
             'purchase.html',
             event=event,

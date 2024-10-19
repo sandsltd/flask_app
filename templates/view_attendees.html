@@ -14,24 +14,27 @@
             <th>Payment Status</th>
             <th>Date Purchased</th>
         </tr>
-        {% for attendee in attendees %}
-        <tr>
-            <td>{{ attendee.id }}</td>
-            <td>
-                {% for ticket in attendee.ticket_answers %}
-                    <ul>
-                        {% for question, answer in ticket.items() %}
-                            <li><strong>{{ question }}:</strong> {{ answer }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endfor %}
-            </td>
-            <td>{{ attendee.billing_details.name }}</td>
-            <td>{{ attendee.billing_details.email }}</td>
-            <td>{{ attendee.payment_status }}</td>
-            <td>{{ attendee.created_at }}</td>
-        </tr>
-        {% endfor %}
+            {% for attendee in attendees %}
+            <tr>
+                <td>{{ attendee.id }}</td>
+                <td>{{ attendee.full_name }}</td>
+                <td>{{ attendee.phone_number }}</td>
+                <td>{{ attendee.address | nl2br }}</td>
+                <td>{{ attendee.billing_details.email if attendee.billing_details else '' }}</td>
+                <td>{{ attendee.tickets_purchased }}</td>
+                <td>
+                    {% for ticket in attendee.ticket_answers %}
+                        <ul>
+                            {% for question, answer in ticket.items() %}
+                                <li><strong>{{ question }}:</strong> {{ answer }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endfor %}
+                </td>
+                <td>{{ attendee.payment_status }}</td>
+                <td>{{ attendee.created_at }}</td>
+            </tr>
+            {% endfor %}
     </table>
     <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
 </body>
