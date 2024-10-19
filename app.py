@@ -277,7 +277,6 @@ def reset_db():
     except Exception as e:
         return f"An error occurred during reset: {str(e)}"
 
-# Embed route for displaying events
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
     user = User.query.filter_by(unique_id=unique_id).first()
@@ -286,7 +285,10 @@ def embed_events(unique_id):
         return "User not found", 404
 
     user_events = Event.query.filter_by(user_id=user.id).all()
-
+    
+    # Debug: print the events to see if they are being fetched
+    print(f"Events for user {user.id}: {user_events}")
+    
     events_html = '<ul>'
     for event in user_events:
         events_html += f'''
@@ -305,22 +307,22 @@ def embed_events(unique_id):
 
     events_html += '''
 
-function buyTicket(eventId) {
-    // Get the selected quantity of tickets
-    let ticketQuantity = prompt("How many tickets would you like to buy?");
-    
-    if (ticketQuantity && !isNaN(ticketQuantity) && ticketQuantity > 0) {
-        // Redirect to the new route for answering questions
-        window.location.href = `/answer-questions/${eventId}/${ticketQuantity}`;
-    } else {
-        alert("Please enter a valid number of tickets.");
+    <script>
+    function buyTicket(eventId) {
+        let ticketQuantity = prompt("How many tickets would you like to buy?");
+        
+        if (ticketQuantity && !isNaN(ticketQuantity) && ticketQuantity > 0) {
+            window.location.href = `/answer-questions/${eventId}/${ticketQuantity}`;
+        } else {
+            alert("Please enter a valid number of tickets.");
+        }
     }
-}
-
+    </script>
     '''
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 # Stripe Checkout session creation
 @app.route('/create-checkout-session/<int:event_id>', methods=['POST'])
