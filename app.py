@@ -83,7 +83,7 @@ class Event(db.Model):
     ticket_quantity = db.Column(db.Integer, nullable=False)
     ticket_price = db.Column(db.Float, nullable=False)
     event_image = db.Column(db.String(300), nullable=True)  # Optional event image URL
-
+    custom_questions = db.Column(db.Text, nullable=True)  # Add this line
     # Custom questions
     custom_question_1 = db.Column(db.String(255), nullable=True)
     custom_question_2 = db.Column(db.String(255), nullable=True)
