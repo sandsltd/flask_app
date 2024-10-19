@@ -298,7 +298,7 @@ def embed_events(unique_id):
             Time: {event.start_time} - {event.end_time}<br>
             Ticket Quantity: {event.ticket_quantity}<br>
             Ticket Price: £{event.ticket_price}<br>
-            <button onclick="window.location.href='https://your-platform-domain.com/purchase/{event.id}'">Buy Ticket</button>
+            <button onclick="window.location.href='https://flask-app-2gp0.onrender.com/purchase/{event.id}'">Buy Ticket</button>
         </li><br>
         '''
     events_html += '</ul>'
