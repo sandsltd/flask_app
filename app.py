@@ -297,47 +297,32 @@ def embed_events(unique_id):
             Time: {event.start_time} - {event.end_time}<br>
             Ticket Quantity: {event.ticket_quantity}<br>
             Ticket Price: £{event.ticket_price}<br>
-            <button onclick="buyTicket({event.id})">Buy Ticket</button>
+            <button onclick="goToQuestions({event.id})">Buy Ticket</button>
         </li><br>
         '''
     events_html += '</ul>'
 
-    # The JavaScript for the Buy button
+    # Update the JavaScript to redirect to the answer-questions page
     events_html += '''
     <script>
-        function buyTicket(eventId) {
-            fetch('https://flask-app-2gp0.onrender.com/create-checkout-session/' + eventId, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(data => {
-                        throw new Error(data.error || "Unknown error occurred.");
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.url) {
-                    window.location.href = data.url;  // Redirect to Stripe Checkout
-                } else {
-                    throw new Error("Missing checkout session URL in the response.");
-                }
-            })
-            .catch(error => {
-                console.error("Error creating checkout session:", error.message);
-                alert("Error: " + error.message);
-            });
+        function goToQuestions(eventId) {
+            // Ask for the number of tickets before redirecting
+            let ticketQuantity = prompt("How many tickets would you like to buy?");
+            
+            if (ticketQuantity && !isNaN(ticketQuantity) && ticketQuantity > 0) {
+                // Redirect to the questions page
+                window.location.href = `/answer-questions/${eventId}/${ticketQuantity}`;
+            } else {
+                alert("Please enter a valid number of tickets.");
+            }
         }
     </script>
     '''
 
-    # Return the response as a JavaScript document
+    # Return the response as JavaScript
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 
