@@ -12,15 +12,16 @@
     <h2>Your Events:</h2>
     <ul>
         {% for event in events %}
-            <li>{{ event.name }} - {{ event.date }}</li>
+            <li>
+                <strong>{{ event.name }}</strong> - {{ event.date }}
+                <br>
+                <a href="{{ url_for('view_attendees', event_id=event.id) }}">View Attendees</a>
+            </li>
         {% else %}
             <li>No events yet.</li>
         {% endfor %}
     </ul>
-
-    <!-- Inside your loop displaying events -->
-    <a href="{{ url_for('view_attendees', event_id=event.id) }}">View Attendees</a>
-
+    
 
     <h3>Your Embed Code:</h3>
     <pre>
