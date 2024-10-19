@@ -602,21 +602,20 @@ def handle_checkout_session(session):
         print("No payment intent ID found in session.")
         return
 
-    # Expand the charges when retrieving the PaymentIntent
+    # Expand the latest_charge when retrieving the PaymentIntent
     payment_intent = stripe.PaymentIntent.retrieve(
         payment_intent_id,
-        expand=['charges']
+        expand=['latest_charge']
     )
-    charges = payment_intent.charges.data
-    if not charges:
-        print("No charges found in payment intent.")
+
+    charge = payment_intent.latest_charge
+    if not charge:
+        print("No charge found in payment intent.")
         return
 
-    charge = charges[0]  # Assuming one charge per payment intent
-
     # Update the attendee record
-    attendee.billing_details = json.dumps(charge.get('billing_details', {}))
-    attendee.stripe_charge_id = charge.get('id')
+    attendee.billing_details = json.dumps(charge.billing_details)
+    attendee.stripe_charge_id = charge.id
     attendee.payment_status = 'succeeded'
     db.session.commit()
 
