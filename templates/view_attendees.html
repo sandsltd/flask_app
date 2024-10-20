@@ -1,50 +1,51 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Attendees for {{ event.name }}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Attendees</title>
 </head>
 <body>
-    <h1>Attendees for {{ event.name }}</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Full Name</th>
-                <th>Email</th>
-                <th>Phone Number</th>
-                <th>Tickets Purchased</th>
-                <th>Price Paid per Ticket (£)</th>
-                <th>Total Paid (£)</th>
-                <th>Ticket Answers</th>
-                <th>Payment Status</th>
-                <th>Date Purchased</th>
-            </tr>
-        </thead>
-        <tbody>
+
+    <h1>Attendees for Event: {{ event.name }}</h1>
+    <h2>Date: {{ event.date }}</h2>
+    <h3>Location: {{ event.location }}</h3>
+
+    <hr>
+
+    {% if attendees %}
+        <h2>Attendees List</h2>
+        <ul>
             {% for attendee in attendees %}
-            <tr>
-                <td>{{ attendee.id }}</td>
-                <td>{{ attendee.full_name }}</td>
-                <td>{{ attendee.email }}</td>
-                <td>{{ attendee.phone_number }}</td>
-                <td>{{ attendee.tickets_purchased }}</td>
-                <td>£{{ attendee.ticket_price_at_purchase }}</td>  <!-- Price per ticket -->
-                <td>£{{ attendee.tickets_purchased * attendee.ticket_price_at_purchase }}</td>  <!-- Total paid -->
-                <td>
-                    {% for ticket in attendee.ticket_answers %}
-                        <ul>
-                            {% for question, answer in ticket.items() %}
-                                <li><strong>{{ question }}:</strong> {{ answer }}</li>
-                            {% endfor %}
-                        </ul>
-                    {% endfor %}
-                </td>
-                <td>{{ attendee.payment_status }}</td>
-                <td>{{ attendee.created_at }}</td>
-            </tr>
+                <li>
+                    <h3>{{ attendee.full_name }}</h3>
+                    <p>Email: {{ attendee.email }}</p>
+                    <p>Phone: {{ attendee.phone_number }}</p>
+                    <p>Tickets Purchased: {{ attendee.tickets_purchased }}</p>
+                    
+                    <!-- Display ticket answers -->
+                    <h4>Ticket Answers:</h4>
+                    <ul>
+                        {% for question, answer in attendee.ticket_answers.items() %}
+                            <li><strong>{{ question }}:</strong> {{ answer }}</li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <!-- Display billing details if available -->
+                    {% if attendee.billing_details %}
+                        <h4>Billing Details:</h4>
+                        <p>Full Name: {{ attendee.billing_details.name }}</p>
+                        <p>Address: {{ attendee.billing_details.address.line1 }}, {{ attendee.billing_details.address.city }}, {{ attendee.billing_details.address.postal_code }}</p>
+                        <p>Email: {{ attendee.billing_details.email }}</p>
+                    {% endif %}
+                    
+                    <hr>
+                </li>
             {% endfor %}
-        </tbody>
-    </table>    
-    <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+        </ul>
+    {% else %}
+        <p>No attendees for this event yet.</p>
+    {% endif %}
+
 </body>
 </html>

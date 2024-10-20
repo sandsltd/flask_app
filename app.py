@@ -715,7 +715,7 @@ def view_attendees(event_id):
     for attendee in attendees:
         # Parse ticket_answers JSON
         if attendee.ticket_answers:
-            attendee.ticket_answers = json.loads(attendee.ticket_answers)
+            attendee.ticket_answers = json.loads(attendee.ticket_answers)  # Parse JSON string to dictionary
         else:
             attendee.ticket_answers = {}
 
@@ -726,6 +726,7 @@ def view_attendees(event_id):
             attendee.billing_details = {}
 
     return render_template('view_attendees.html', event=event, attendees=attendees)
+
 
 
 
