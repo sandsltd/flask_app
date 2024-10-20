@@ -11,17 +11,22 @@
     
     <h2>Your Events:</h2>
     <ul>
-        {% for event in events %}
+        {% for event_data in events %}
             <li>
-                <strong>{{ event.name }}</strong> - {{ event.date }}
+                <strong>{{ event_data.event.name }}</strong> - {{ event_data.event.date }}
                 <br>
-                <a href="{{ url_for('view_attendees', event_id=event.id) }}">View Attendees</a>
+                <strong>Location:</strong> {{ event_data.event.location }}
+                <br>
+                <strong>Tickets Sold:</strong> {{ event_data.tickets_sold }} / {{ event_data.event.ticket_quantity }}
+                <br>
+                <strong>Tickets Remaining:</strong> {{ event_data.tickets_remaining }}
+                <br>
+                <a href="{{ url_for('view_attendees', event_id=event_data.event.id) }}">View Attendees</a>
             </li>
         {% else %}
             <li>No events yet.</li>
         {% endfor %}
     </ul>
-    
 
     <h3>Your Embed Code:</h3>
     <pre>
@@ -30,8 +35,7 @@
     <p>Copy this code and paste it into your website to display your events.</p>
 
     <a href="/manage-default-questions">Manage Default Questions</a>
-
-
+    <br>
     <a href="/logout">Logout</a>
 </body>
 </html>
