@@ -367,24 +367,108 @@ def embed_events(unique_id):
 
     user_events = Event.query.filter_by(user_id=user.id).all()
 
-    events_html = '<ul>'
+    # CSS for the embedded events
+    css = '''
+    <style>
+    .event-list {
+        list-style: none;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 20px;
+    }
+    
+    .event-item {
+        flex: 1 1 calc(33.33% - 20px);
+        background-color: #f7f7f7;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        transition: transform 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 300px;
+        position: relative;
+    }
+    
+    .event-item:hover {
+        transform: translateY(-5px);
+    }
+    
+    .event-item h3 {
+        font-size: 1.5em;
+        margin-bottom: 10px;
+        color: #333;
+    }
+    
+    .event-details {
+        margin-bottom: 15px;
+        color: #555;
+        font-size: 0.9em;
+    }
+    
+    .event-ticket-price {
+        font-size: 1.3em;
+        font-weight: bold;
+        color: #449ad3;
+        margin-bottom: 10px;
+    }
+    
+    .event-item button {
+        background-color: #449ad3;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        font-size: 1em;
+        cursor: pointer;
+        margin-top: auto;
+        text-align: center;
+        transition: background-color 0.3s ease;
+    }
+    
+    .event-item button:hover {
+        background-color: #377ba3;
+    }
+    
+    .event-item img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px 8px 0 0;
+    }
+
+    @media (max-width: 768px) {
+        .event-item {
+            flex: 1 1 100%;
+        }
+    }
+    </style>
+    '''
+
+    # HTML for the embedded events
+    events_html = '<ul class="event-list">'
     for event in user_events:
         events_html += f'''
-        <li>
-            <strong>{event.name}</strong><br>
-            Date: {event.date}<br>
-            Location: {event.location}<br>
-            Description: {event.description}<br>
-            Time: {event.start_time} - {event.end_time}<br>
-            Ticket Quantity: {event.ticket_quantity}<br>
-            Ticket Price: £{event.ticket_price}<br>
+        <li class="event-item">
+            <img src="{event.event_image}" alt="{event.name} image"/>
+            <h3>{event.name}</h3>
+            <div class="event-details">
+                <p>Date: {event.date}</p>
+                <p>Location: {event.location}</p>
+                <p>{event.description}</p>
+            </div>
+            <div class="event-ticket-price">£{event.ticket_price}</div>
             <button onclick="window.location.href='https://flask-app-2gp0.onrender.com/purchase/{event.id}'">Buy Ticket</button>
-        </li><br>
+        </li>
         '''
     events_html += '</ul>'
 
-    response = f"document.write(`{events_html}`);"
+    # Combine the CSS and HTML into a full response
+    response = f"document.write(`{css}{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 # Stripe Checkout session creation
