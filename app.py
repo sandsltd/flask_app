@@ -717,24 +717,30 @@ def view_attendees(event_id):
     # Fetch attendees with successful payments
     attendees = Attendee.query.filter_by(event_id=event_id, payment_status='succeeded').all()
 
-    # Parse the JSON fields for each attendee
+    # Prepare data to pass to the template without modifying the model
+    attendee_data = []
     for attendee in attendees:
         # Deserialize billing_details JSON string back to a dictionary
-        if attendee.billing_details:
-            attendee.billing_details = json.loads(attendee.billing_details)
-        else:
-            attendee.billing_details = {}
+        billing_details = json.loads(attendee.billing_details) if attendee.billing_details else {}
 
-        # For each ticket, parse ticket_answers JSON
+        # Deserialize ticket_answers for each ticket
+        tickets = []
         for ticket in attendee.tickets:
-            if ticket.ticket_answers:
-                ticket.ticket_answers = json.loads(ticket.ticket_answers)
-            else:
-                ticket.ticket_answers = {}
+            ticket_answers = json.loads(ticket.ticket_answers) if ticket.ticket_answers else {}
+            tickets.append(ticket_answers)
 
-    return render_template('view_attendees.html', event=event, attendees=attendees)
+        attendee_data.append({
+            'id': attendee.id,
+            'full_name': attendee.full_name,
+            'email': attendee.email,
+            'phone_number': attendee.phone_number,
+            'ticket_price_at_purchase': attendee.ticket_price_at_purchase,
+            'created_at': attendee.created_at,
+            'billing_details': billing_details,
+            'tickets': tickets,
+        })
 
-
+    return render_template('view_attendees.html', event=event, attendees=attendee_data)
 
 
 
@@ -778,22 +784,66 @@ def edit_attendee(event_id, attendee_id):
         return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
-        # Collect form data
+        # Update attendee information
         attendee.full_name = request.form.get('full_name')
         attendee.email = request.form.get('email')
         attendee.phone_number = request.form.get('phone_number')
-        len(attendee.tickets) = int(request.form.get('tickets_purchased', len(attendee.tickets)))
-        
-        # Update ticket answers
-        ticket_answers = []
-        for i in range(len(attendee.tickets)):
-            ticket_answer = {}
-            for question in json.loads(attendee.ticket_answers)[0].keys():
-                answer_key = f'ticket_{i}_{question}'
+
+        # Retrieve the desired number of tickets
+        new_ticket_count = int(request.form.get('tickets_purchased', len(attendee.tickets)))
+        current_ticket_count = len(attendee.tickets)
+        difference = new_ticket_count - current_ticket_count
+
+        # Fetch all questions for the event
+        user = event.user
+        default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
+        default_question_texts = [dq.question for dq in default_questions]
+
+        custom_questions = []
+        for i in range(1, 11):
+            question = getattr(event, f'custom_question_{i}')
+            if question:
+                custom_questions.append(question)
+
+        all_questions = default_question_texts + custom_questions
+
+        if difference > 0:
+            # Add new tickets
+            for i in range(difference):
+                ticket_answers = {}
+                for q_index, question in enumerate(all_questions):
+                    answer_key = f'ticket_{current_ticket_count + i}_question_{q_index}'
+                    answer = request.form.get(answer_key)
+                    if not answer:
+                        flash(f'Please answer all questions for Ticket {current_ticket_count + i + 1}.')
+                        return redirect(url_for('edit_attendee', event_id=event_id, attendee_id=attendee_id))
+                    ticket_answers[question] = answer
+
+                new_ticket = Ticket(
+                    attendee_id=attendee.id,
+                    event_id=event_id,
+                    ticket_answers=json.dumps(ticket_answers),
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(new_ticket)
+
+        elif difference < 0:
+            # Remove tickets
+            tickets_to_remove = attendee.tickets[difference:]  # Remove the last N tickets
+            for ticket in tickets_to_remove:
+                db.session.delete(ticket)
+
+        # Update existing ticket answers
+        for i, ticket in enumerate(attendee.tickets):
+            ticket_answers = {}
+            for q_index, question in enumerate(all_questions):
+                answer_key = f'ticket_{i}_question_{q_index}'
                 answer = request.form.get(answer_key)
-                ticket_answer[question] = answer
-            ticket_answers.append(ticket_answer)
-        attendee.ticket_answers = json.dumps(ticket_answers)
+                if not answer:
+                    flash(f'Please answer all questions for Ticket {i + 1}.')
+                    return redirect(url_for('edit_attendee', event_id=event_id, attendee_id=attendee_id))
+                ticket_answers[question] = answer
+            ticket.ticket_answers = json.dumps(ticket_answers)
 
         db.session.commit()
         flash('Attendee information updated successfully!')
@@ -805,10 +855,23 @@ def edit_attendee(event_id, attendee_id):
         'email': attendee.email,
         'phone_number': attendee.phone_number,
         'tickets_purchased': len(attendee.tickets),
-        'ticket_answers': json.loads(attendee.ticket_answers),
     }
 
-    return render_template('edit_attendee.html', event=event, attendee=attendee, attendee_data=attendee_data)
+    # Fetch default and custom questions
+    user = event.user
+    default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
+    default_question_texts = [dq.question for dq in default_questions]
+
+    custom_questions = []
+    for i in range(1, 11):
+        question = getattr(event, f'custom_question_{i}')
+        if question:
+            custom_questions.append(question)
+
+    all_questions = default_question_texts + custom_questions
+
+    return render_template('edit_attendee.html', event=event, attendee=attendee, attendee_data=attendee_data, questions=all_questions)
+
 
 @app.route('/event/<int:event_id>/attendee/<int:attendee_id>/delete', methods=['POST'])
 @login_required
