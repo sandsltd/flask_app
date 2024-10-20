@@ -19,25 +19,20 @@
             {% for attendee in attendees %}
                 <li>
                     <h3>{{ attendee.full_name }}</h3>
-                    <p>Email: {{ attendee.email }}</p>
-                    <p>Phone: {{ attendee.phone_number }}</p>
-                    <p>Tickets Purchased: {{ attendee.tickets_purchased }}</p>
-                    
-                    <!-- Display ticket answers -->
+
+                    <!-- Organiser Information (formerly Billing Details) -->
+                    <h4>Organiser Information:</h4>
+                    <p><strong>Full Name:</strong> {{ attendee.billing_details.name }}</p>
+                    <p><strong>Address:</strong> {{ attendee.billing_details.address.line1 }}, {{ attendee.billing_details.address.city }}, {{ attendee.billing_details.address.postal_code }}</p>
+                    <p><strong>Email:</strong> {{ attendee.billing_details.email }}</p>
+
+                    <!-- Ticket Answers -->
                     <h4>Ticket Answers:</h4>
                     <ul>
                         {% for question, answer in attendee.ticket_answers.items() %}
                             <li><strong>{{ question }}:</strong> {{ answer }}</li>
                         {% endfor %}
                     </ul>
-                    
-                    <!-- Display billing details if available -->
-                    {% if attendee.billing_details %}
-                        <h4>Billing Details:</h4>
-                        <p>Full Name: {{ attendee.billing_details.name }}</p>
-                        <p>Address: {{ attendee.billing_details.address.line1 }}, {{ attendee.billing_details.address.city }}, {{ attendee.billing_details.address.postal_code }}</p>
-                        <p>Email: {{ attendee.billing_details.email }}</p>
-                    {% endif %}
                     
                     <hr>
                 </li>
