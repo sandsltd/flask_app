@@ -662,6 +662,17 @@ def stripe_webhook():
     return '', 200
 def handle_checkout_session(session):
     print(f"Handling session: {session.id}")
+    # Retrieve the attendee ID from the session's metadata
+    attendee_id = session.get('metadata', {}).get('attendee_id')
+    if not attendee_id:
+        print("No attendee ID found in session metadata.")
+        return
+
+    # Retrieve the attendee from the database
+    attendee = Attendee.query.get(attendee_id)
+    if not attendee:
+        print(f"No attendee found with ID {attendee_id}.")
+        return
 
     # Retrieve the PaymentIntent to get the charge and billing details
     payment_intent_id = session.get('payment_intent')
@@ -680,32 +691,13 @@ def handle_checkout_session(session):
         print("No charge found in payment intent.")
         return
 
-    # Retrieve event and customer email from session (assuming metadata contains event_id and email)
-    event_id = session.get('metadata', {}).get('event_id')
-    customer_email = session.get('customer_email')
-
-    if not event_id or not customer_email:
-        print("No event_id or customer email found in session metadata.")
-        return
-
-    # Retrieve all attendees for this event and email
-    attendees = Attendee.query.filter_by(event_id=event_id, email=customer_email).all()
-    
-    if not attendees:
-        print(f"No attendees found for event ID {event_id} and email {customer_email}.")
-        return
-
-    # Update all attendees with the same billing details and mark payment as succeeded
-    for attendee in attendees:
-        attendee.billing_details = json.dumps(charge.billing_details)
-        attendee.stripe_charge_id = charge.id
-        attendee.payment_status = 'succeeded'
-
-    # Commit the changes to the database
+    # Update the attendee record
+    attendee.billing_details = json.dumps(charge.billing_details)
+    attendee.stripe_charge_id = charge.id
+    attendee.payment_status = 'succeeded'
     db.session.commit()
 
-    print(f"Updated {len(attendees)} attendees with payment details.")
-
+    print(f"Attendee {attendee_id} updated with payment details.")
 
 
 

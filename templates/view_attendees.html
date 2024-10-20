@@ -23,14 +23,7 @@
                     <!-- Organiser Information (formerly Billing Details) -->
                     <h4>Organiser Information:</h4>
                     <p><strong>Full Name:</strong> {{ attendee.billing_details.name }}</p>
-
-                    <!-- Check if the billing details contain an address before displaying it -->
-                    {% if attendee.billing_details.address %}
-                        <p><strong>Address:</strong> {{ attendee.billing_details.address.line1 }}, {{ attendee.billing_details.address.city }}, {{ attendee.billing_details.address.postal_code }}</p>
-                    {% else %}
-                        <p><strong>Address:</strong> Not provided</p>
-                    {% endif %}
-                    
+                    <p><strong>Address:</strong> {{ attendee.billing_details.address.line1 }}, {{ attendee.billing_details.address.city }}, {{ attendee.billing_details.address.postal_code }}</p>
                     <p><strong>Email:</strong> {{ attendee.billing_details.email }}</p>
 
                     <!-- Ticket Answers -->
