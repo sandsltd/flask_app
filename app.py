@@ -154,20 +154,32 @@ def login():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    user_events = Event.query.filter_by(user_id=current_user.id).all()
-    
+    filter_value = request.args.get('filter', 'all')
+
+    user_events = Event.query.filter_by(user_id=current_user.id)
+
+    if filter_value == 'upcoming':
+        user_events = user_events.filter(Event.date >= datetime.now())
+    elif filter_value == 'past':
+        user_events = user_events.filter(Event.date < datetime.now())
+
+    user_events = user_events.all()
+
+    total_tickets_sold = 0
+    total_revenue = 0
+
     event_data = []
     for event in user_events:
-        # Query all attendees for the current event
         attendees = Attendee.query.filter_by(event_id=event.id).all()
-
-        # Count the total number of tickets sold
         tickets_sold = sum([attendee.tickets_purchased for attendee in attendees])
-
-        # Calculate remaining tickets
         tickets_remaining = event.ticket_quantity - tickets_sold
-        
-        # Add event data to list
+        event_revenue = tickets_sold * event.ticket_price
+
+        total_tickets_sold += tickets_sold
+        total_revenue += event_revenue
+
+        event_status = "Upcoming" if datetime.strptime(event.date, '%Y-%m-%d') > datetime.now() else "Past"
+
         event_data.append({
             'name': event.name,
             'date': event.date,
@@ -175,10 +187,18 @@ def dashboard():
             'tickets_sold': tickets_sold,
             'ticket_quantity': event.ticket_quantity,
             'tickets_remaining': tickets_remaining,
+            'total_revenue': event_revenue,
+            'status': event_status,
             'id': event.id
         })
     
-    return render_template('dashboard.html', events=event_data, user=current_user)
+    return render_template('dashboard.html', 
+                           events=event_data, 
+                           total_revenue=total_revenue, 
+                           total_tickets_sold=total_tickets_sold, 
+                           user=current_user)
+
+
 
 
 @app.route('/logout')
@@ -691,3 +711,29 @@ def view_attendees(event_id):
             attendee.billing_details = {}
 
     return render_template('view_attendees.html', event=event, attendees=attendees)
+
+@app.route('/edit_event/<int:event_id>', methods=['GET', 'POST'])
+@login_required
+def edit_event(event_id):
+    event = Event.query.get_or_404(event_id)
+
+    if request.method == 'POST':
+        event.name = request.form['name']
+        event.date = request.form['date']
+        event.location = request.form['location']
+        event.ticket_quantity = request.form['ticket_quantity']
+        event.ticket_price = request.form['ticket_price']
+        db.session.commit()
+        flash('Event updated successfully!')
+        return redirect(url_for('dashboard'))
+
+    return render_template('edit_event.html', event=event)
+
+@app.route('/delete_event/<int:event_id>', methods=['POST'])
+@login_required
+def delete_event(event_id):
+    event = Event.query.get_or_404(event_id)
+    db.session.delete(event)
+    db.session.commit()
+    flash('Event deleted successfully!')
+    return redirect(url_for('dashboard'))
