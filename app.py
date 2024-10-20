@@ -552,22 +552,20 @@ def purchase(event_id):
         # Store the attendee ID to pass to Stripe
         attendee_id = attendee.id
 
-        # Calculate total amount buyer needs to pay
+        # Calculate total ticket price
         ticket_price = event.ticket_price * number_of_tickets
-        platform_fee = (ticket_price * 0.02) + 30  # 2% platform fee + 30p
 
-        # Total price before Stripe fee
-        total_amount_with_fees = ticket_price + platform_fee
+        # Calculate platform fee (2% of ticket price) and add 30p fixed fee
+        platform_fee = (ticket_price * 0.02) + 30  # Platform fee (2% of ticket price) + 30p fixed fee
 
-        # Add Stripe fee (2.9% + 30p fee)
-        stripe_fee = (total_amount_with_fees * 0.029) + 30
-        total_amount_with_fees += stripe_fee
+        # Total amount to be charged
+        total_amount = ticket_price + platform_fee
 
-        # Convert to pence for Stripe
-        total_amount_in_pence = int(total_amount_with_fees * 100)
+        # Convert to pence (Stripe expects pence for GBP)
+        total_amount_in_pence = int(total_amount * 100)
 
-        # Calculate Stripe platform fee (application_fee_amount)
-        platform_fee_amount = int(platform_fee * 100)  # Convert to pence
+        # Calculate the Stripe application fee in pence
+        platform_fee_amount = int(platform_fee * 100)  # Convert platform fee to pence
 
         try:
             checkout_session = stripe.checkout.Session.create(
@@ -578,7 +576,7 @@ def purchase(event_id):
                         'product_data': {
                             'name': event.name,
                         },
-                        'unit_amount': total_amount_in_pence,  # Total amount including fees in pence
+                        'unit_amount': total_amount_in_pence,  # Total amount in pence
                     },
                     'quantity': number_of_tickets,
                 }],
@@ -589,7 +587,7 @@ def purchase(event_id):
                     'attendee_id': attendee_id
                 },
                 payment_intent_data={
-                    'application_fee_amount': platform_fee_amount,  # Your platform fee
+                    'application_fee_amount': platform_fee_amount,  # Platform fee in pence
                     'transfer_data': {
                         'destination': user.stripe_connect_id,  # Full ticket price goes to the organizer
                     },
@@ -618,8 +616,6 @@ def purchase(event_id):
             platform_terms_link=platform_terms_link
         )
 
-
-    
 @app.route('/stripe-webhook', methods=['POST'])
 def stripe_webhook():
     print("Webhook received")
