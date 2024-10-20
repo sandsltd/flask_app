@@ -727,7 +727,10 @@ def view_attendees(event_id):
         tickets = []
         for ticket in attendee.tickets:
             ticket_answers = json.loads(ticket.ticket_answers) if ticket.ticket_answers else {}
-            tickets.append(ticket_answers)
+            tickets.append({
+                'id': ticket.id,
+                'ticket_answers': ticket_answers
+            })
 
         attendee_data.append({
             'id': attendee.id,
@@ -790,7 +793,12 @@ def edit_attendee(event_id, attendee_id):
         attendee.phone_number = request.form.get('phone_number')
 
         # Retrieve the desired number of tickets
-        new_ticket_count = int(request.form.get('tickets_purchased', len(attendee.tickets)))
+        try:
+            new_ticket_count = int(request.form.get('tickets_purchased', len(attendee.tickets)))
+        except ValueError:
+            flash("Invalid number of tickets.")
+            return redirect(url_for('edit_attendee', event_id=event_id, attendee_id=attendee_id))
+
         current_ticket_count = len(attendee.tickets)
         difference = new_ticket_count - current_ticket_count
 
@@ -809,16 +817,15 @@ def edit_attendee(event_id, attendee_id):
 
         if difference > 0:
             # Add new tickets
-            for i in range(difference):
+            for _ in range(difference):
                 ticket_answers = {}
                 for q_index, question in enumerate(all_questions):
-                    answer_key = f'ticket_{current_ticket_count + i}_question_{q_index}'
+                    answer_key = f'ticket_{current_ticket_count}_question_{q_index}'
                     answer = request.form.get(answer_key)
                     if not answer:
-                        flash(f'Please answer all questions for Ticket {current_ticket_count + i + 1}.')
+                        flash(f'Please answer all questions for Ticket {current_ticket_count + 1}.')
                         return redirect(url_for('edit_attendee', event_id=event_id, attendee_id=attendee_id))
                     ticket_answers[question] = answer
-
                 new_ticket = Ticket(
                     attendee_id=attendee.id,
                     event_id=event_id,
@@ -826,10 +833,11 @@ def edit_attendee(event_id, attendee_id):
                     created_at=datetime.utcnow()
                 )
                 db.session.add(new_ticket)
+                current_ticket_count += 1
 
         elif difference < 0:
             # Remove tickets
-            tickets_to_remove = attendee.tickets[difference:]  # Remove the last N tickets
+            tickets_to_remove = attendee.tickets[difference:]  # Remove last N tickets
             for ticket in tickets_to_remove:
                 db.session.delete(ticket)
 
@@ -870,7 +878,13 @@ def edit_attendee(event_id, attendee_id):
 
     all_questions = default_question_texts + custom_questions
 
-    return render_template('edit_attendee.html', event=event, attendee=attendee, attendee_data=attendee_data, questions=all_questions)
+    return render_template(
+        'edit_attendee.html',
+        event=event,
+        attendee=attendee,
+        attendee_data=attendee_data,
+        questions=all_questions
+    )
 
 
 @app.route('/event/<int:event_id>/attendee/<int:attendee_id>/delete', methods=['POST'])

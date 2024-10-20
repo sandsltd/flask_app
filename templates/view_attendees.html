@@ -31,7 +31,7 @@
                     <ul>
                     {% for ticket in attendee.tickets %}
                         <li>
-                            {% for question, answer in ticket.items() %}
+                            {% for question, answer in ticket.ticket_answers.items() %}
                                 <strong>{{ question }}:</strong> {{ answer }}<br>
                             {% endfor %}
                             <!-- Delete button -->
