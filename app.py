@@ -151,6 +151,7 @@ def login():
             flash('Invalid email or password')
     return render_template('login.html')
 
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -158,12 +159,17 @@ def dashboard():
 
     user_events = Event.query.filter_by(user_id=current_user.id)
 
-    if filter_value == 'upcoming':
-        user_events = user_events.filter(Event.date >= datetime.now())
-    elif filter_value == 'past':
-        user_events = user_events.filter(Event.date < datetime.now())
+    # Convert string dates to datetime for comparison
+    def str_to_date(date_str):
+        try:
+            return datetime.strptime(date_str, '%Y-%m-%d')  # Adjust the format if your date strings differ
+        except ValueError:
+            return None
 
-    user_events = user_events.all()
+    if filter_value == 'upcoming':
+        user_events = [event for event in user_events if str_to_date(event.date) and str_to_date(event.date) >= datetime.now()]
+    elif filter_value == 'past':
+        user_events = [event for event in user_events if str_to_date(event.date) and str_to_date(event.date) < datetime.now()]
 
     total_tickets_sold = 0
     total_revenue = 0
@@ -178,7 +184,7 @@ def dashboard():
         total_tickets_sold += tickets_sold
         total_revenue += event_revenue
 
-        event_status = "Upcoming" if datetime.strptime(event.date, '%Y-%m-%d') > datetime.now() else "Past"
+        event_status = "Upcoming" if str_to_date(event.date) >= datetime.now() else "Past"
 
         event_data.append({
             'name': event.name,
@@ -191,13 +197,8 @@ def dashboard():
             'status': event_status,
             'id': event.id
         })
-    
-    return render_template('dashboard.html', 
-                           events=event_data, 
-                           total_revenue=total_revenue, 
-                           total_tickets_sold=total_tickets_sold, 
-                           user=current_user)
 
+    return render_template('dashboard.html', events=event_data, total_revenue=total_revenue, total_tickets_sold=total_tickets_sold, user=current_user)
 
 
 
@@ -737,3 +738,21 @@ def delete_event(event_id):
     db.session.commit()
     flash('Event deleted successfully!')
     return redirect(url_for('dashboard'))
+
+
+@app.route('/edit_event/<int:event_id>', methods=['GET', 'POST'])
+@login_required
+def edit_event(event_id):
+    event = Event.query.get_or_404(event_id)
+
+    if request.method == 'POST':
+        event.name = request.form['name']
+        event.date = request.form['date']
+        event.location = request.form['location']
+        event.ticket_quantity = request.form['ticket_quantity']
+        event.ticket_price = request.form['ticket_price']
+        db.session.commit()
+        flash('Event updated successfully!')
+        return redirect(url_for('dashboard'))
+
+    return render_template('edit_event.html', event=event)
