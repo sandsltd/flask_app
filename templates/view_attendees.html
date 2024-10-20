@@ -13,6 +13,8 @@
                 <th>Email</th>
                 <th>Phone Number</th>
                 <th>Tickets Purchased</th>
+                <th>Price Paid per Ticket (£)</th>
+                <th>Total Paid (£)</th>
                 <th>Ticket Answers</th>
                 <th>Payment Status</th>
                 <th>Date Purchased</th>
@@ -26,6 +28,8 @@
                 <td>{{ attendee.email }}</td>
                 <td>{{ attendee.phone_number }}</td>
                 <td>{{ attendee.tickets_purchased }}</td>
+                <td>£{{ attendee.ticket_price_at_purchase }}</td>  <!-- Price per ticket -->
+                <td>£{{ attendee.tickets_purchased * attendee.ticket_price_at_purchase }}</td>  <!-- Total paid -->
                 <td>
                     {% for ticket in attendee.ticket_answers %}
                         <ul>

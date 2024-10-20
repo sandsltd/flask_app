@@ -706,13 +706,13 @@ def view_attendees(event_id):
 
     attendees = Attendee.query.filter_by(event_id=event_id).all()
 
-    # Parse the JSON fields
+    # Parse the JSON fields for each attendee
     for attendee in attendees:
         # Parse ticket_answers JSON
         if attendee.ticket_answers:
             attendee.ticket_answers = json.loads(attendee.ticket_answers)
         else:
-            attendee.ticket_answers = []
+            attendee.ticket_answers = {}
 
         # Parse billing_details JSON (if needed)
         if attendee.billing_details:
@@ -721,6 +721,7 @@ def view_attendees(event_id):
             attendee.billing_details = {}
 
     return render_template('view_attendees.html', event=event, attendees=attendees)
+
 
 
 @app.route('/delete_event/<int:event_id>', methods=['POST'])
