@@ -108,6 +108,8 @@ class Attendee(db.Model):
     email = db.Column(db.String(255), nullable=False)
     phone_number = db.Column(db.String(50), nullable=False)
     ticket_price_at_purchase = db.Column(db.Float, nullable=False)
+    # Remove ticket_answers field
+    # tickets_purchased field should already be removed as per previous changes
 
     # Relationship to tickets
     tickets = db.relationship('Ticket', back_populates='attendee', lazy=True)
@@ -187,11 +189,11 @@ def dashboard():
     event_data = []
     for event in user_events:
         attendees = Attendee.query.filter_by(event_id=event.id).all()
-        tickets_sold = sum([attendee.tickets_purchased for attendee in attendees])
+        tickets_sold = sum([len(attendee.tickets) for attendee in attendees])
         tickets_remaining = event.ticket_quantity - tickets_sold
         
         # Calculate revenue based on the ticket price at purchase
-        event_revenue = sum([attendee.tickets_purchased * attendee.ticket_price_at_purchase for attendee in attendees])
+        event_revenue = sum([len(attendee.tickets) * attendee.ticket_price_at_purchase for attendee in attendees])
 
         total_tickets_sold += tickets_sold
         total_revenue += event_revenue
@@ -681,34 +683,20 @@ def handle_checkout_session(session):
     print(f"Handling session: {session.id}")
     # Retrieve the attendee ID from the session's metadata
     attendee_id = session.get('metadata', {}).get('attendee_id')
-    if not attendee_id:
-        print("No attendee ID found in session metadata.")
-        return
-
-    # Retrieve the attendee from the database
     attendee = Attendee.query.get(attendee_id)
     if not attendee:
         print(f"No attendee found with ID {attendee_id}.")
         return
 
-    # Retrieve the PaymentIntent to get the charge and billing details
+    # Retrieve the PaymentIntent
     payment_intent_id = session.get('payment_intent')
-    if not payment_intent_id:
-        print("No payment intent ID found in session.")
-        return
-
-    # Expand the latest_charge when retrieving the PaymentIntent
     payment_intent = stripe.PaymentIntent.retrieve(
         payment_intent_id,
         expand=['latest_charge']
     )
-
     charge = payment_intent.latest_charge
-    if not charge:
-        print("No charge found in payment intent.")
-        return
 
-    # Update the attendee record
+    # Serialize billing_details to JSON string
     attendee.billing_details = json.dumps(charge.billing_details)
     attendee.stripe_charge_id = charge.id
     attendee.payment_status = 'succeeded'
@@ -731,7 +719,7 @@ def view_attendees(event_id):
 
     # Parse the JSON fields for each attendee
     for attendee in attendees:
-        # Parse billing_details JSON (if needed)
+        # Deserialize billing_details JSON string back to a dictionary
         if attendee.billing_details:
             attendee.billing_details = json.loads(attendee.billing_details)
         else:
@@ -794,11 +782,11 @@ def edit_attendee(event_id, attendee_id):
         attendee.full_name = request.form.get('full_name')
         attendee.email = request.form.get('email')
         attendee.phone_number = request.form.get('phone_number')
-        attendee.tickets_purchased = int(request.form.get('tickets_purchased', attendee.tickets_purchased))
+        len(attendee.tickets) = int(request.form.get('tickets_purchased', len(attendee.tickets)))
         
         # Update ticket answers
         ticket_answers = []
-        for i in range(attendee.tickets_purchased):
+        for i in range(len(attendee.tickets)):
             ticket_answer = {}
             for question in json.loads(attendee.ticket_answers)[0].keys():
                 answer_key = f'ticket_{i}_{question}'
@@ -816,7 +804,7 @@ def edit_attendee(event_id, attendee_id):
         'full_name': attendee.full_name,
         'email': attendee.email,
         'phone_number': attendee.phone_number,
-        'tickets_purchased': attendee.tickets_purchased,
+        'tickets_purchased': len(attendee.tickets),
         'ticket_answers': json.loads(attendee.ticket_answers),
     }
 
