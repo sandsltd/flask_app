@@ -552,12 +552,15 @@ def purchase(event_id):
         # Store the attendee ID to pass to Stripe
         attendee_id = attendee.id
 
-        # Calculate total amount based on the current ticket price at purchase time
-        total_amount = event.ticket_price * number_of_tickets
+        # Calculate total amount buyer needs to pay
+        ticket_price = event.ticket_price * number_of_tickets
+        platform_fee = ticket_price * 0.02 + 30  # 2% platform fee + 30p
 
-        # Calculate platform fee
-        flat_rate = user.flat_rate or 0.01  # Default to 1% if not set
-        platform_fee_amount = int(total_amount * flat_rate * 100)  # Convert to pence
+        # Calculate the total amount the buyer needs to pay including the platform fee
+        total_amount_with_fees = (ticket_price + platform_fee + 30) / (1 - 0.029)
+
+        # Calculate Stripe platform fee (application_fee_amount)
+        platform_fee_amount = int(platform_fee * 100)  # Convert to pence
 
         try:
             checkout_session = stripe.checkout.Session.create(
@@ -568,7 +571,7 @@ def purchase(event_id):
                         'product_data': {
                             'name': event.name,
                         },
-                        'unit_amount': int(event.ticket_price * 100),  # Ticket price at the time of purchase
+                        'unit_amount': int(total_amount_with_fees),  # Total amount including fees in pence
                     },
                     'quantity': number_of_tickets,
                 }],
@@ -579,9 +582,9 @@ def purchase(event_id):
                     'attendee_id': attendee_id
                 },
                 payment_intent_data={
-                    'application_fee_amount': platform_fee_amount,
+                    'application_fee_amount': platform_fee_amount,  # Your platform fee
                     'transfer_data': {
-                        'destination': user.stripe_connect_id,
+                        'destination': user.stripe_connect_id,  # Full ticket price goes to the organizer
                     },
                 },
                 billing_address_collection='required',
@@ -622,6 +625,7 @@ def purchase(event_id):
             organizer_terms_link=organizer_terms_link,
             platform_terms_link=platform_terms_link
         )
+
 
 
     
