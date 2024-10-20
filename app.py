@@ -105,15 +105,17 @@ class Attendee(db.Model):
     stripe_charge_id = db.Column(db.String(255), nullable=True)
     payment_status = db.Column(db.String(50), nullable=False, default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # New fields
     full_name = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), nullable=False)
     phone_number = db.Column(db.String(50), nullable=False)
     tickets_purchased = db.Column(db.Integer, nullable=False)
 
+    # New field to store the price of tickets at the time of purchase
+    ticket_price_at_purchase = db.Column(db.Float, nullable=False)  # Add this
+
     # Relationship to the Event model
     event = db.relationship('Event', backref=db.backref('attendees', lazy=True))
+
 
 
 
@@ -179,7 +181,9 @@ def dashboard():
         attendees = Attendee.query.filter_by(event_id=event.id).all()
         tickets_sold = sum([attendee.tickets_purchased for attendee in attendees])
         tickets_remaining = event.ticket_quantity - tickets_sold
-        event_revenue = tickets_sold * event.ticket_price
+        
+        # Calculate revenue based on the ticket price at purchase
+        event_revenue = sum([attendee.tickets_purchased * attendee.ticket_price_at_purchase for attendee in attendees])
 
         total_tickets_sold += tickets_sold
         total_revenue += event_revenue
@@ -198,8 +202,11 @@ def dashboard():
             'id': event.id
         })
 
-    return render_template('dashboard.html', events=event_data, total_revenue=total_revenue, total_tickets_sold=total_tickets_sold, user=current_user)
-
+    return render_template('dashboard.html', 
+                           events=event_data, 
+                           total_revenue=total_revenue, 
+                           total_tickets_sold=total_tickets_sold, 
+                           user=current_user)
 
 
 @app.route('/logout')
@@ -527,7 +534,7 @@ def purchase(event_id):
                 ticket_answers[question] = answer
             tickets.append(ticket_answers)
 
-        # Create an attendee record with payment_status 'pending'
+        # Create an attendee record with payment_status 'pending' and save the ticket price at the time of purchase
         attendee = Attendee(
             event_id=event_id,
             ticket_answers=json.dumps(tickets),
@@ -536,6 +543,7 @@ def purchase(event_id):
             email=email,
             phone_number=phone_number,
             tickets_purchased=number_of_tickets,
+            ticket_price_at_purchase=event.ticket_price,  # Save the current ticket price at purchase
             created_at=datetime.utcnow()
         )
         db.session.add(attendee)
@@ -544,7 +552,7 @@ def purchase(event_id):
         # Store the attendee ID to pass to Stripe
         attendee_id = attendee.id
 
-        # Calculate total amount
+        # Calculate total amount based on the current ticket price at purchase time
         total_amount = event.ticket_price * number_of_tickets
 
         # Calculate platform fee
@@ -560,7 +568,7 @@ def purchase(event_id):
                         'product_data': {
                             'name': event.name,
                         },
-                        'unit_amount': int(event.ticket_price * 100),
+                        'unit_amount': int(event.ticket_price * 100),  # Ticket price at the time of purchase
                     },
                     'quantity': number_of_tickets,
                 }],
@@ -614,6 +622,7 @@ def purchase(event_id):
             organizer_terms_link=organizer_terms_link,
             platform_terms_link=platform_terms_link
         )
+
 
     
 @app.route('/stripe-webhook', methods=['POST'])
