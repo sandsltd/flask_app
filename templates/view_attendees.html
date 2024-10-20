@@ -17,6 +17,8 @@
                 <th>Total Paid (£)</th>
                 <th>Payment Status</th>
                 <th>Date Purchased</th>
+                <!-- Actions (Edit/Delete) -->
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -30,8 +32,8 @@
                     <ul>
                     {% for ticket in attendee.tickets %}
                         <li>
-                            {% set ticket_answers = ticket.ticket_answers | fromjson %}
-                            {% for question, answer in ticket_answers.items() %}
+                            <!-- No need to parse ticket_answers here -->
+                            {% for question, answer in ticket.ticket_answers.items() %}
                                 <strong>{{ question }}:</strong> {{ answer }}<br>
                             {% endfor %}
                             <!-- Delete button -->
@@ -45,6 +47,10 @@
                 <td>£{{ '%.2f' % (attendee.ticket_price_at_purchase * attendee.tickets|count) }}</td>
                 <td>{{ attendee.payment_status }}</td>
                 <td>{{ attendee.created_at }}</td>
+                <!-- Actions for Attendee (if any) -->
+                <td>
+                    <!-- Add Attendee-level actions here if needed -->
+                </td>
             </tr>
             {% endfor %}
         </tbody>

@@ -100,7 +100,6 @@ class Event(db.Model):
 class Attendee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    ticket_answers = db.Column(db.Text, nullable=False)
     billing_details = db.Column(db.Text, nullable=True)
     stripe_charge_id = db.Column(db.String(255), nullable=True)
     payment_status = db.Column(db.String(50), nullable=False, default='pending')
@@ -108,15 +107,22 @@ class Attendee(db.Model):
     full_name = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), nullable=False)
     phone_number = db.Column(db.String(50), nullable=False)
-    tickets_purchased = db.Column(db.Integer, nullable=False)
+    ticket_price_at_purchase = db.Column(db.Float, nullable=False)
 
-    # New field to store the price of tickets at the time of purchase
-    ticket_price_at_purchase = db.Column(db.Float, nullable=False)  # Add this
-
-    # Relationship to the Event model
-    event = db.relationship('Event', backref=db.backref('attendees', lazy=True))
+    # Relationship to tickets
+    tickets = db.relationship('Ticket', backref='attendee', lazy=True)
 
 
+class Ticket(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    attendee_id = db.Column(db.Integer, db.ForeignKey('attendee.id'), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    ticket_answers = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    attendee = db.relationship('Attendee', backref=db.backref('tickets', lazy=True))
+    event = db.relationship('Event', backref=db.backref('tickets', lazy=True))
 
 
 class DefaultQuestion(db.Model):
@@ -521,8 +527,23 @@ def purchase(event_id):
             flash('You must accept the platform\'s Terms and Conditions.')
             return redirect(url_for('purchase', event_id=event_id))
 
-        # Collect answers for each ticket
-        tickets = []
+        # Create an attendee record without tickets_purchased
+        attendee = Attendee(
+            event_id=event_id,
+            payment_status='pending',
+            full_name=full_name,
+            email=email,
+            phone_number=phone_number,
+            ticket_price_at_purchase=event.ticket_price,
+            created_at=datetime.utcnow()
+        )
+        db.session.add(attendee)
+        db.session.commit()
+
+        # Store the attendee ID
+        attendee_id = attendee.id
+
+        # Collect answers and create individual tickets
         for i in range(number_of_tickets):
             ticket_answers = {}
             for q_index, question in enumerate(all_questions):
@@ -532,23 +553,17 @@ def purchase(event_id):
                     flash(f'Please answer all questions for Ticket {i + 1}.')
                     return redirect(url_for('purchase', event_id=event_id))
                 ticket_answers[question] = answer
-            tickets.append(ticket_answers)
 
-        # Create an attendee record
-        attendee = Attendee(
-            event_id=event_id,
-            ticket_answers=json.dumps(tickets),
-            payment_status='pending',
-            full_name=full_name,
-            email=email,
-            phone_number=phone_number,
-            tickets_purchased=number_of_tickets,
-            ticket_price_at_purchase=event.ticket_price,
-            created_at=datetime.utcnow()
-        )
-        db.session.add(attendee)
+            # Create a Ticket record
+            ticket = Ticket(
+                attendee_id=attendee.id,
+                event_id=event_id,
+                ticket_answers=json.dumps(ticket_answers),
+                created_at=datetime.utcnow()
+            )
+            db.session.add(ticket)
+
         db.session.commit()
-        attendee_id = attendee.id
 
         # Calculate the ticket price in pence
         ticket_price_pence = int(event.ticket_price * 100)
@@ -586,28 +601,28 @@ def purchase(event_id):
                             'currency': 'gbp',
                             'product_data': {
                                 'name': 'Booking Fee',
+                                },
+                                'unit_amount': booking_fee_pence // number_of_tickets,
                             },
-                            'unit_amount': booking_fee_pence // number_of_tickets,
-                        },
-                        'quantity': number_of_tickets,
-                    }
-                ],
-                mode='payment',
-                success_url=url_for('success', attendee_id=attendee_id, _external=True),
-                cancel_url=url_for('cancel', attendee_id=attendee_id, _external=True),
-                metadata={
-                    'attendee_id': attendee_id
-                },
-                payment_intent_data={
-                    'application_fee_amount': platform_fee_pence,
-                    'on_behalf_of': user.stripe_connect_id,
-                    'transfer_data': {
-                        'destination': user.stripe_connect_id,
+                            'quantity': number_of_tickets,
+                        }
+                    ],
+                    mode='payment',
+                    success_url=url_for('success', attendee_id=attendee_id, _external=True),
+                    cancel_url=url_for('cancel', attendee_id=attendee_id, _external=True),
+                    metadata={
+                        'attendee_id': attendee_id
                     },
-                },
-                billing_address_collection='required',
-                customer_email=email
-            )
+                    payment_intent_data={
+                        'application_fee_amount': platform_fee_pence,
+                        'on_behalf_of': user.stripe_connect_id,
+                        'transfer_data': {
+                            'destination': user.stripe_connect_id,
+                        },
+                    },
+                    billing_address_collection='required',
+                    customer_email=email
+                )
 
             return redirect(checkout_session.url)
 
@@ -709,23 +724,28 @@ def view_attendees(event_id):
         flash("Event not found or you don't have permission to view it.")
         return redirect(url_for('dashboard'))
 
-    attendees = Attendee.query.filter_by(event_id=event_id).all()
+    # Fetch attendees with successful payments
+    attendees = Attendee.query.filter_by(event_id=event_id, payment_status='succeeded').all()
 
     # Parse the JSON fields for each attendee
     for attendee in attendees:
-        # Parse ticket_answers JSON
-        if attendee.ticket_answers:
-            attendee.ticket_answers = json.loads(attendee.ticket_answers)
-        else:
-            attendee.ticket_answers = {}
-
         # Parse billing_details JSON (if needed)
         if attendee.billing_details:
             attendee.billing_details = json.loads(attendee.billing_details)
         else:
             attendee.billing_details = {}
 
+        # For each ticket, parse ticket_answers JSON
+        for ticket in attendee.tickets:
+            if ticket.ticket_answers:
+                ticket.ticket_answers = json.loads(ticket.ticket_answers)
+            else:
+                ticket.ticket_answers = {}
+
     return render_template('view_attendees.html', event=event, attendees=attendees)
+
+
+
 
 
 
@@ -814,4 +834,22 @@ def delete_attendee(event_id, attendee_id):
     db.session.delete(attendee)
     db.session.commit()
     flash('Attendee deleted successfully!')
+    return redirect(url_for('view_attendees', event_id=event_id))
+
+@app.route('/event/<int:event_id>/ticket/<int:ticket_id>/delete', methods=['POST'])
+@login_required
+def delete_ticket(event_id, ticket_id):
+    event = Event.query.get_or_404(event_id)
+    ticket = Ticket.query.get_or_404(ticket_id)
+
+    # Ensure the current user is the organizer of the event
+    if event.user_id != current_user.id:
+        flash("You don't have permission to delete this ticket.")
+        return redirect(url_for('view_attendees', event_id=event_id))
+
+    # Delete the ticket
+    db.session.delete(ticket)
+    db.session.commit()
+
+    flash('Ticket deleted successfully!')
     return redirect(url_for('view_attendees', event_id=event_id))
