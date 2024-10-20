@@ -552,36 +552,46 @@ def purchase(event_id):
 
         # Calculate the ticket price in pence
         ticket_price_pence = int(event.ticket_price * 100)
-        number_of_tickets = attendee.tickets_purchased
         total_ticket_price_pence = ticket_price_pence * number_of_tickets
 
         # Calculate platform fee (2% of ticket price)
         platform_fee_pence = int(total_ticket_price_pence * 0.02)
 
-        # Calculate Stripe fee (2.9% of total amount + 30p)
-        # First, estimate the total amount before adding Stripe fee
-        estimated_total_pence = total_ticket_price_pence + platform_fee_pence
-        stripe_fee_pence = int(estimated_total_pence * 0.029) + 30 * number_of_tickets
+        # Calculate Stripe fee (2.9% of total amount + 30p per ticket)
+        stripe_fee_pence = int((total_ticket_price_pence + platform_fee_pence) * 0.029) + (30 * number_of_tickets)
 
-        # Calculate the final total amount to charge the customer
-        total_amount_pence = total_ticket_price_pence + platform_fee_pence + stripe_fee_pence
+        # Total booking fee
+        booking_fee_pence = platform_fee_pence + stripe_fee_pence
 
-        # Set the application fee amount (only your platform fee, in pence)
-        application_fee_amount = platform_fee_pence
+        # Total amount to charge the customer
+        total_amount_pence = total_ticket_price_pence + booking_fee_pence
 
         try:
+            # Create a Stripe Checkout session with two line items
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
-                line_items=[{
-                    'price_data': {
-                        'currency': 'gbp',
-                        'product_data': {
-                            'name': event.name,
+                line_items=[
+                    {
+                        'price_data': {
+                            'currency': 'gbp',
+                            'product_data': {
+                                'name': event.name,
+                            },
+                            'unit_amount': ticket_price_pence,
                         },
-                        'unit_amount': total_amount_pence // number_of_tickets,
+                        'quantity': number_of_tickets,
                     },
-                    'quantity': number_of_tickets,
-                }],
+                    {
+                        'price_data': {
+                            'currency': 'gbp',
+                            'product_data': {
+                                'name': 'Booking Fee',
+                            },
+                            'unit_amount': booking_fee_pence // number_of_tickets,
+                        },
+                        'quantity': number_of_tickets,
+                    }
+                ],
                 mode='payment',
                 success_url=url_for('success', attendee_id=attendee_id, _external=True),
                 cancel_url=url_for('cancel', attendee_id=attendee_id, _external=True),
@@ -589,7 +599,7 @@ def purchase(event_id):
                     'attendee_id': attendee_id
                 },
                 payment_intent_data={
-                    'application_fee_amount': application_fee_amount,
+                    'application_fee_amount': platform_fee_pence,
                     'on_behalf_of': user.stripe_connect_id,
                     'transfer_data': {
                         'destination': user.stripe_connect_id,
