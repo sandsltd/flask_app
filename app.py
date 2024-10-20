@@ -475,7 +475,7 @@ def manage_default_questions():
     return render_template('manage_default_questions.html', questions=default_questions, user=current_user)
 
 
-@app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
+@app.route('/purchase/<int:event_id>', methods=['POST'])
 def purchase(event_id):
     event = Event.query.get(event_id)
     if not event:
@@ -485,17 +485,12 @@ def purchase(event_id):
     if not user:
         return "Event organizer not found", 404
 
-    # Fetch default and custom questions
-    default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
-    default_question_texts = [dq.question for dq in default_questions]
-
+    # Fetch custom questions
     custom_questions = []
-    for i in range(1, 10):
+    for i in range(1, 11):
         question = getattr(event, f'custom_question_{i}')
         if question:
             custom_questions.append(question)
-
-    all_questions = default_question_texts + custom_questions
 
     if request.method == 'POST':
         # Collect form data
@@ -504,32 +499,23 @@ def purchase(event_id):
         phone_number = request.form.get('phone_number')
         number_of_tickets = int(request.form.get('number_of_tickets', 1))
 
-        # Validate required fields
-        if not all([full_name, email, phone_number]):
-            flash('Please fill in all required fields.')
-            return redirect(url_for('purchase', event_id=event_id))
-
-        if number_of_tickets > event.ticket_quantity:
-            flash('Requested number of tickets exceeds available tickets.')
-            return redirect(url_for('purchase', event_id=event_id))
-
-        # Validate terms acceptance
-        if not request.form.get('accept_organizer_terms'):
-            flash('You must accept the event organizer\'s Terms and Conditions.')
-            return redirect(url_for('purchase', event_id=event_id))
-        if not request.form.get('accept_platform_terms'):
-            flash('You must accept the platform\'s Terms and Conditions.')
-            return redirect(url_for('purchase', event_id=event_id))
+        # Ensure organiser billing details are consistent
+        billing_details = {
+            'name': full_name,
+            'address': {
+                'line1': request.form.get('address_line1', 'Not provided'),
+                'city': request.form.get('address_city', 'Not provided'),
+                'postal_code': request.form.get('address_postal_code', 'Not provided'),
+            },
+            'email': email
+        }
 
         # Loop to create an `Attendee` entry for each ticket
         for i in range(number_of_tickets):
             ticket_answers = {}
-            for q_index, question in enumerate(all_questions):
+            for q_index, question in enumerate(custom_questions):
                 answer_key = f'ticket_{i}_question_{q_index}'
                 answer = request.form.get(answer_key)
-                if not answer:
-                    flash(f'Please answer all questions for Ticket {i + 1}.')
-                    return redirect(url_for('purchase', event_id=event_id))
                 ticket_answers[question] = answer
 
             # Create an attendee record for each ticket
@@ -542,11 +528,11 @@ def purchase(event_id):
                 phone_number=phone_number,
                 tickets_purchased=1,  # Store each ticket individually
                 ticket_price_at_purchase=event.ticket_price,
+                billing_details=json.dumps(billing_details),  # Attach billing details
                 created_at=datetime.utcnow()
             )
             db.session.add(attendee)
-        
-        # Commit all the new attendee rows to the database
+
         db.session.commit()
 
         # Calculate the ticket price in pence
@@ -623,7 +609,7 @@ def purchase(event_id):
         return render_template(
             'purchase.html',
             event=event,
-            questions=all_questions,
+            questions=custom_questions,
             organizer_terms_link=organizer_terms_link,
             platform_terms_link=platform_terms_link
         )
