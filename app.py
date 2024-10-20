@@ -100,6 +100,7 @@ class Event(db.Model):
 class Attendee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    ticket_answers = db.Column(db.Text, nullable=False)
     billing_details = db.Column(db.Text, nullable=True)
     stripe_charge_id = db.Column(db.String(255), nullable=True)
     payment_status = db.Column(db.String(50), nullable=False, default='pending')
@@ -107,25 +108,14 @@ class Attendee(db.Model):
     full_name = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), nullable=False)
     phone_number = db.Column(db.String(50), nullable=False)
-    ticket_price_at_purchase = db.Column(db.Float, nullable=False)
-    # Remove ticket_answers field
-    # tickets_purchased field should already be removed as per previous changes
+    tickets_purchased = db.Column(db.Integer, nullable=False)
 
-    # Relationship to tickets
-    tickets = db.relationship('Ticket', back_populates='attendee', lazy=True)
+    # New field to store the price of tickets at the time of purchase
+    ticket_price_at_purchase = db.Column(db.Float, nullable=False)  # Add this
 
+    # Relationship to the Event model
+    event = db.relationship('Event', backref=db.backref('attendees', lazy=True))
 
-
-class Ticket(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    attendee_id = db.Column(db.Integer, db.ForeignKey('attendee.id'), nullable=False)
-    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    ticket_answers = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Relationships
-    attendee = db.relationship('Attendee', back_populates='tickets')
-    event = db.relationship('Event', backref=db.backref('tickets', lazy=True))
 
 
 
@@ -189,11 +179,11 @@ def dashboard():
     event_data = []
     for event in user_events:
         attendees = Attendee.query.filter_by(event_id=event.id).all()
-        tickets_sold = sum([len(attendee.tickets) for attendee in attendees])
+        tickets_sold = sum([attendee.tickets_purchased for attendee in attendees])
         tickets_remaining = event.ticket_quantity - tickets_sold
         
         # Calculate revenue based on the ticket price at purchase
-        event_revenue = sum([len(attendee.tickets) * attendee.ticket_price_at_purchase for attendee in attendees])
+        event_revenue = sum([attendee.tickets_purchased * attendee.ticket_price_at_purchase for attendee in attendees])
 
         total_tickets_sold += tickets_sold
         total_revenue += event_revenue
@@ -500,7 +490,7 @@ def purchase(event_id):
     default_question_texts = [dq.question for dq in default_questions]
 
     custom_questions = []
-    for i in range(1, 11):
+    for i in range(1, 10):
         question = getattr(event, f'custom_question_{i}')
         if question:
             custom_questions.append(question)
@@ -531,23 +521,7 @@ def purchase(event_id):
             flash('You must accept the platform\'s Terms and Conditions.')
             return redirect(url_for('purchase', event_id=event_id))
 
-        # Create an attendee record without tickets_purchased
-        attendee = Attendee(
-            event_id=event_id,
-            payment_status='pending',
-            full_name=full_name,
-            email=email,
-            phone_number=phone_number,
-            ticket_price_at_purchase=event.ticket_price,
-            created_at=datetime.utcnow()
-        )
-        db.session.add(attendee)
-        db.session.commit()
-
-        # Store the attendee ID
-        attendee_id = attendee.id
-
-        # Collect answers and create individual tickets
+        # Loop to create an `Attendee` entry for each ticket
         for i in range(number_of_tickets):
             ticket_answers = {}
             for q_index, question in enumerate(all_questions):
@@ -558,15 +532,21 @@ def purchase(event_id):
                     return redirect(url_for('purchase', event_id=event_id))
                 ticket_answers[question] = answer
 
-            # Create a Ticket record
-            ticket = Ticket(
-                attendee_id=attendee.id,
+            # Create an attendee record for each ticket
+            attendee = Attendee(
                 event_id=event_id,
                 ticket_answers=json.dumps(ticket_answers),
+                payment_status='pending',
+                full_name=full_name,
+                email=email,
+                phone_number=phone_number,
+                tickets_purchased=1,  # Store each ticket individually
+                ticket_price_at_purchase=event.ticket_price,
                 created_at=datetime.utcnow()
             )
-            db.session.add(ticket)
-
+            db.session.add(attendee)
+        
+        # Commit all the new attendee rows to the database
         db.session.commit()
 
         # Calculate the ticket price in pence
@@ -605,28 +585,28 @@ def purchase(event_id):
                             'currency': 'gbp',
                             'product_data': {
                                 'name': 'Booking Fee',
-                                },
-                                'unit_amount': booking_fee_pence // number_of_tickets,
                             },
-                            'quantity': number_of_tickets,
-                        }
-                    ],
-                    mode='payment',
-                    success_url=url_for('success', attendee_id=attendee_id, _external=True),
-                    cancel_url=url_for('cancel', attendee_id=attendee_id, _external=True),
-                    metadata={
-                        'attendee_id': attendee_id
-                    },
-                    payment_intent_data={
-                        'application_fee_amount': platform_fee_pence,
-                        'on_behalf_of': user.stripe_connect_id,
-                        'transfer_data': {
-                            'destination': user.stripe_connect_id,
+                            'unit_amount': booking_fee_pence // number_of_tickets,
                         },
+                        'quantity': number_of_tickets,
+                    }
+                ],
+                mode='payment',
+                success_url=url_for('success', _external=True),
+                cancel_url=url_for('cancel', _external=True),
+                metadata={
+                    'attendee_id': attendee.id
+                },
+                payment_intent_data={
+                    'application_fee_amount': platform_fee_pence,
+                    'on_behalf_of': user.stripe_connect_id,
+                    'transfer_data': {
+                        'destination': user.stripe_connect_id,
                     },
-                    billing_address_collection='required',
-                    customer_email=email
-                )
+                },
+                billing_address_collection='required',
+                customer_email=email
+            )
 
             return redirect(checkout_session.url)
 
@@ -647,6 +627,7 @@ def purchase(event_id):
             organizer_terms_link=organizer_terms_link,
             platform_terms_link=platform_terms_link
         )
+
 
 
 @app.route('/stripe-webhook', methods=['POST'])
@@ -683,20 +664,34 @@ def handle_checkout_session(session):
     print(f"Handling session: {session.id}")
     # Retrieve the attendee ID from the session's metadata
     attendee_id = session.get('metadata', {}).get('attendee_id')
+    if not attendee_id:
+        print("No attendee ID found in session metadata.")
+        return
+
+    # Retrieve the attendee from the database
     attendee = Attendee.query.get(attendee_id)
     if not attendee:
         print(f"No attendee found with ID {attendee_id}.")
         return
 
-    # Retrieve the PaymentIntent
+    # Retrieve the PaymentIntent to get the charge and billing details
     payment_intent_id = session.get('payment_intent')
+    if not payment_intent_id:
+        print("No payment intent ID found in session.")
+        return
+
+    # Expand the latest_charge when retrieving the PaymentIntent
     payment_intent = stripe.PaymentIntent.retrieve(
         payment_intent_id,
         expand=['latest_charge']
     )
-    charge = payment_intent.latest_charge
 
-    # Serialize billing_details to JSON string
+    charge = payment_intent.latest_charge
+    if not charge:
+        print("No charge found in payment intent.")
+        return
+
+    # Update the attendee record
     attendee.billing_details = json.dumps(charge.billing_details)
     attendee.stripe_charge_id = charge.id
     attendee.payment_status = 'succeeded'
@@ -714,37 +709,23 @@ def view_attendees(event_id):
         flash("Event not found or you don't have permission to view it.")
         return redirect(url_for('dashboard'))
 
-    # Fetch attendees with successful payments
-    attendees = Attendee.query.filter_by(event_id=event_id, payment_status='succeeded').all()
+    attendees = Attendee.query.filter_by(event_id=event_id).all()
 
-    # Prepare data to pass to the template without modifying the model
-    attendee_data = []
+    # Parse the JSON fields for each attendee
     for attendee in attendees:
-        # Deserialize billing_details JSON string back to a dictionary
-        billing_details = json.loads(attendee.billing_details) if attendee.billing_details else {}
+        # Parse ticket_answers JSON
+        if attendee.ticket_answers:
+            attendee.ticket_answers = json.loads(attendee.ticket_answers)
+        else:
+            attendee.ticket_answers = {}
 
-        # Deserialize ticket_answers for each ticket
-        tickets = []
-        for ticket in attendee.tickets:
-            ticket_answers = json.loads(ticket.ticket_answers) if ticket.ticket_answers else {}
-            tickets.append({
-                'id': ticket.id,
-                'ticket_answers': ticket_answers
-            })
+        # Parse billing_details JSON (if needed)
+        if attendee.billing_details:
+            attendee.billing_details = json.loads(attendee.billing_details)
+        else:
+            attendee.billing_details = {}
 
-        attendee_data.append({
-            'id': attendee.id,
-            'full_name': attendee.full_name,
-            'email': attendee.email,
-            'phone_number': attendee.phone_number,
-            'ticket_price_at_purchase': attendee.ticket_price_at_purchase,
-            'created_at': attendee.created_at,
-            'billing_details': billing_details,
-            'tickets': tickets,
-        })
-
-    return render_template('view_attendees.html', event=event, attendees=attendee_data)
-
+    return render_template('view_attendees.html', event=event, attendees=attendees)
 
 
 
@@ -774,149 +755,3 @@ def edit_event(event_id):
         return redirect(url_for('dashboard'))
 
     return render_template('edit_event.html', event=event)
-
-@app.route('/event/<int:event_id>/attendee/<int:attendee_id>/edit', methods=['GET', 'POST'])
-@login_required
-def edit_attendee(event_id, attendee_id):
-    event = Event.query.get_or_404(event_id)
-    attendee = Attendee.query.get_or_404(attendee_id)
-
-    # Ensure the current user is the organizer of the event
-    if event.user_id != current_user.id:
-        flash("You don't have permission to edit this attendee.")
-        return redirect(url_for('dashboard'))
-
-    if request.method == 'POST':
-        # Update attendee information
-        attendee.full_name = request.form.get('full_name')
-        attendee.email = request.form.get('email')
-        attendee.phone_number = request.form.get('phone_number')
-
-        # Retrieve the desired number of tickets
-        try:
-            new_ticket_count = int(request.form.get('tickets_purchased', len(attendee.tickets)))
-        except ValueError:
-            flash("Invalid number of tickets.")
-            return redirect(url_for('edit_attendee', event_id=event_id, attendee_id=attendee_id))
-
-        current_ticket_count = len(attendee.tickets)
-        difference = new_ticket_count - current_ticket_count
-
-        # Fetch all questions for the event
-        user = event.user
-        default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
-        default_question_texts = [dq.question for dq in default_questions]
-
-        custom_questions = []
-        for i in range(1, 11):
-            question = getattr(event, f'custom_question_{i}')
-            if question:
-                custom_questions.append(question)
-
-        all_questions = default_question_texts + custom_questions
-
-        if difference > 0:
-            # Add new tickets
-            for _ in range(difference):
-                ticket_answers = {}
-                for q_index, question in enumerate(all_questions):
-                    answer_key = f'ticket_{current_ticket_count}_question_{q_index}'
-                    answer = request.form.get(answer_key)
-                    if not answer:
-                        flash(f'Please answer all questions for Ticket {current_ticket_count + 1}.')
-                        return redirect(url_for('edit_attendee', event_id=event_id, attendee_id=attendee_id))
-                    ticket_answers[question] = answer
-                new_ticket = Ticket(
-                    attendee_id=attendee.id,
-                    event_id=event_id,
-                    ticket_answers=json.dumps(ticket_answers),
-                    created_at=datetime.utcnow()
-                )
-                db.session.add(new_ticket)
-                current_ticket_count += 1
-
-        elif difference < 0:
-            # Remove tickets
-            tickets_to_remove = attendee.tickets[difference:]  # Remove last N tickets
-            for ticket in tickets_to_remove:
-                db.session.delete(ticket)
-
-        # Update existing ticket answers
-        for i, ticket in enumerate(attendee.tickets):
-            ticket_answers = {}
-            for q_index, question in enumerate(all_questions):
-                answer_key = f'ticket_{i}_question_{q_index}'
-                answer = request.form.get(answer_key)
-                if not answer:
-                    flash(f'Please answer all questions for Ticket {i + 1}.')
-                    return redirect(url_for('edit_attendee', event_id=event_id, attendee_id=attendee_id))
-                ticket_answers[question] = answer
-            ticket.ticket_answers = json.dumps(ticket_answers)
-
-        db.session.commit()
-        flash('Attendee information updated successfully!')
-        return redirect(url_for('view_attendees', event_id=event_id))
-
-    # Pre-fill the form with the attendee's current information
-    attendee_data = {
-        'full_name': attendee.full_name,
-        'email': attendee.email,
-        'phone_number': attendee.phone_number,
-        'tickets_purchased': len(attendee.tickets),
-    }
-
-    # Fetch default and custom questions
-    user = event.user
-    default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
-    default_question_texts = [dq.question for dq in default_questions]
-
-    custom_questions = []
-    for i in range(1, 11):
-        question = getattr(event, f'custom_question_{i}')
-        if question:
-            custom_questions.append(question)
-
-    all_questions = default_question_texts + custom_questions
-
-    return render_template(
-        'edit_attendee.html',
-        event=event,
-        attendee=attendee,
-        attendee_data=attendee_data,
-        questions=all_questions
-    )
-
-
-@app.route('/event/<int:event_id>/attendee/<int:attendee_id>/delete', methods=['POST'])
-@login_required
-def delete_attendee(event_id, attendee_id):
-    event = Event.query.get_or_404(event_id)
-    attendee = Attendee.query.get_or_404(attendee_id)
-
-    # Ensure the current user is the organizer of the event
-    if event.user_id != current_user.id:
-        flash("You don't have permission to delete this attendee.")
-        return redirect(url_for('dashboard'))
-
-    db.session.delete(attendee)
-    db.session.commit()
-    flash('Attendee deleted successfully!')
-    return redirect(url_for('view_attendees', event_id=event_id))
-
-@app.route('/event/<int:event_id>/ticket/<int:ticket_id>/delete', methods=['POST'])
-@login_required
-def delete_ticket(event_id, ticket_id):
-    event = Event.query.get_or_404(event_id)
-    ticket = Ticket.query.get_or_404(ticket_id)
-
-    # Ensure the current user is the organizer of the event
-    if event.user_id != current_user.id:
-        flash("You don't have permission to delete this ticket.")
-        return redirect(url_for('view_attendees', event_id=event_id))
-
-    # Delete the ticket
-    db.session.delete(ticket)
-    db.session.commit()
-
-    flash('Ticket deleted successfully!')
-    return redirect(url_for('view_attendees', event_id=event_id))

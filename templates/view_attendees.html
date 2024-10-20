@@ -5,19 +5,19 @@
 </head>
 <body>
     <h1>Attendees for {{ event.name }}</h1>
-    <p>Only attendees with successful payments are displayed below.</p>
     <table>
         <thead>
             <tr>
-                <th>Attendee ID</th>
+                <th>ID</th>
                 <th>Full Name</th>
                 <th>Email</th>
                 <th>Phone Number</th>
-                <th>Tickets</th>
+                <th>Tickets Purchased</th>
+                <th>Price Paid per Ticket (£)</th>
                 <th>Total Paid (£)</th>
+                <th>Ticket Answers</th>
                 <th>Payment Status</th>
                 <th>Date Purchased</th>
-                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -27,27 +27,20 @@
                 <td>{{ attendee.full_name }}</td>
                 <td>{{ attendee.email }}</td>
                 <td>{{ attendee.phone_number }}</td>
+                <td>{{ attendee.tickets_purchased }}</td>
+                <td>£{{ attendee.ticket_price_at_purchase }}</td>  <!-- Price per ticket -->
+                <td>£{{ attendee.tickets_purchased * attendee.ticket_price_at_purchase }}</td>  <!-- Total paid -->
                 <td>
-                    <ul>
-                    {% for ticket in attendee.tickets %}
-                        <li>
-                            {% for question, answer in ticket.ticket_answers.items() %}
-                                <strong>{{ question }}:</strong> {{ answer }}<br>
+                    {% for ticket in attendee.ticket_answers %}
+                        <ul>
+                            {% for question, answer in ticket.items() %}
+                                <li><strong>{{ question }}:</strong> {{ answer }}</li>
                             {% endfor %}
-                            <!-- Delete button -->
-                            <form action="{{ url_for('delete_ticket', event_id=event.id, ticket_id=ticket.id) }}" method="post" style="display:inline;">
-                                <button type="submit" onclick="return confirm('Are you sure you want to delete this ticket?');">Delete Ticket</button>
-                            </form>
-                        </li>
+                        </ul>
                     {% endfor %}
-                    </ul>
                 </td>
-                <td>£{{ '%.2f' % (attendee.ticket_price_at_purchase * attendee.tickets|length) }}</td>
                 <td>{{ attendee.payment_status }}</td>
                 <td>{{ attendee.created_at }}</td>
-                <td>
-                    <!-- Add Attendee-level actions here if needed -->
-                </td>
             </tr>
             {% endfor %}
         </tbody>
