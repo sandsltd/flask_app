@@ -713,22 +713,6 @@ def view_attendees(event_id):
 
     return render_template('view_attendees.html', event=event, attendees=attendees)
 
-@app.route('/edit_event/<int:event_id>', methods=['GET', 'POST'])
-@login_required
-def edit_event(event_id):
-    event = Event.query.get_or_404(event_id)
-
-    if request.method == 'POST':
-        event.name = request.form['name']
-        event.date = request.form['date']
-        event.location = request.form['location']
-        event.ticket_quantity = request.form['ticket_quantity']
-        event.ticket_price = request.form['ticket_price']
-        db.session.commit()
-        flash('Event updated successfully!')
-        return redirect(url_for('dashboard'))
-
-    return render_template('edit_event.html', event=event)
 
 @app.route('/delete_event/<int:event_id>', methods=['POST'])
 @login_required
