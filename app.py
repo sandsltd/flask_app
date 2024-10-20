@@ -555,17 +555,18 @@ def purchase(event_id):
         # Calculate total ticket price
         ticket_price = event.ticket_price * number_of_tickets
 
-        # Calculate platform fee (2% of ticket price) and add 30p fixed fee
-        platform_fee = (ticket_price * 0.02) + 30  # Platform fee (2% of ticket price) + 30p fixed fee
+        # Calculate platform fee (2% of ticket price)
+        platform_fee = ticket_price * 0.02  # 2% platform fee
+        fixed_fee = 30  # 30p fixed fee
 
         # Total amount to be charged
-        total_amount = ticket_price + platform_fee
+        total_amount = ticket_price + platform_fee + fixed_fee / 100  # Adding the fixed fee in pounds
 
         # Convert to pence (Stripe expects pence for GBP)
         total_amount_in_pence = int(total_amount * 100)
 
-        # Calculate the Stripe application fee in pence
-        platform_fee_amount = int(platform_fee * 100)  # Convert platform fee to pence
+        # Calculate the Stripe platform fee in pence
+        platform_fee_amount = int((platform_fee + fixed_fee) * 100)  # Convert platform fee and fixed fee to pence
 
         try:
             checkout_session = stripe.checkout.Session.create(
