@@ -155,7 +155,31 @@ def login():
 @login_required
 def dashboard():
     user_events = Event.query.filter_by(user_id=current_user.id).all()
-    return render_template('dashboard.html', events=user_events, user=current_user)
+    
+    event_data = []
+    for event in user_events:
+        # Query all attendees for the current event
+        attendees = Attendee.query.filter_by(event_id=event.id).all()
+
+        # Count the total number of tickets sold
+        tickets_sold = sum([attendee.tickets_purchased for attendee in attendees])
+
+        # Calculate remaining tickets
+        tickets_remaining = event.ticket_quantity - tickets_sold
+        
+        # Add event data to list
+        event_data.append({
+            'name': event.name,
+            'date': event.date,
+            'location': event.location,
+            'tickets_sold': tickets_sold,
+            'ticket_quantity': event.ticket_quantity,
+            'tickets_remaining': tickets_remaining,
+            'id': event.id
+        })
+    
+    return render_template('dashboard.html', events=event_data, user=current_user)
+
 
 @app.route('/logout')
 @login_required
