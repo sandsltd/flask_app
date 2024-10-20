@@ -755,3 +755,63 @@ def edit_event(event_id):
         return redirect(url_for('dashboard'))
 
     return render_template('edit_event.html', event=event)
+
+@app.route('/event/<int:event_id>/attendee/<int:attendee_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_attendee(event_id, attendee_id):
+    event = Event.query.get_or_404(event_id)
+    attendee = Attendee.query.get_or_404(attendee_id)
+
+    # Ensure the current user is the organizer of the event
+    if event.user_id != current_user.id:
+        flash("You don't have permission to edit this attendee.")
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        # Collect form data
+        attendee.full_name = request.form.get('full_name')
+        attendee.email = request.form.get('email')
+        attendee.phone_number = request.form.get('phone_number')
+        attendee.tickets_purchased = int(request.form.get('tickets_purchased', attendee.tickets_purchased))
+        
+        # Update ticket answers
+        ticket_answers = []
+        for i in range(attendee.tickets_purchased):
+            ticket_answer = {}
+            for question in json.loads(attendee.ticket_answers)[0].keys():
+                answer_key = f'ticket_{i}_{question}'
+                answer = request.form.get(answer_key)
+                ticket_answer[question] = answer
+            ticket_answers.append(ticket_answer)
+        attendee.ticket_answers = json.dumps(ticket_answers)
+
+        db.session.commit()
+        flash('Attendee information updated successfully!')
+        return redirect(url_for('view_attendees', event_id=event_id))
+
+    # Pre-fill the form with the attendee's current information
+    attendee_data = {
+        'full_name': attendee.full_name,
+        'email': attendee.email,
+        'phone_number': attendee.phone_number,
+        'tickets_purchased': attendee.tickets_purchased,
+        'ticket_answers': json.loads(attendee.ticket_answers),
+    }
+
+    return render_template('edit_attendee.html', event=event, attendee=attendee, attendee_data=attendee_data)
+
+@app.route('/event/<int:event_id>/attendee/<int:attendee_id>/delete', methods=['POST'])
+@login_required
+def delete_attendee(event_id, attendee_id):
+    event = Event.query.get_or_404(event_id)
+    attendee = Attendee.query.get_or_404(attendee_id)
+
+    # Ensure the current user is the organizer of the event
+    if event.user_id != current_user.id:
+        flash("You don't have permission to delete this attendee.")
+        return redirect(url_for('dashboard'))
+
+    db.session.delete(attendee)
+    db.session.commit()
+    flash('Attendee deleted successfully!')
+    return redirect(url_for('view_attendees', event_id=event_id))
