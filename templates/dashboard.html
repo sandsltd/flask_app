@@ -13,15 +13,15 @@
     <ul>
         {% for event_data in events %}
             <li>
-                <strong>{{ event_data.event.name }}</strong> - {{ event_data.event.date }}
+                <strong>{{ event_data.name }}</strong> - {{ event_data.date }}
                 <br>
-                <strong>Location:</strong> {{ event_data.event.location }}
+                <strong>Location:</strong> {{ event_data.location }}
                 <br>
-                <strong>Tickets Sold:</strong> {{ event_data.tickets_sold }} / {{ event_data.event.ticket_quantity }}
+                <strong>Tickets Sold:</strong> {{ event_data.tickets_sold }} / {{ event_data.ticket_quantity }}
                 <br>
                 <strong>Tickets Remaining:</strong> {{ event_data.tickets_remaining }}
                 <br>
-                <a href="{{ url_for('view_attendees', event_id=event_data.event.id) }}">View Attendees</a>
+                <a href="{{ url_for('view_attendees', event_id=event_data.id) }}">View Attendees</a>
             </li>
         {% else %}
             <li>No events yet.</li>
