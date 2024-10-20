@@ -110,7 +110,8 @@ class Attendee(db.Model):
     ticket_price_at_purchase = db.Column(db.Float, nullable=False)
 
     # Relationship to tickets
-    tickets = db.relationship('Ticket', backref='attendee', lazy=True)
+    tickets = db.relationship('Ticket', back_populates='attendee', lazy=True)
+
 
 
 class Ticket(db.Model):
@@ -121,8 +122,9 @@ class Ticket(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
-    attendee = db.relationship('Attendee', backref=db.backref('tickets', lazy=True))
+    attendee = db.relationship('Attendee', back_populates='tickets')
     event = db.relationship('Event', backref=db.backref('tickets', lazy=True))
+
 
 
 class DefaultQuestion(db.Model):
