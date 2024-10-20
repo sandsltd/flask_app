@@ -554,10 +554,17 @@ def purchase(event_id):
 
         # Calculate total amount buyer needs to pay
         ticket_price = event.ticket_price * number_of_tickets
-        platform_fee = ticket_price * 0.02 + 30  # 2% platform fee + 30p
+        platform_fee = (ticket_price * 0.02) + 30  # 2% platform fee + 30p
 
-        # Calculate the total amount the buyer needs to pay including the platform fee
-        total_amount_with_fees = (ticket_price + platform_fee + 30) / (1 - 0.029)
+        # Total price before Stripe fee
+        total_amount_with_fees = ticket_price + platform_fee
+
+        # Add Stripe fee (2.9% + 30p fee)
+        stripe_fee = (total_amount_with_fees * 0.029) + 30
+        total_amount_with_fees += stripe_fee
+
+        # Convert to pence for Stripe
+        total_amount_in_pence = int(total_amount_with_fees * 100)
 
         # Calculate Stripe platform fee (application_fee_amount)
         platform_fee_amount = int(platform_fee * 100)  # Convert to pence
@@ -571,7 +578,7 @@ def purchase(event_id):
                         'product_data': {
                             'name': event.name,
                         },
-                        'unit_amount': int(total_amount_with_fees),  # Total amount including fees in pence
+                        'unit_amount': total_amount_in_pence,  # Total amount including fees in pence
                     },
                     'quantity': number_of_tickets,
                 }],
@@ -603,21 +610,6 @@ def purchase(event_id):
         platform_terms_link = 'https://your-platform-domain.com/terms-and-conditions'
         organizer_terms_link = user.terms or '#'
 
-        # Ensure the URL is absolute
-        from urllib.parse import urlparse
-
-        def ensure_absolute_url(url):
-            if url:
-                parsed_url = urlparse(url)
-                if not parsed_url.scheme:
-                    return 'https://' + url
-                else:
-                    return url
-            else:
-                return '#'
-
-        organizer_terms_link = ensure_absolute_url(organizer_terms_link)
-
         return render_template(
             'purchase.html',
             event=event,
@@ -625,7 +617,6 @@ def purchase(event_id):
             organizer_terms_link=organizer_terms_link,
             platform_terms_link=platform_terms_link
         )
-
 
 
     
