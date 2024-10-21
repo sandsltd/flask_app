@@ -963,35 +963,3 @@ def export_attendees(event_id):
     response.headers['Content-Disposition'] = f'attachment; filename={file_name}'
     response.headers['Content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     return response
-
-@app.route('/reserve_tickets/<int:event_id>', methods=['POST'])
-@login_required
-def reserve_tickets(event_id):
-    event = Event.query.get_or_404(event_id)
-    number_of_tickets = int(request.form.get('number_of_tickets'))
-
-    if number_of_tickets > event.ticket_quantity:
-        flash('Requested number of tickets exceeds available tickets.')
-        return redirect(url_for('purchase', event_id=event_id))
-
-    # Reserve the tickets
-    reserved_until = datetime.utcnow() + timedelta(minutes=10)  # Reserve for 10 minutes
-
-    for _ in range(number_of_tickets):
-        attendee = Attendee(
-            event_id=event_id,
-            payment_status='pending',  # Set to pending until payment is confirmed
-            reserved_until=reserved_until,  # Reservation expiry time
-            status='reserved',  # Mark as reserved
-            tickets_purchased=1,
-            ticket_price_at_purchase=event.ticket_price,
-            created_at=datetime.utcnow()
-        )
-        db.session.add(attendee)
-
-    # Update the available ticket quantity
-    event.ticket_quantity -= number_of_tickets
-    db.session.commit()
-
-    flash(f'{number_of_tickets} tickets have been reserved! You have 10 minutes to complete the purchase.')
-    return redirect(url_for('purchase', event_id=event_id))
