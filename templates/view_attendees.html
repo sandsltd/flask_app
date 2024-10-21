@@ -7,6 +7,9 @@
 </head>
 <body>
 
+    <!-- Include the Navbar -->
+    {% include 'partials/navbar.html' %}
+
     <h1>Attendees for Event: {{ event.name }}</h1>
     <h2>Date: {{ event.date }}</h2>
     <h3>Location: {{ event.location }}</h3>
@@ -36,8 +39,8 @@
                     
                     <p><strong>Email:</strong> {{ attendee.billing_details.email }}</p>
 
-                    <!-- Ticket Answers -->
-                    <h4>Ticket Answers:</h4>
+                    <!-- Ticket Questions and Answers -->
+                    <h4>Ticket Questions and Answers:</h4>
                     <ul>
                         {% for question, answer in attendee.ticket_answers.items() %}
                             <li><strong>{{ question }}:</strong> {{ answer }}</li>

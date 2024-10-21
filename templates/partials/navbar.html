@@ -1,0 +1,52 @@
+<style>
+    /* Basic styling for the navigation bar */
+    nav {
+        background-color: #333; /* Dark background for the nav bar */
+        padding: 10px 0;
+    }
+
+    nav ul {
+        list-style-type: none; /* Remove bullet points */
+        margin: 0;
+        padding: 0;
+        display: flex; /* Display as a horizontal flexbox */
+        justify-content: center; /* Center the items */
+    }
+
+    nav ul li {
+        margin: 0 15px; /* Space between each link */
+    }
+
+    nav ul li a {
+        text-decoration: none; /* Remove underline from links */
+        color: white; /* White text color */
+        padding: 10px 20px;
+        background-color: #444; /* Slightly lighter background for the links */
+        border-radius: 5px; /* Rounded corners */
+        font-size: 16px;
+        transition: background-color 0.3s ease; /* Smooth transition on hover */
+    }
+
+    nav ul li a:hover {
+        background-color: #555; /* Change background color on hover */
+    }
+
+    nav ul li a.active {
+        background-color: #f79f4e; /* Active link gets orange background (can be your brand color) */
+    }
+
+    hr {
+        margin: 20px 0;
+        border: 1px solid #ddd; /* Style for the horizontal line */
+    }
+</style>
+
+<nav>
+    <ul>
+        <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a></li>
+        <li><a href="{{ url_for('view_attendees', event_id=event.id) }}" class="{% if request.endpoint == 'view_attendees' %}active{% endif %}">View Attendees</a></li>
+        <li><a href="{{ url_for('add_attendee', event_id=event.id) }}" class="{% if request.endpoint == 'add_attendee' %}active{% endif %}">Add Attendee</a></li>
+        <li><a href="{{ url_for('logout') }}" class="{% if request.endpoint == 'logout' %}active{% endif %}">Logout</a></li>
+    </ul>
+</nav>
+<hr>

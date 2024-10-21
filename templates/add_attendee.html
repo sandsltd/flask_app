@@ -7,6 +7,9 @@
 </head>
 <body>
 
+    <!-- Include the Navbar -->
+    {% include 'partials/navbar.html' %}
+
     <h1>Add New Attendee for Event: {{ event.name }}</h1>
 
     <form action="{{ url_for('add_attendee', event_id=event.id) }}" method="POST">

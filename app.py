@@ -701,31 +701,33 @@ def handle_checkout_session(session):
 
 
 
-@app.route('/event/<int:event_id>/attendees')
+@app.route('/view_attendees/<int:event_id>')
 @login_required
 def view_attendees(event_id):
-    event = Event.query.get(event_id)
-    if not event or event.user_id != current_user.id:
-        flash("Event not found or you don't have permission to view it.")
+    event = Event.query.get_or_404(event_id)
+
+    # Ensure the user has permission to view the attendees
+    if event.user_id != current_user.id:
+        flash("You don't have permission to view the attendees for this event.")
         return redirect(url_for('dashboard'))
+
+    # Fetch default and custom questions
+    user = User.query.get(event.user_id)
+    default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
+    default_question_texts = [dq.question for dq in default_questions]
+
+    custom_questions = []
+    for i in range(1, 11):  # Loop through 10 possible custom questions
+        question = getattr(event, f'custom_question_{i}')
+        if question:
+            custom_questions.append(question)
+
+    all_questions = default_question_texts + custom_questions
 
     attendees = Attendee.query.filter_by(event_id=event_id).all()
 
-    # Parse the JSON fields for each attendee
-    for attendee in attendees:
-        # Parse ticket_answers JSON
-        if attendee.ticket_answers:
-            attendee.ticket_answers = json.loads(attendee.ticket_answers)  # Parse JSON string to dictionary
-        else:
-            attendee.ticket_answers = {}
+    return render_template('view_attendees.html', event=event, attendees=attendees, questions=all_questions)
 
-        # Parse billing_details JSON (if needed)
-        if attendee.billing_details:
-            attendee.billing_details = json.loads(attendee.billing_details)
-        else:
-            attendee.billing_details = {}
-
-    return render_template('view_attendees.html', event=event, attendees=attendees)
 
 
 
