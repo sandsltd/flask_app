@@ -997,6 +997,7 @@ def reserve_tickets(event_id):
     # Fetch the event
     event = Event.query.get(event_id)
     if not event:
+        print("Event not found")
         return "Event not found", 404
 
     # Retrieve the number of tickets from the form
@@ -1005,6 +1006,7 @@ def reserve_tickets(event_id):
     # Check if the ticket quantity is valid (greater than 0 and not empty)
     if not number_of_tickets or int(number_of_tickets) <= 0:
         flash('Please enter a valid ticket quantity.')
+        print("Invalid ticket quantity")
         return redirect(url_for('purchase', event_id=event_id))
 
     # Convert ticket quantity to integer
@@ -1013,34 +1015,41 @@ def reserve_tickets(event_id):
     # Check if the requested tickets exceed available tickets
     if number_of_tickets > event.ticket_quantity:
         flash('Requested number of tickets exceeds available tickets.')
+        print("Requested more tickets than available")
         return redirect(url_for('purchase', event_id=event_id))
 
     # Reserve the tickets by setting status to 'reserved' and adding a 10-minute reservation window
     reserved_until = datetime.utcnow() + timedelta(minutes=10)
 
     # Create attendee records for each ticket with 'reserved' status
-    for _ in range(number_of_tickets):
-        attendee = Attendee(
-            event_id=event_id,
-            ticket_answers='{}',  # Initialize with an empty dictionary for future answers
-            payment_status='pending',  # Set to pending until payment is confirmed
-            full_name='TBD',  # Placeholder until the user provides info
-            email='TBD',  # Placeholder until the user provides info
-            phone_number='TBD',  # Placeholder until the user provides info
-            tickets_purchased=1,  # Store each ticket individually
-            ticket_price_at_purchase=event.ticket_price,
-            reserved_until=reserved_until,  # Set the reservation expiration time
-            status='reserved',  # Mark the ticket as reserved
-            created_at=datetime.utcnow()
-        )
-        db.session.add(attendee)
+    try:
+        for i in range(number_of_tickets):
+            attendee = Attendee(
+                event_id=event_id,
+                ticket_answers='{}',  # Initialize with an empty dictionary for future answers
+                payment_status='pending',  # Set to pending until payment is confirmed
+                full_name='TBD',  # Placeholder until the user provides info
+                email='TBD',  # Placeholder until the user provides info
+                phone_number='TBD',  # Placeholder until the user provides info
+                tickets_purchased=1,  # Store each ticket individually
+                ticket_price_at_purchase=event.ticket_price,
+                reserved_until=reserved_until,  # Set the reservation expiration time
+                status='reserved',  # Mark the ticket as reserved
+                created_at=datetime.utcnow()
+            )
+            db.session.add(attendee)
+            print(f"Attendee {i+1} created with reserved status")
 
-    # Decrease the available ticket quantity by the reserved amount
-    event.ticket_quantity -= number_of_tickets
-    db.session.commit()
+        # Decrease the available ticket quantity by the reserved amount
+        event.ticket_quantity -= number_of_tickets
+        db.session.commit()
+        print(f"Reserved {number_of_tickets} tickets and updated event ticket quantity")
+    except Exception as e:
+        print(f"Error while reserving tickets: {str(e)}")
+        db.session.rollback()  # Rollback in case of error
+        flash("An error occurred while reserving tickets.")
+        return redirect(url_for('purchase', event_id=event_id))
 
     # After successful reservation, redirect to the purchase page
     flash(f'{number_of_tickets} tickets have been reserved. Please complete the purchase within 10 minutes.')
     return redirect(url_for('purchase', event_id=event_id))
-
-
