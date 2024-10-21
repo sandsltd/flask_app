@@ -2,7 +2,7 @@ from flask import Blueprint, request, redirect, url_for, flash
 import stripe
 import os
 from app import db
-from app.models import Event, Attendee, User
+from app import Event, Attendee, User
 import json
 
 # Create a blueprint for payments
