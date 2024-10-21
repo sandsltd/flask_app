@@ -17,6 +17,7 @@ import json
 import pandas as pd
 from io import BytesIO
 from flask import make_response
+import re
 
 
 
@@ -923,6 +924,11 @@ def export_attendees(event_id):
     ticket_answers_df = pd.json_normalize(df['Ticket Answers'])
     df = pd.concat([df.drop(columns='Ticket Answers'), ticket_answers_df], axis=1)
 
+    # Generate the file name using the event name and date
+    event_name_clean = re.sub(r'\W+', '_', event.name)  # Replace spaces and special characters with underscores
+    event_date = event.date.replace('-', '_')  # Replace dashes with underscores in the date
+    file_name = f"attendees_{event_name_clean}_{event_date}.xlsx"
+
     # Generate the Excel file in memory
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
@@ -932,6 +938,6 @@ def export_attendees(event_id):
 
     # Return the Excel file as a response
     response = make_response(output.read())
-    response.headers['Content-Disposition'] = f'attachment; filename=attendees_event_{event_id}.xlsx'
+    response.headers['Content-Disposition'] = f'attachment; filename={file_name}'
     response.headers['Content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     return response
