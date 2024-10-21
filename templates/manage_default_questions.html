@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Default Questions</title>
+</head>
+<body>
+    <h1>Manage Default Questions</h1>
+
+    <form action="/manage-default-questions" method="POST">
+        <!-- Existing default questions fields -->
+        {% for question in questions %}
+        <label for="question{{ loop.index }}">Question {{ loop.index }}:</label>
+        <input type="text" id="question{{ loop.index }}" name="questions[]" value="{{ question.question }}"><br>
+        {% endfor %}
+
+        {% for i in range(10 - questions|length) %}
+        <label for="new_question{{ i + questions|length + 1 }}">Question {{ i + questions|length + 1 }}:</label>
+        <input type="text" id="new_question{{ i + questions|length + 1 }}" name="questions[]"><br>
+        {% endfor %}
+
+        <!-- New Terms and Conditions link field -->
+        <label for="terms_link">Your Terms and Conditions URL:</label>
+        <input type="url" id="terms_link" name="terms_link" value="{{ user.terms }}"><br><br>
+
+        <input type="submit" value="Save Changes">
+    </form>
+
+    <a href="/dashboard">Back to Dashboard</a>
+
+    {% if error %}
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
+</body>
+</html>
