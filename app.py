@@ -1022,7 +1022,7 @@ def reserve_tickets(event_id):
     for _ in range(number_of_tickets):
         attendee = Attendee(
             event_id=event_id,
-            ticket_answers='TBD',  # This will be updated later with actual answers
+            ticket_answers='{}',  # Initialize with an empty dictionary for future answers
             payment_status='pending',  # Set to pending until payment is confirmed
             full_name='TBD',  # Placeholder until the user provides info
             email='TBD',  # Placeholder until the user provides info
@@ -1039,6 +1039,8 @@ def reserve_tickets(event_id):
     event.ticket_quantity -= number_of_tickets
     db.session.commit()
 
-    # Redirect back to the embed page or the purchase page for the event
-    return redirect(url_for('embed_events', unique_id=event.user.unique_id))
+    # After successful reservation, redirect to the purchase page
+    flash(f'{number_of_tickets} tickets have been reserved. Please complete the purchase within 10 minutes.')
+    return redirect(url_for('purchase', event_id=event_id))
+
 
