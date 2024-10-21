@@ -756,3 +756,48 @@ def edit_event(event_id):
         return redirect(url_for('dashboard'))
 
     return render_template('edit_event.html', event=event)
+
+
+@app.route('/delete_attendee/<int:attendee_id>', methods=['POST'])
+@login_required
+def delete_attendee(attendee_id):
+    attendee = Attendee.query.get_or_404(attendee_id)
+
+    # Ensure the user has permission to delete the attendee
+    event = Event.query.get(attendee.event_id)
+    if event.user_id != current_user.id:
+        flash("You don't have permission to delete this attendee.")
+        return redirect(url_for('dashboard'))
+
+    # Update the event's ticket quantity
+    event.ticket_quantity += attendee.tickets_purchased  # Increase available ticket quantity
+    
+    # Delete the attendee
+    db.session.delete(attendee)
+    db.session.commit()
+
+    flash('Attendee deleted successfully, and ticket quantity updated!')
+    return redirect(url_for('view_attendees', event_id=event.id))
+
+@app.route('/edit_attendee/<int:attendee_id>', methods=['GET', 'POST'])
+@login_required
+def edit_attendee(attendee_id):
+    attendee = Attendee.query.get_or_404(attendee_id)
+
+    # Ensure the user has permission to edit the attendee
+    event = Event.query.get(attendee.event_id)
+    if event.user_id != current_user.id:
+        flash("You don't have permission to edit this attendee.")
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        attendee.full_name = request.form['full_name']
+        attendee.email = request.form['email']
+        attendee.phone_number = request.form['phone_number']
+        # Update other attendee fields as needed
+
+        db.session.commit()
+        flash('Attendee details updated successfully!')
+        return redirect(url_for('view_attendees', event_id=event.id))
+
+    return render_template('edit_attendee.html', attendee=attendee)

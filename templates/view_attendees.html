@@ -24,7 +24,6 @@
                     <h4>Organiser Information:</h4>
                     <p><strong>Full Name:</strong> {{ attendee.billing_details.name }}</p>
 
-                    <!-- Check if the billing details contain an address before displaying it -->
                     {% if attendee.billing_details.address %}
                         <p><strong>Address:</strong> {{ attendee.billing_details.address.line1 }}, {{ attendee.billing_details.address.city }}, {{ attendee.billing_details.address.postal_code }}</p>
                     {% else %}
@@ -40,6 +39,12 @@
                             <li><strong>{{ question }}:</strong> {{ answer }}</li>
                         {% endfor %}
                     </ul>
+
+                    <!-- Edit and Delete Buttons -->
+                    <a href="{{ url_for('edit_attendee', attendee_id=attendee.id) }}">Edit</a>
+                    <form action="{{ url_for('delete_attendee', attendee_id=attendee.id) }}" method="POST" style="display:inline;">
+                        <button type="submit">Delete</button>
+                    </form>
                     
                     <hr>
                 </li>
