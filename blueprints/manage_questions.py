@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app import db
-from app.models import DefaultQuestion  # Ensure DefaultQuestion model is defined
+from app import DefaultQuestion  # Ensure DefaultQuestion model is defined
 
 # Create a blueprint for managing default questions
 manage_questions_blueprint = Blueprint('manage_questions', __name__)
