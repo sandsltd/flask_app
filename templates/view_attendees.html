@@ -13,6 +13,10 @@
 
     <hr>
 
+    <a href="{{ url_for('add_attendee', event_id=event.id) }}">
+        <button>Add New Attendee</button>
+    </a>
+
     {% if attendees %}
         <h2>Attendees List</h2>
         <ul>

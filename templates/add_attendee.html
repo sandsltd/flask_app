@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Attendee</title>
+</head>
+<body>
+
+    <h1>Add New Attendee for Event: {{ event.name }}</h1>
+
+    <form action="{{ url_for('add_attendee', event_id=event.id) }}" method="POST">
+        <label for="full_name">Full Name:</label>
+        <input type="text" id="full_name" name="full_name" required><br>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required><br>
+
+        <label for="phone_number">Phone Number:</label>
+        <input type="text" id="phone_number" name="phone_number" required><br>
+
+        <label for="number_of_tickets">Number of Tickets:</label>
+        <input type="number" id="number_of_tickets" name="number_of_tickets" value="1" min="1" required><br>
+
+        <!-- Display custom and default questions -->
+        <h3>Ticket Questions</h3>
+        {% for question in questions %}
+            <label for="answer_{{ question }}">{{ question }}:</label>
+            <input type="text" id="answer_{{ question }}" name="answer_{{ question }}" required><br>
+        {% endfor %}
+
+        <button type="submit">Add Attendee</button>
+    </form>
+
+</body>
+</html>

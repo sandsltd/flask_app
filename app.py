@@ -815,3 +815,65 @@ def edit_attendee(attendee_id):
 
     return render_template('edit_attendee.html', attendee=attendee, ticket_answers=ticket_answers)
 
+@app.route('/add_attendee/<int:event_id>', methods=['GET', 'POST'])
+@login_required
+def add_attendee(event_id):
+    event = Event.query.get_or_404(event_id)
+
+    # Fetch default and custom questions
+    user = User.query.get(event.user_id)
+    default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
+    default_question_texts = [dq.question for dq in default_questions]
+
+    custom_questions = []
+    for i in range(1, 11):  # Loop through 10 possible custom questions
+        question = getattr(event, f'custom_question_{i}')
+        if question:
+            custom_questions.append(question)
+
+    all_questions = default_question_texts + custom_questions
+
+    if request.method == 'POST':
+        full_name = request.form['full_name']
+        email = request.form['email']
+        phone_number = request.form['phone_number']
+        number_of_tickets = int(request.form.get('number_of_tickets', 1))
+
+        # Validate required fields
+        if not all([full_name, email, phone_number]):
+            flash('Please fill in all required fields.')
+            return redirect(url_for('add_attendee', event_id=event_id))
+
+        if number_of_tickets > event.ticket_quantity:
+            flash('Requested number of tickets exceeds available tickets.')
+            return redirect(url_for('add_attendee', event_id=event_id))
+
+        # Collect the ticket answers
+        ticket_answers = {}
+        for question in all_questions:
+            answer_key = f'answer_{question}'
+            ticket_answers[question] = request.form.get(answer_key, '')
+
+        # Loop to create an `Attendee` entry for each ticket
+        for _ in range(number_of_tickets):
+            attendee = Attendee(
+                event_id=event_id,
+                ticket_answers=json.dumps(ticket_answers),
+                payment_status='succeeded',  # Since this is manually added, assume payment success
+                full_name=full_name,
+                email=email,
+                phone_number=phone_number,
+                tickets_purchased=1,  # Store each ticket individually
+                ticket_price_at_purchase=event.ticket_price,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(attendee)
+
+        # Update the event's ticket quantity
+        event.ticket_quantity -= number_of_tickets
+        db.session.commit()
+
+        flash('New attendee added successfully!')
+        return redirect(url_for('view_attendees', event_id=event_id))
+
+    return render_template('add_attendee.html', event=event, questions=all_questions)
