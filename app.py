@@ -14,6 +14,10 @@ from flask import request, redirect, url_for, render_template, flash
 from urllib.parse import urlparse
 from datetime import datetime
 import json
+import pandas as pd
+from io import BytesIO
+from flask import make_response
+
 
 
 
@@ -883,3 +887,51 @@ def add_attendee(event_id):
         return redirect(url_for('view_attendees', event_id=event_id))
 
     return render_template('add_attendee.html', event=event, questions=all_questions)
+
+@app.route('/export_attendees/<int:event_id>')
+@login_required
+def export_attendees(event_id):
+    event = Event.query.get_or_404(event_id)
+
+    # Ensure the user has permission to export the attendees
+    if event.user_id != current_user.id:
+        flash("You don't have permission to export the attendees for this event.")
+        return redirect(url_for('dashboard'))
+
+    # Fetch attendees
+    attendees = Attendee.query.filter_by(event_id=event_id).all()
+
+    # Prepare data for export
+    data = []
+    for attendee in attendees:
+        attendee_data = {
+            'Full Name': attendee.full_name,
+            'Email': attendee.email,
+            'Phone Number': attendee.phone_number,
+            'Tickets Purchased': attendee.tickets_purchased,
+            'Ticket Price': attendee.ticket_price_at_purchase,
+            'Billing Details': attendee.billing_details,
+            'Ticket Answers': json.loads(attendee.ticket_answers) if attendee.ticket_answers else {},
+            'Payment Status': attendee.payment_status,
+        }
+        data.append(attendee_data)
+
+    # Create a DataFrame using pandas
+    df = pd.DataFrame(data)
+
+    # Convert the 'Ticket Answers' dictionary into separate columns
+    ticket_answers_df = pd.json_normalize(df['Ticket Answers'])
+    df = pd.concat([df.drop(columns='Ticket Answers'), ticket_answers_df], axis=1)
+
+    # Generate the Excel file in memory
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Attendees')
+
+    output.seek(0)
+
+    # Return the Excel file as a response
+    response = make_response(output.read())
+    response.headers['Content-Disposition'] = f'attachment; filename=attendees_event_{event_id}.xlsx'
+    response.headers['Content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    return response

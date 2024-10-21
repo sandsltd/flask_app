@@ -16,6 +16,11 @@
 
     <hr>
 
+    <a href="{{ url_for('export_attendees', event_id=event.id) }}">
+        <button>Export Attendees</button>
+    </a>
+    
+
     <a href="{{ url_for('add_attendee', event_id=event.id) }}">
         <button>Add New Attendee</button>
     </a>
