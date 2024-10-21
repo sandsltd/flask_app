@@ -994,44 +994,51 @@ def export_attendees(event_id):
 
 @app.route('/reserve_tickets/<int:event_id>', methods=['POST'])
 def reserve_tickets(event_id):
+    # Fetch the event
     event = Event.query.get(event_id)
     if not event:
-        flash("Event not found.")
-        return redirect(url_for('embed_events', unique_id=event.user.unique_id))
+        return "Event not found", 404
 
-    try:
-        # Get the number of tickets to reserve
-        number_of_tickets = int(request.form['ticket_quantity'])
+    # Retrieve the number of tickets from the form
+    number_of_tickets = request.form.get('number_of_tickets')
 
-        # Check if the requested number of tickets is available
-        if number_of_tickets > event.ticket_quantity:
-            flash('Not enough tickets available.')
-            return redirect(url_for('embed_events', unique_id=event.user.unique_id))
+    # Check if the ticket quantity is valid (greater than 0 and not empty)
+    if not number_of_tickets or int(number_of_tickets) <= 0:
+        flash('Please enter a valid ticket quantity.')
+        return redirect(url_for('purchase', event_id=event_id))
 
-        # Reserve the tickets for the user by setting a 10-minute hold
-        reserved_until = datetime.utcnow() + timedelta(minutes=10)
-        
-        for _ in range(number_of_tickets):
-            attendee = Attendee(
-                event_id=event.id,
-                full_name='TBD',  # Placeholder, will be updated when details are filled
-                email='TBD',      # Placeholder
-                phone_number='TBD',  # Placeholder
-                ticket_price_at_purchase=event.ticket_price,
-                reserved_until=reserved_until,
-                status='reserved',  # Mark as reserved
-                payment_status='pending',
-                created_at=datetime.utcnow()
-            )
-            db.session.add(attendee)
+    # Convert ticket quantity to integer
+    number_of_tickets = int(number_of_tickets)
 
-        # Decrease the available ticket count
-        event.ticket_quantity -= number_of_tickets
-        db.session.commit()
+    # Check if the requested tickets exceed available tickets
+    if number_of_tickets > event.ticket_quantity:
+        flash('Requested number of tickets exceeds available tickets.')
+        return redirect(url_for('purchase', event_id=event_id))
 
-        # Redirect to the purchase page to fill in attendee details
-        return redirect(url_for('purchase', event_id=event.id))
+    # Reserve the tickets by setting status to 'reserved' and adding a 10-minute reservation window
+    reserved_until = datetime.utcnow() + timedelta(minutes=10)
 
-    except Exception as e:
-        flash(f"Error reserving tickets: {str(e)}")
-        return redirect(url_for('embed_events', unique_id=event.user.unique_id))
+    # Create attendee records for each ticket with 'reserved' status
+    for _ in range(number_of_tickets):
+        attendee = Attendee(
+            event_id=event_id,
+            ticket_answers='TBD',  # This will be updated later with actual answers
+            payment_status='pending',  # Set to pending until payment is confirmed
+            full_name='TBD',  # Placeholder until the user provides info
+            email='TBD',  # Placeholder until the user provides info
+            phone_number='TBD',  # Placeholder until the user provides info
+            tickets_purchased=1,  # Store each ticket individually
+            ticket_price_at_purchase=event.ticket_price,
+            reserved_until=reserved_until,  # Set the reservation expiration time
+            status='reserved',  # Mark the ticket as reserved
+            created_at=datetime.utcnow()
+        )
+        db.session.add(attendee)
+
+    # Decrease the available ticket quantity by the reserved amount
+    event.ticket_quantity -= number_of_tickets
+    db.session.commit()
+
+    # Redirect back to the embed page or the purchase page for the event
+    return redirect(url_for('embed_events', unique_id=event.user.unique_id))
+
