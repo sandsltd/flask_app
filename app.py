@@ -381,18 +381,33 @@ def embed_events(unique_id):
             Location: {event.location}<br>
             Description: {event.description}<br>
             Time: {event.start_time} - {event.end_time}<br>
-            Available Tickets: {event.ticket_quantity}<br>
+            Ticket Quantity: {event.ticket_quantity}<br>
             Ticket Price: £{event.ticket_price}<br>
-
-            <!-- Quantity selector for reserving tickets -->
-            <form action="https://flask-app-2gp0.onrender.com/reserve_tickets/{event.id}" method="POST">
-                <label for="ticket_quantity_{event.id}">Select Number of Tickets:</label>
-                <input type="number" id="ticket_quantity_{event.id}" name="ticket_quantity" min="1" max="{event.ticket_quantity}" required>
-                <button type="submit">Reserve Tickets</button>
-            </form>
+            
+            <!-- Ticket Quantity Dropdown -->
+            <label for="ticket_quantity_{event.id}">Select Ticket Quantity:</label>
+            <select id="ticket_quantity_{event.id}" name="ticket_quantity">
+                {"".join([f'<option value="{i}">{i}</option>' for i in range(1, event.ticket_quantity + 1)])}
+            </select><br>
+            
+            <!-- Buy Ticket Button -->
+            <button onclick="buyTicket({event.id})">Buy Ticket</button>
         </li><br>
         '''
     events_html += '</ul>'
+
+    # Add JavaScript function to handle the ticket purchase
+    events_html += '''
+    <script>
+        function buyTicket(eventId) {
+            // Get the selected ticket quantity from the dropdown
+            var selectedQuantity = document.getElementById('ticket_quantity_' + eventId).value;
+            
+            // Redirect to the purchase page with the selected quantity as a query parameter
+            window.location.href = 'https://flask-app-2gp0.onrender.com/purchase/' + eventId + '?quantity=' + selectedQuantity;
+        }
+    </script>
+    '''
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
@@ -518,50 +533,20 @@ def purchase(event_id):
     all_questions = default_question_texts + custom_questions
 
     if request.method == 'POST':
-        # Check if the user is reserving tickets first
-        if 'reserve_tickets' in request.form:
-            number_of_tickets = int(request.form.get('number_of_tickets', 1))
-
-            # Validate ticket availability
-            if number_of_tickets > event.ticket_quantity:
-                flash('Requested number of tickets exceeds available tickets.')
-                return redirect(url_for('purchase', event_id=event_id))
-
-            # Reserve tickets by setting status to 'reserved' and adding a 10-minute reservation window
-            reserved_until = datetime.utcnow() + timedelta(minutes=10)
-
-            # Loop to create an `Attendee` entry for each ticket with 'reserved' status
-            for i in range(number_of_tickets):
-                attendee = Attendee(
-                    event_id=event_id,
-                    ticket_answers='{}',  # Placeholder until filled in
-                    payment_status='pending',  # Set to pending until payment is confirmed
-                    full_name='TBD',  # Placeholder until filled in
-                    email='TBD',  # Placeholder
-                    phone_number='TBD',  # Placeholder
-                    tickets_purchased=1,  # Store each ticket individually
-                    ticket_price_at_purchase=event.ticket_price,
-                    reserved_until=reserved_until,  # Set the reservation expiration time
-                    status='reserved',  # Mark the ticket as reserved
-                    created_at=datetime.utcnow()
-                )
-                db.session.add(attendee)
-
-            # Decrease the available tickets by the reserved amount
-            event.ticket_quantity -= number_of_tickets
-            db.session.commit()
-
-            flash(f'{number_of_tickets} tickets reserved. Please fill in the attendee details.')
-            return redirect(url_for('purchase', event_id=event_id))
-
-        # Now process the attendee details if tickets are already reserved
+        # Collect form data
         full_name = request.form.get('full_name')
         email = request.form.get('email')
         phone_number = request.form.get('phone_number')
+        number_of_tickets = int(request.form.get('number_of_tickets', 1))
 
         # Validate required fields
         if not all([full_name, email, phone_number]):
             flash('Please fill in all required fields.')
+            return redirect(url_for('purchase', event_id=event_id))
+
+        # Validate ticket availability (after expired reservations are released)
+        if number_of_tickets > event.ticket_quantity:
+            flash('Requested number of tickets exceeds available tickets.')
             return redirect(url_for('purchase', event_id=event_id))
 
         # Validate terms acceptance
@@ -572,40 +557,49 @@ def purchase(event_id):
             flash('You must accept the platform\'s Terms and Conditions.')
             return redirect(url_for('purchase', event_id=event_id))
 
-        # Fetch reserved attendees to complete the purchase
-        reserved_attendees = Attendee.query.filter_by(event_id=event_id, status='reserved').all()
-        if not reserved_attendees:
-            flash('No tickets reserved. Please reserve tickets first.')
-            return redirect(url_for('purchase', event_id=event_id))
+        # Reserve tickets by setting status to 'reserved' and adding a 10-minute reservation window
+        reserved_until = datetime.utcnow() + timedelta(minutes=10)
 
-        # Loop to update reserved attendees with ticket answers
-        for attendee in reserved_attendees:
+        # Loop to create an `Attendee` entry for each ticket with 'reserved' status
+        for i in range(number_of_tickets):
             ticket_answers = {}
             for q_index, question in enumerate(all_questions):
-                answer_key = f'ticket_question_{q_index}'
+                answer_key = f'ticket_{i}_question_{q_index}'
                 answer = request.form.get(answer_key)
                 if not answer:
-                    flash(f'Please answer all questions for each ticket.')
+                    flash(f'Please answer all questions for Ticket {i + 1}.')
                     return redirect(url_for('purchase', event_id=event_id))
                 ticket_answers[question] = answer
 
-            attendee.full_name = full_name
-            attendee.email = email
-            attendee.phone_number = phone_number
-            attendee.ticket_answers = json.dumps(ticket_answers)
-            attendee.status = 'sold'  # Mark the ticket as sold after filling in details
-
+            # Create an attendee record for each ticket with 'reserved' status
+            attendee = Attendee(
+                event_id=event_id,
+                ticket_answers=json.dumps(ticket_answers),
+                payment_status='pending',  # Set to pending until payment is confirmed
+                full_name=full_name,
+                email=email,
+                phone_number=phone_number,
+                tickets_purchased=1,  # Store each ticket individually
+                ticket_price_at_purchase=event.ticket_price,
+                reserved_until=reserved_until,  # Set the reservation expiration time
+                status='reserved',  # Mark the ticket as reserved
+                created_at=datetime.utcnow()
+            )
+            db.session.add(attendee)
+        
+        # Decrease the available tickets by the reserved amount
+        event.ticket_quantity -= number_of_tickets
         db.session.commit()
 
         # Calculate the ticket price in pence
         ticket_price_pence = int(event.ticket_price * 100)
-        total_ticket_price_pence = ticket_price_pence * len(reserved_attendees)
+        total_ticket_price_pence = ticket_price_pence * number_of_tickets
 
         # Calculate platform fee (2% of ticket price)
         platform_fee_pence = int(total_ticket_price_pence * 0.02)
 
         # Calculate Stripe fee (2.9% of total amount + 30p per ticket)
-        stripe_fee_pence = int((total_ticket_price_pence + platform_fee_pence) * 0.029) + (30 * len(reserved_attendees))
+        stripe_fee_pence = int((total_ticket_price_pence + platform_fee_pence) * 0.029) + (30 * number_of_tickets)
 
         # Total booking fee
         booking_fee_pence = platform_fee_pence + stripe_fee_pence
@@ -626,7 +620,7 @@ def purchase(event_id):
                             },
                             'unit_amount': ticket_price_pence,
                         },
-                        'quantity': len(reserved_attendees),
+                        'quantity': number_of_tickets,
                     },
                     {
                         'price_data': {
@@ -634,16 +628,16 @@ def purchase(event_id):
                             'product_data': {
                                 'name': 'Booking Fee',
                             },
-                            'unit_amount': booking_fee_pence // len(reserved_attendees),
+                            'unit_amount': booking_fee_pence // number_of_tickets,
                         },
-                        'quantity': len(reserved_attendees),
+                        'quantity': number_of_tickets,
                     }
                 ],
                 mode='payment',
                 success_url=url_for('success', _external=True),
                 cancel_url=url_for('cancel', _external=True),
                 metadata={
-                    'attendee_id': reserved_attendees[0].id  # Example metadata, adjust if needed
+                    'attendee_id': attendee.id
                 },
                 payment_intent_data={
                     'application_fee_amount': platform_fee_pence,
@@ -991,65 +985,3 @@ def export_attendees(event_id):
     response.headers['Content-Disposition'] = f'attachment; filename={file_name}'
     response.headers['Content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     return response
-
-@app.route('/reserve_tickets/<int:event_id>', methods=['POST'])
-def reserve_tickets(event_id):
-    # Fetch the event
-    event = Event.query.get(event_id)
-    if not event:
-        print("Event not found")
-        return "Event not found", 404
-
-    # Retrieve the number of tickets from the form
-    number_of_tickets = request.form.get('number_of_tickets')
-
-    # Check if the ticket quantity is valid (greater than 0 and not empty)
-    if not number_of_tickets or int(number_of_tickets) <= 0:
-        flash('Please enter a valid ticket quantity.')
-        print("Invalid ticket quantity")
-        return redirect(url_for('purchase', event_id=event_id))
-
-    # Convert ticket quantity to integer
-    number_of_tickets = int(number_of_tickets)
-
-    # Check if the requested tickets exceed available tickets
-    if number_of_tickets > event.ticket_quantity:
-        flash('Requested number of tickets exceeds available tickets.')
-        print("Requested more tickets than available")
-        return redirect(url_for('purchase', event_id=event_id))
-
-    # Reserve the tickets by setting status to 'reserved' and adding a 10-minute reservation window
-    reserved_until = datetime.utcnow() + timedelta(minutes=10)
-
-    # Create attendee records for each ticket with 'reserved' status
-    try:
-        for i in range(number_of_tickets):
-            attendee = Attendee(
-                event_id=event_id,
-                ticket_answers='{}',  # Initialize with an empty dictionary for future answers
-                payment_status='pending',  # Set to pending until payment is confirmed
-                full_name='TBD',  # Placeholder until the user provides info
-                email='TBD',  # Placeholder until the user provides info
-                phone_number='TBD',  # Placeholder until the user provides info
-                tickets_purchased=1,  # Store each ticket individually
-                ticket_price_at_purchase=event.ticket_price,
-                reserved_until=reserved_until,  # Set the reservation expiration time
-                status='reserved',  # Mark the ticket as reserved
-                created_at=datetime.utcnow()
-            )
-            db.session.add(attendee)
-            print(f"Attendee {i+1} created with reserved status")
-
-        # Decrease the available ticket quantity by the reserved amount
-        event.ticket_quantity -= number_of_tickets
-        db.session.commit()
-        print(f"Reserved {number_of_tickets} tickets and updated event ticket quantity")
-    except Exception as e:
-        print(f"Error while reserving tickets: {str(e)}")
-        db.session.rollback()  # Rollback in case of error
-        flash("An error occurred while reserving tickets.")
-        return redirect(url_for('purchase', event_id=event_id))
-
-    # After successful reservation, redirect to the purchase page
-    flash(f'{number_of_tickets} tickets have been reserved. Please complete the purchase within 10 minutes.')
-    return redirect(url_for('purchase', event_id=event_id))
