@@ -790,14 +790,28 @@ def edit_attendee(attendee_id):
         flash("You don't have permission to edit this attendee.")
         return redirect(url_for('dashboard'))
 
+    # Load ticket answers
+    ticket_answers = json.loads(attendee.ticket_answers) if attendee.ticket_answers else {}
+
     if request.method == 'POST':
+        # Update attendee details
         attendee.full_name = request.form['full_name']
         attendee.email = request.form['email']
         attendee.phone_number = request.form['phone_number']
-        # Update other attendee fields as needed
 
+        # Update ticket answers
+        updated_ticket_answers = {}
+        for question in ticket_answers:
+            answer_key = f'answer_{question}'
+            updated_ticket_answers[question] = request.form.get(answer_key, '')
+
+        # Save the updated ticket answers as JSON
+        attendee.ticket_answers = json.dumps(updated_ticket_answers)
+
+        # Commit changes
         db.session.commit()
-        flash('Attendee details updated successfully!')
+        flash('Attendee details and ticket answers updated successfully!')
         return redirect(url_for('view_attendees', event_id=event.id))
 
-    return render_template('edit_attendee.html', attendee=attendee)
+    return render_template('edit_attendee.html', attendee=attendee, ticket_answers=ticket_answers)
+

@@ -19,7 +19,12 @@
         <label for="phone_number">Phone Number:</label>
         <input type="text" id="phone_number" name="phone_number" value="{{ attendee.phone_number }}" required><br>
 
-        <!-- Add other fields if needed -->
+        <!-- Display ticket answers for editing -->
+        <h3>Edit Ticket Answers</h3>
+        {% for question, answer in ticket_answers.items() %}
+            <label for="answer_{{ question }}">{{ question }}:</label>
+            <input type="text" id="answer_{{ question }}" name="answer_{{ question }}" value="{{ answer }}" required><br>
+        {% endfor %}
 
         <button type="submit">Save Changes</button>
     </form>
