@@ -31,6 +31,7 @@ def login():
             flash('Invalid email or password')  # Display error message if login fails
     return render_template('login.html')  # Render the login page
 
+
 # Logout route
 @auth_blueprint.route('/logout')
 @login_required

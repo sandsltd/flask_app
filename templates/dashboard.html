@@ -14,7 +14,7 @@
     <p><strong>Total Tickets Sold:</strong> {{ total_tickets_sold }}</p>
     <p><strong>Total Revenue Generated:</strong> £{{ total_revenue }}</p>
 
-    <form method="GET" action="{{ url_for('dashboard') }}">
+    <form method="GET" action="{{ url_for('events.dashboard') }}">
         <select name="filter">
             <option value="all">All Events</option>
             <option value="upcoming">Upcoming Events</option>
