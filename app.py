@@ -512,6 +512,14 @@ def purchase(event_id):
     if not user:
         return "Event organizer not found", 404
 
+    # Get the ticket quantity from the query parameter, default to 1 if not provided
+    selected_quantity = int(request.args.get('quantity', 1))
+
+    # Validate that the selected quantity does not exceed available tickets
+    if selected_quantity > event.ticket_quantity:
+        flash('Requested number of tickets exceeds available tickets.')
+        return redirect(url_for('embed_events', unique_id=user.unique_id))
+
     # Release expired reservations
     now = datetime.utcnow()
     expired_reservations = Attendee.query.filter_by(event_id=event_id, status='reserved').filter(Attendee.reserved_until < now).all()
@@ -537,38 +545,32 @@ def purchase(event_id):
         full_name = request.form.get('full_name')
         email = request.form.get('email')
         phone_number = request.form.get('phone_number')
-        number_of_tickets = int(request.form.get('number_of_tickets', 1))
 
         # Validate required fields
         if not all([full_name, email, phone_number]):
             flash('Please fill in all required fields.')
-            return redirect(url_for('purchase', event_id=event_id))
-
-        # Validate ticket availability (after expired reservations are released)
-        if number_of_tickets > event.ticket_quantity:
-            flash('Requested number of tickets exceeds available tickets.')
-            return redirect(url_for('purchase', event_id=event_id))
+            return redirect(url_for('purchase', event_id=event_id, quantity=selected_quantity))
 
         # Validate terms acceptance
         if not request.form.get('accept_organizer_terms'):
             flash('You must accept the event organizer\'s Terms and Conditions.')
-            return redirect(url_for('purchase', event_id=event_id))
+            return redirect(url_for('purchase', event_id=event_id, quantity=selected_quantity))
         if not request.form.get('accept_platform_terms'):
             flash('You must accept the platform\'s Terms and Conditions.')
-            return redirect(url_for('purchase', event_id=event_id))
+            return redirect(url_for('purchase', event_id=event_id, quantity=selected_quantity))
 
         # Reserve tickets by setting status to 'reserved' and adding a 10-minute reservation window
         reserved_until = datetime.utcnow() + timedelta(minutes=10)
 
         # Loop to create an `Attendee` entry for each ticket with 'reserved' status
-        for i in range(number_of_tickets):
+        for i in range(selected_quantity):
             ticket_answers = {}
             for q_index, question in enumerate(all_questions):
                 answer_key = f'ticket_{i}_question_{q_index}'
                 answer = request.form.get(answer_key)
                 if not answer:
                     flash(f'Please answer all questions for Ticket {i + 1}.')
-                    return redirect(url_for('purchase', event_id=event_id))
+                    return redirect(url_for('purchase', event_id=event_id, quantity=selected_quantity))
                 ticket_answers[question] = answer
 
             # Create an attendee record for each ticket with 'reserved' status
@@ -588,18 +590,18 @@ def purchase(event_id):
             db.session.add(attendee)
         
         # Decrease the available tickets by the reserved amount
-        event.ticket_quantity -= number_of_tickets
+        event.ticket_quantity -= selected_quantity
         db.session.commit()
 
         # Calculate the ticket price in pence
         ticket_price_pence = int(event.ticket_price * 100)
-        total_ticket_price_pence = ticket_price_pence * number_of_tickets
+        total_ticket_price_pence = ticket_price_pence * selected_quantity
 
         # Calculate platform fee (2% of ticket price)
         platform_fee_pence = int(total_ticket_price_pence * 0.02)
 
         # Calculate Stripe fee (2.9% of total amount + 30p per ticket)
-        stripe_fee_pence = int((total_ticket_price_pence + platform_fee_pence) * 0.029) + (30 * number_of_tickets)
+        stripe_fee_pence = int((total_ticket_price_pence + platform_fee_pence) * 0.029) + (30 * selected_quantity)
 
         # Total booking fee
         booking_fee_pence = platform_fee_pence + stripe_fee_pence
@@ -620,7 +622,7 @@ def purchase(event_id):
                             },
                             'unit_amount': ticket_price_pence,
                         },
-                        'quantity': number_of_tickets,
+                        'quantity': selected_quantity,
                     },
                     {
                         'price_data': {
@@ -628,9 +630,9 @@ def purchase(event_id):
                             'product_data': {
                                 'name': 'Booking Fee',
                             },
-                            'unit_amount': booking_fee_pence // number_of_tickets,
+                            'unit_amount': booking_fee_pence // selected_quantity,
                         },
-                        'quantity': number_of_tickets,
+                        'quantity': selected_quantity,
                     }
                 ],
                 mode='payment',
@@ -655,7 +657,7 @@ def purchase(event_id):
         except Exception as e:
             print(f"Error creating checkout session: {str(e)}")
             flash('An error occurred while processing your payment.')
-            return redirect(url_for('purchase', event_id=event_id))
+            return redirect(url_for('purchase', event_id=event_id, quantity=selected_quantity))
 
     else:
         # GET request: render the purchase page
@@ -666,9 +668,11 @@ def purchase(event_id):
             'purchase.html',
             event=event,
             questions=all_questions,
+            selected_quantity=selected_quantity,
             organizer_terms_link=organizer_terms_link,
             platform_terms_link=platform_terms_link
         )
+
 
 
 
