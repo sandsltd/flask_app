@@ -2,6 +2,38 @@
 <html>
 <head>
     <title>Purchase Tickets</title>
+    <script>
+        // Countdown Timer Function
+        let countdownTime = 10 * 60; // 10 minutes in seconds
+        let timerElement;
+
+        function startCountdown() {
+            timerElement = document.getElementById("countdown_timer");
+
+            const interval = setInterval(function() {
+                let minutes = Math.floor(countdownTime / 60);
+                let seconds = countdownTime % 60;
+
+                // Add leading zero if seconds are less than 10
+                seconds = seconds < 10 ? '0' + seconds : seconds;
+
+                timerElement.textContent = `Time left to complete purchase: ${minutes}:${seconds}`;
+
+                // Decrease the time
+                countdownTime--;
+
+                // If time runs out, redirect user to the expired page
+                if (countdownTime < 0) {
+                    clearInterval(interval);
+                    alert("Your reservation has expired. You will be redirected to the event page.");
+                    window.location.href = "{{ url_for('purchase', event_id=event.id) }}";  // Redirect to refresh the page or release tickets
+                }
+            }, 1000); // Run this every second
+        }
+
+        // Start the countdown when the page loads
+        window.onload = startCountdown;
+    </script>
 </head>
 <body>
     <h1>Purchase Tickets for {{ event.name }}</h1>
@@ -9,6 +41,10 @@
     <p>Date: {{ event.date }}</p>
     <p>Location: {{ event.location }}</p>
     <p>Price per ticket: £{{ event.ticket_price }}</p>
+
+    <!-- Countdown Timer Display -->
+    <h3 id="countdown_timer">Time left to complete purchase: 10:00</h3>
+
     <form method="POST">
         <label for="number_of_tickets">Number of Tickets:</label>
         <input
@@ -24,19 +60,17 @@
             <!-- Question forms will be dynamically added here -->
         </div>
 
-        <form method="POST">
-            <!-- Full Name -->
-            <label for="full_name">Full Name:</label>
-            <input type="text" id="full_name" name="full_name" required><br><br>
-        
-            <!-- Email -->
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required><br><br>
-        
-            <!-- Telephone Number -->
-            <label for="phone_number">Telephone Number:</label>
-            <input type="tel" id="phone_number" name="phone_number" required><br><br>
-
+        <!-- Full Name -->
+        <label for="full_name">Full Name:</label>
+        <input type="text" id="full_name" name="full_name" required><br><br>
+    
+        <!-- Email -->
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required><br><br>
+    
+        <!-- Telephone Number -->
+        <label for="phone_number">Telephone Number:</label>
+        <input type="tel" id="phone_number" name="phone_number" required><br><br>
 
         <!-- Terms and Conditions Checkboxes -->
         <h3>Terms and Conditions</h3>
