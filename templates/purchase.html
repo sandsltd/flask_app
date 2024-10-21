@@ -45,7 +45,8 @@
     <!-- Countdown Timer Display -->
     <h3 id="countdown_timer">Time left to complete purchase: 10:00</h3>
 
-    <form method="POST">
+    <!-- Ticket Quantity Selection -->
+    <form method="POST" id="reserve_form" action="{{ url_for('reserve_tickets', event_id=event.id) }}">
         <label for="number_of_tickets">Number of Tickets:</label>
         <input
             type="number"
@@ -56,6 +57,11 @@
             required
             onchange="updateQuestionForms()"
         >
+        <button type="button" onclick="reserveTickets()">Reserve Tickets</button>
+    </form>
+
+    <!-- Form to complete details -->
+    <form method="POST" action="{{ url_for('complete_purchase', event_id=event.id) }}">
         <div id="question_forms">
             <!-- Question forms will be dynamically added here -->
         </div>
@@ -63,11 +69,11 @@
         <!-- Full Name -->
         <label for="full_name">Full Name:</label>
         <input type="text" id="full_name" name="full_name" required><br><br>
-    
+
         <!-- Email -->
         <label for="email">Email:</label>
         <input type="email" id="email" name="email" required><br><br>
-    
+
         <!-- Telephone Number -->
         <label for="phone_number">Telephone Number:</label>
         <input type="tel" id="phone_number" name="phone_number" required><br><br>
@@ -90,12 +96,13 @@
         <button type="submit">Proceed to Payment</button>
     </form>
 
-    <!-- Include your JavaScript code after the form -->
-    <script type="application/json" id="questions-data">
-        {{ questions | tojson }}
-    </script>
-
     <script>
+        // Reserve tickets when button is clicked
+        function reserveTickets() {
+            const form = document.getElementById('reserve_form');
+            form.submit();  // This will trigger the ticket reservation on the backend
+        }
+
         // Parse the questions data from the script tag
         var questionsDataElement = document.getElementById('questions-data');
         var questions = JSON.parse(questionsDataElement.textContent);
