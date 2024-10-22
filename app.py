@@ -1007,20 +1007,28 @@ def stripe_onboarding_complete():
     account_id = request.args.get('account')
     user_id = request.args.get('user_id')
 
+    # Debug logs to track what's being received
+    print(f"Received user_id: {user_id}")
+    print(f"Received account_id: {account_id}")
+
     # Check if both account_id and user_id are present
     if account_id and user_id:
         # Fetch the user from the database by user_id
         user = User.query.get(user_id)
         if user:
+            print(f"User found: {user.email}")
             # Save the Stripe account ID to the user's row
             user.stripe_connect_id = account_id
             db.session.commit()  # Commit changes to the database
+            print(f"Stripe Connect ID {account_id} saved for user {user.email}")
             flash('Stripe onboarding complete! Your account is now connected.')
             return redirect(url_for('dashboard'))
         else:
+            print("User not found.")
             flash('User not found.')
             return redirect(url_for('register'))
     else:
+        print("Stripe onboarding failed: Missing account_id or user_id.")
         flash('Stripe onboarding failed. Please try again.')
         return redirect(url_for('register'))
 
