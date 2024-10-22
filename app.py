@@ -1022,7 +1022,7 @@ def export_attendees(event_id):
 @app.route('/stripe_onboarding_complete')
 def stripe_onboarding_complete():
     # Get the account ID and user ID from the query parameters
-    account_id = request.args.get('account')  # 'account' should now be correctly passed
+    account_id = request.args.get('account')
     user_id = request.args.get('user_id')
 
     # Debug logs to track what's being received
@@ -1034,10 +1034,25 @@ def stripe_onboarding_complete():
         # Fetch the user from the database by user_id
         user = User.query.get(user_id)
         if user:
+            print(f"User found: {user.email}")
+
             # Save the Stripe account ID to the user's row
             user.stripe_connect_id = account_id
             db.session.commit()  # Commit changes to the database
             print(f"Stripe Connect ID {account_id} saved for user {user.email}")
+
+            # Fetch the account details from Stripe to check onboarding status
+            try:
+                stripe_account = stripe.Account.retrieve(account_id)
+                # Update the onboarding status based on the Stripe account details
+                onboarding_status = "complete" if stripe_account.details_submitted else "pending"
+                user.onboarding_status = onboarding_status
+                db.session.commit()  # Commit the updated onboarding status to the database
+                print(f"Onboarding status updated to {onboarding_status} for user {user.email}")
+            except Exception as e:
+                print(f"Error fetching account details from Stripe: {str(e)}")
+                flash('Error verifying Stripe onboarding status. Please try again later.')
+
             flash('Stripe onboarding complete! Please log in to access your dashboard.')
             return redirect(url_for('login'))  # Redirect to login page after onboarding
         else:
@@ -1048,6 +1063,7 @@ def stripe_onboarding_complete():
         print("Stripe onboarding failed: Missing account_id or user_id.")
         flash('Stripe onboarding failed. Please try again.')
         return redirect(url_for('register'))
+
 
 
 
