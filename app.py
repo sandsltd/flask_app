@@ -1001,16 +1001,22 @@ def export_attendees(event_id):
 
 @app.route('/stripe_onboarding_complete')
 def stripe_onboarding_complete():
-    account_id = request.args.get('account')
-    if account_id:
-        # Assuming the user is already logged in
-        current_user.stripe_connect_id = account_id
-        db.session.commit()
-        flash('Stripe onboarding complete! Your account is now connected.')
-        return redirect(url_for('dashboard'))
-    else:
-        flash('Stripe onboarding failed. Please try again.')
-        return redirect(url_for('register'))
+    account_id = request.args.get('account')  # This is passed by Stripe after onboarding
+    user_id = request.args.get('user_id')  # You passed this when creating the onboarding link
+    
+    if account_id and user_id:
+        # Fetch the user from the database
+        user = User.query.get(user_id)
+        if user:
+            user.stripe_connect_id = account_id  # Save the Stripe account ID
+            db.session.commit()
+            flash('Stripe onboarding complete! Your account is now connected.')
+            return redirect(url_for('dashboard'))
+    
+    flash('Stripe onboarding failed. Please try again.')
+    return redirect(url_for('register'))
+
+
 
 
 @app.route('/stripe_onboarding_refresh')
