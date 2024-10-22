@@ -272,6 +272,7 @@ def logout():
 def register():
     try:
         if request.method == 'POST':
+            # Collect user data from the form
             email = request.form['email']
             password = request.form['password']
             first_name = request.form['first_name']
@@ -286,14 +287,16 @@ def register():
             town = request.form['town']
             postcode = request.form['postcode']
 
+            # Check if user already exists
             user = User.query.filter_by(email=email).first()
             if user:
                 return render_template('register.html', error="Email already in use")
 
+            # Generate unique ID and hash password
             unique_id = generate_unique_id()
             hashed_password = generate_password_hash(password)
 
-            # Save the user to the database (without Stripe Connect ID for now)
+            # Save the user to the database (without Stripe Connect ID yet)
             new_user = User(
                 unique_id=unique_id,
                 email=email,
@@ -309,34 +312,27 @@ def register():
                 locality=locality,
                 town=town,
                 postcode=postcode,
-                stripe_connect_id=None  # This will be updated after Stripe onboarding is complete
+                stripe_connect_id=None  # No Stripe ID yet
             )
             db.session.add(new_user)
             db.session.commit()
 
-            # Create the user's Stripe Connect account
+            # Create the user's Stripe Connect account (but don't save ID yet)
             stripe_account = stripe.Account.create(
                 type="standard",
-                country="GB",  # Adjust this to your country code
+                country="GB",
                 email=email,
             )
 
-            print(f"Stripe Account Created: {stripe_account.id}")  # Log Stripe account ID
-
-            # Create an Account Link for onboarding
+            # Create the Account Link for Stripe onboarding
             account_link = stripe.AccountLink.create(
                 account=stripe_account.id,
                 refresh_url=url_for('stripe_onboarding_refresh', _external=True),
-                return_url=url_for('stripe_onboarding_complete', user_id=new_user.id, account=stripe_account.id, _external=True),
+                return_url=url_for('stripe_onboarding_complete', user_id=new_user.id, _external=True),
                 type='account_onboarding',
             )
 
-            # After user registration and creating the Stripe account
-            new_user.onboarding_status = "incomplete"
-            db.session.add(new_user)
-            db.session.commit()
-
-
+            # Redirect the user to complete Stripe onboarding
             return redirect(account_link.url)
 
     except Exception as e:
@@ -344,6 +340,7 @@ def register():
         return render_template('register.html', error="An error occurred during registration.")
 
     return render_template('register.html')
+
 
 
 
@@ -1038,28 +1035,19 @@ def stripe_onboarding_complete():
         # Fetch the user from the database by user_id
         user = User.query.get(user_id)
         if user:
-            print(f"User found: {user.email}")
-
-            # Check if the user already has a Stripe Connect ID
-            if not user.stripe_connect_id:
-                # Save the Stripe account ID to the user's row
-                user.stripe_connect_id = account_id
-                user.onboarding_status = "complete"  # Mark onboarding as complete
-                db.session.commit()  # Commit changes to the database
-                print(f"Stripe Connect ID {account_id} saved for user {user.email}")
-            else:
-                print(f"User {user.email} already has a Stripe Connect ID: {user.stripe_connect_id}")
-
+            # Save the Stripe account ID to the user's row
+            user.stripe_connect_id = account_id
+            db.session.commit()  # Commit changes to the database
             flash('Stripe onboarding complete! Please log in to access your dashboard.')
             return redirect(url_for('login'))  # Redirect to login page after onboarding
         else:
-            print("User not found.")
             flash('User not found.')
             return redirect(url_for('register'))
     else:
         print("Stripe onboarding failed: Missing account_id or user_id.")
         flash('Stripe onboarding failed. Please try again.')
         return redirect(url_for('register'))
+
 
 
 
