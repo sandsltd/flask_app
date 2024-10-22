@@ -190,13 +190,14 @@ def dashboard():
 
     user_events = Event.query.filter_by(user_id=current_user.id)
 
-    # Convert string dates to datetime for comparison
+    # Helper function to convert string dates to datetime for comparison
     def str_to_date(date_str):
         try:
             return datetime.strptime(date_str, '%Y-%m-%d')  # Adjust the format if your date strings differ
         except ValueError:
             return None
 
+    # Apply filtering for upcoming or past events
     if filter_value == 'upcoming':
         user_events = [event for event in user_events if str_to_date(event.date) and str_to_date(event.date) >= datetime.now()]
     elif filter_value == 'past':
@@ -207,18 +208,24 @@ def dashboard():
 
     event_data = []
     for event in user_events:
-        attendees = Attendee.query.filter_by(event_id=event.id).all()
-        tickets_sold = sum([attendee.tickets_purchased for attendee in attendees])
+        # Only count attendees with a "succeeded" payment status
+        succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
+        
+        # Calculate tickets sold and revenue for succeeded attendees only
+        tickets_sold = sum([attendee.tickets_purchased for attendee in succeeded_attendees])
         tickets_remaining = event.ticket_quantity - tickets_sold
         
-        # Calculate revenue based on the ticket price at purchase
-        event_revenue = sum([attendee.tickets_purchased * attendee.ticket_price_at_purchase for attendee in attendees])
+        # Calculate total revenue for succeeded attendees
+        event_revenue = sum([attendee.tickets_purchased * attendee.ticket_price_at_purchase for attendee in succeeded_attendees])
 
+        # Update the overall totals
         total_tickets_sold += tickets_sold
         total_revenue += event_revenue
 
+        # Determine if the event is upcoming or past
         event_status = "Upcoming" if str_to_date(event.date) >= datetime.now() else "Past"
 
+        # Append event data to the list
         event_data.append({
             'name': event.name,
             'date': event.date,
@@ -236,6 +243,7 @@ def dashboard():
                            total_revenue=total_revenue, 
                            total_tickets_sold=total_tickets_sold, 
                            user=current_user)
+
 
 
 @app.route('/logout')
