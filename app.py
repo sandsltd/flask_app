@@ -269,13 +269,6 @@ def register():
             locality = request.form.get('locality', '')  # Optional
             town = request.form['town']
             postcode = request.form['postcode']
-            
-            # Extract the Stripe Connect Account ID from the form
-            stripe_connect_id = request.form['stripe_connect_id']
-
-            flat_rate = request.form.get('flat_rate', type=float)  # Optional
-            promo_rate = request.form.get('promo_rate', type=float)  # Optional
-            promo_rate_date_end = request.form.get('promo_rate_date_end')  # Optional
 
             user = User.query.filter_by(email=email).first()
             if user:
@@ -284,6 +277,7 @@ def register():
             unique_id = generate_unique_id()
             hashed_password = generate_password_hash(password)
 
+            # Save the user to the database (without Stripe Connect ID for now)
             new_user = User(
                 unique_id=unique_id,
                 email=email,
@@ -294,22 +288,32 @@ def register():
                 business_name=business_name,
                 website_url=website_url,
                 vat_number=vat_number,
-                stripe_connect_id=stripe_connect_id,  # Save the Stripe Connect ID from the form
                 house_name_or_number=house_name_or_number,
                 street=street,
                 locality=locality,
                 town=town,
                 postcode=postcode,
-                flat_rate=flat_rate,
-                promo_rate=promo_rate,
-                promo_rate_date_end=promo_rate_date_end,
             )
-
             db.session.add(new_user)
             db.session.commit()
 
-            flash('Account created successfully! Please log in.')
-            return redirect(url_for('login'))
+            # Create the user's Stripe Connect account
+            stripe_account = stripe.Account.create(
+                type="standard",
+                country="GB",  # Adjust this to your country code
+                email=email,
+            )
+
+            # Create an Account Link for onboarding
+            account_link = stripe.AccountLink.create(
+                account=stripe_account.id,
+                refresh_url=url_for('stripe_onboarding_refresh', _external=True),
+                return_url=url_for('stripe_onboarding_complete', user_id=new_user.id, _external=True),
+                type='account_onboarding',
+            )
+
+            # Redirect the user to complete onboarding on Stripe
+            return redirect(account_link.url)
 
     except Exception as e:
         print(f"Error during registration: {str(e)}")
@@ -992,3 +996,17 @@ def export_attendees(event_id):
     response.headers['Content-Disposition'] = f'attachment; filename={file_name}'
     response.headers['Content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     return response
+
+@app.route('/stripe_onboarding_complete/<int:user_id>')
+def stripe_onboarding_complete(user_id):
+    user = User.query.get(user_id)
+
+    # Retrieve the user's Stripe Connect account details
+    stripe_account = stripe.Account.retrieve(user.stripe_connect_id)
+
+    # Save the Stripe Connect ID in the database
+    user.stripe_connect_id = stripe_account.id
+    db.session.commit()
+
+    flash('Your account has been successfully connected to Stripe!')
+    return redirect(url_for('dashboard'))
