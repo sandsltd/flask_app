@@ -323,12 +323,11 @@ def register():
                 country="GB",
                 email=email,
             )
-
-            # Create the Account Link for Stripe onboarding
+            # Create the Account Link for onboarding
             account_link = stripe.AccountLink.create(
                 account=stripe_account.id,
                 refresh_url=url_for('stripe_onboarding_refresh', _external=True),
-                return_url=url_for('stripe_onboarding_complete', user_id=new_user.id, _external=True),
+                return_url=url_for('stripe_onboarding_complete', account=stripe_account.id, user_id=new_user.id, _external=True),
                 type='account_onboarding',
             )
 
@@ -1023,7 +1022,7 @@ def export_attendees(event_id):
 @app.route('/stripe_onboarding_complete')
 def stripe_onboarding_complete():
     # Get the account ID and user ID from the query parameters
-    account_id = request.args.get('account')
+    account_id = request.args.get('account')  # 'account' should now be correctly passed
     user_id = request.args.get('user_id')
 
     # Debug logs to track what's being received
@@ -1038,15 +1037,18 @@ def stripe_onboarding_complete():
             # Save the Stripe account ID to the user's row
             user.stripe_connect_id = account_id
             db.session.commit()  # Commit changes to the database
+            print(f"Stripe Connect ID {account_id} saved for user {user.email}")
             flash('Stripe onboarding complete! Please log in to access your dashboard.')
             return redirect(url_for('login'))  # Redirect to login page after onboarding
         else:
+            print("User not found.")
             flash('User not found.')
             return redirect(url_for('register'))
     else:
         print("Stripe onboarding failed: Missing account_id or user_id.")
         flash('Stripe onboarding failed. Please try again.')
         return redirect(url_for('register'))
+
 
 
 
