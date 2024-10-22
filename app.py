@@ -293,6 +293,7 @@ def register():
                 locality=locality,
                 town=town,
                 postcode=postcode,
+                stripe_connect_id=None  # This will be updated after Stripe onboarding is complete
             )
             db.session.add(new_user)
             db.session.commit()
@@ -320,6 +321,7 @@ def register():
         return render_template('register.html', error="An error occurred during registration.")
 
     return render_template('register.html')
+
 
 
 # Event creation route
@@ -997,16 +999,22 @@ def export_attendees(event_id):
     response.headers['Content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     return response
 
-@app.route('/stripe_onboarding_complete/<int:user_id>')
-def stripe_onboarding_complete(user_id):
-    user = User.query.get(user_id)
+@app.route('/stripe_onboarding_complete')
+def stripe_onboarding_complete():
+    account_id = request.args.get('account')
+    if account_id:
+        # Assuming the user is already logged in
+        current_user.stripe_connect_id = account_id
+        db.session.commit()
+        flash('Stripe onboarding complete! Your account is now connected.')
+        return redirect(url_for('dashboard'))
+    else:
+        flash('Stripe onboarding failed. Please try again.')
+        return redirect(url_for('register'))
 
-    # Retrieve the user's Stripe Connect account details
-    stripe_account = stripe.Account.retrieve(user.stripe_connect_id)
 
-    # Save the Stripe Connect ID in the database
-    user.stripe_connect_id = stripe_account.id
-    db.session.commit()
-
-    flash('Your account has been successfully connected to Stripe!')
-    return redirect(url_for('dashboard'))
+@app.route('/stripe_onboarding_refresh')
+def stripe_onboarding_refresh():
+    # Optionally, provide logic here to regenerate the onboarding link
+    flash('Please complete the onboarding process.')
+    return redirect(url_for('register'))
