@@ -1022,8 +1022,8 @@ def stripe_onboarding_complete():
             user.stripe_connect_id = account_id
             db.session.commit()  # Commit changes to the database
             print(f"Stripe Connect ID {account_id} saved for user {user.email}")
-            flash('Stripe onboarding complete! Your account is now connected.')
-            return redirect(url_for('dashboard'))
+            flash('Stripe onboarding complete! Please log in to access your dashboard.')
+            return redirect(url_for('login'))  # Redirect to login page after onboarding
         else:
             print("User not found.")
             flash('User not found.')
@@ -1032,7 +1032,6 @@ def stripe_onboarding_complete():
         print("Stripe onboarding failed: Missing account_id or user_id.")
         flash('Stripe onboarding failed. Please try again.')
         return redirect(url_for('register'))
-
 
 
 
