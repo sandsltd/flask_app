@@ -55,7 +55,7 @@ class User(db.Model, UserMixin):
     business_name = db.Column(db.String(120), nullable=False)
     website_url = db.Column(db.String(200), nullable=True)  # Optional
     vat_number = db.Column(db.String(50), nullable=True)  # Optional
-    stripe_connect_id = db.Column(db.String(120), nullable=False)
+    stripe_connect_id = db.Column(db.String(120), nullable=True)
 
     # Address fields
     house_name_or_number = db.Column(db.String(255), nullable=False)
