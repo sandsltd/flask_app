@@ -175,28 +175,20 @@ def login():
         email = request.form['email']
         password = request.form['password']
 
-        # Find the user by email
         user = User.query.filter_by(email=email).first()
+        if user and check_password_hash(user.password, password):
+            login_user(user)
 
-        if user:
-            # Check if the provided password is correct
-            if check_password_hash(user.password, password):
-                # Check if the user has completed Stripe onboarding
-                if user.stripe_connect_id:
-                    # Log the user in
-                    login_user(user)
-                    flash('Logged in successfully!', 'success')
-                    return redirect(url_for('dashboard'))
-                else:
-                    # If the user hasn't completed Stripe onboarding, prompt them to complete it
-                    flash('You need to complete Stripe onboarding before accessing your dashboard.', 'warning')
-                    return redirect(url_for('stripe_onboarding_refresh'))  # Redirect them to complete onboarding
-            else:
-                flash('Invalid email or password', 'danger')
+            # Check if the user has completed Stripe onboarding
+            if user.onboarding_status != 'complete':
+                flash('You need to complete Stripe onboarding.')
+                return redirect(url_for('stripe_onboarding_needed'))  # Redirect to the new page
+            return redirect(url_for('dashboard'))
         else:
-            flash('Email not found. Please register first.', 'warning')
+            flash('Invalid email or password')
 
     return render_template('login.html')
+
 
 
 @app.route('/dashboard')
@@ -1070,8 +1062,30 @@ def stripe_onboarding_complete():
 
 
 
+
 @app.route('/stripe_onboarding_refresh')
+@login_required
 def stripe_onboarding_refresh():
-    # Optionally, provide logic here to regenerate the onboarding link
     flash('Please complete the onboarding process.')
-    return redirect(url_for('register'))
+    return redirect(url_for('stripe_onboarding_needed'))
+
+
+
+@app.route('/stripe_onboarding_needed')
+@login_required
+def stripe_onboarding_needed():
+    # Generate a new onboarding link for the user
+    try:
+        account_link = stripe.AccountLink.create(
+            account=current_user.stripe_connect_id,
+            refresh_url=url_for('stripe_onboarding_refresh', _external=True),
+            return_url=url_for('stripe_onboarding_complete', user_id=current_user.id, _external=True),
+            type='account_onboarding',
+        )
+        onboarding_url = account_link.url
+    except Exception as e:
+        print(f"Error creating Stripe account link: {str(e)}")
+        flash('Error creating Stripe onboarding link. Please try again.')
+        return redirect(url_for('dashboard'))
+
+    return render_template('stripe_onboarding_needed.html', onboarding_url=onboarding_url)
