@@ -18,7 +18,7 @@ import pandas as pd
 from io import BytesIO
 from flask import make_response
 import re
-from datetime import timedelta
+
 
 
 
@@ -110,16 +110,16 @@ class Attendee(db.Model):
     stripe_charge_id = db.Column(db.String(255), nullable=True)
     payment_status = db.Column(db.String(50), nullable=False, default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    reserved_until = db.Column(db.DateTime, nullable=True)  # Reservation expiry timestamp
-    status = db.Column(db.String(20), nullable=False, default='reserved')  # reserved, sold, expired, etc.
     full_name = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), nullable=False)
     phone_number = db.Column(db.String(50), nullable=False)
     tickets_purchased = db.Column(db.Integer, nullable=False)
-    ticket_price_at_purchase = db.Column(db.Float, nullable=False)
-    
-    event = db.relationship('Event', backref=db.backref('attendees', lazy=True))
 
+    # New field to store the price of tickets at the time of purchase
+    ticket_price_at_purchase = db.Column(db.Float, nullable=False)  # Add this
+
+    # Relationship to the Event model
+    event = db.relationship('Event', backref=db.backref('attendees', lazy=True))
 
 
 
@@ -490,14 +490,6 @@ def purchase(event_id):
     if not user:
         return "Event organizer not found", 404
 
-    # Release expired reservations
-    now = datetime.utcnow()
-    expired_reservations = Attendee.query.filter_by(event_id=event_id, status='reserved').filter(Attendee.reserved_until < now).all()
-    for expired_attendee in expired_reservations:
-        expired_attendee.status = 'expired'
-        event.ticket_quantity += expired_attendee.tickets_purchased  # Return tickets to pool
-        db.session.commit()
-
     # Fetch default and custom questions
     default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
     default_question_texts = [dq.question for dq in default_questions]
@@ -522,7 +514,6 @@ def purchase(event_id):
             flash('Please fill in all required fields.')
             return redirect(url_for('purchase', event_id=event_id))
 
-        # Validate ticket availability (after expired reservations are released)
         if number_of_tickets > event.ticket_quantity:
             flash('Requested number of tickets exceeds available tickets.')
             return redirect(url_for('purchase', event_id=event_id))
@@ -535,10 +526,7 @@ def purchase(event_id):
             flash('You must accept the platform\'s Terms and Conditions.')
             return redirect(url_for('purchase', event_id=event_id))
 
-        # Reserve tickets by setting status to 'reserved' and adding a 10-minute reservation window
-        reserved_until = datetime.utcnow() + timedelta(minutes=10)
-
-        # Loop to create an `Attendee` entry for each ticket with 'reserved' status
+        # Loop to create an `Attendee` entry for each ticket
         for i in range(number_of_tickets):
             ticket_answers = {}
             for q_index, question in enumerate(all_questions):
@@ -549,24 +537,21 @@ def purchase(event_id):
                     return redirect(url_for('purchase', event_id=event_id))
                 ticket_answers[question] = answer
 
-            # Create an attendee record for each ticket with 'reserved' status
+            # Create an attendee record for each ticket
             attendee = Attendee(
                 event_id=event_id,
                 ticket_answers=json.dumps(ticket_answers),
-                payment_status='pending',  # Set to pending until payment is confirmed
+                payment_status='pending',
                 full_name=full_name,
                 email=email,
                 phone_number=phone_number,
                 tickets_purchased=1,  # Store each ticket individually
                 ticket_price_at_purchase=event.ticket_price,
-                reserved_until=reserved_until,  # Set the reservation expiration time
-                status='reserved',  # Mark the ticket as reserved
                 created_at=datetime.utcnow()
             )
             db.session.add(attendee)
         
-        # Decrease the available tickets by the reserved amount
-        event.ticket_quantity -= number_of_tickets
+        # Commit all the new attendee rows to the database
         db.session.commit()
 
         # Calculate the ticket price in pence
@@ -694,11 +679,6 @@ def handle_checkout_session(session):
         print(f"No attendee found with ID {attendee_id}.")
         return
 
-    # Ensure the reservation hasn't expired before marking the ticket as sold
-    if attendee.status != 'reserved' or attendee.reserved_until < datetime.utcnow():
-        print(f"Reservation for attendee {attendee_id} has expired or is not in reserved status.")
-        return
-
     # Retrieve the PaymentIntent to get the charge and billing details
     payment_intent_id = session.get('payment_intent')
     if not payment_intent_id:
@@ -720,11 +700,9 @@ def handle_checkout_session(session):
     attendee.billing_details = json.dumps(charge.billing_details)
     attendee.stripe_charge_id = charge.id
     attendee.payment_status = 'succeeded'
-    attendee.status = 'sold'  # Mark the ticket as sold after payment confirmation
     db.session.commit()
 
-    print(f"Attendee {attendee_id} updated with payment details and marked as sold.")
-
+    print(f"Attendee {attendee_id} updated with payment details.")
 
 
 
