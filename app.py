@@ -1028,25 +1028,24 @@ def stripe_onboarding_complete():
         if user:
             print(f"User found: {user.email}")
 
+            # Save the Stripe account ID to the user's row
+            user.stripe_connect_id = account_id
+            db.session.commit()  # Commit changes to the database
+            print(f"Stripe Connect ID {account_id} saved for user {user.email}")
+
             # Fetch the account details from Stripe to check onboarding status
             try:
                 stripe_account = stripe.Account.retrieve(account_id)
+                # Update the onboarding status based on the Stripe account details
                 onboarding_status = "complete" if stripe_account.details_submitted else "pending"
-
-                # Only update the database when onboarding is complete
-                if onboarding_status == "complete":
-                    user.stripe_connect_id = account_id
-                    user.onboarding_status = onboarding_status
-                    db.session.commit()  # Commit changes to the database
-                    print(f"Stripe Connect ID {account_id} and onboarding status {onboarding_status} saved for user {user.email}")
-                else:
-                    print(f"Onboarding not completed yet for user {user.email}")
-
+                user.onboarding_status = onboarding_status
+                db.session.commit()  # Commit the updated onboarding status to the database
+                print(f"Onboarding status updated to {onboarding_status} for user {user.email}")
             except Exception as e:
                 print(f"Error fetching account details from Stripe: {str(e)}")
                 flash('Error verifying Stripe onboarding status. Please try again later.')
 
-            flash('Stripe onboarding process has been updated. Please log in to access your dashboard.')
+            flash('Stripe onboarding complete! Please log in to access your dashboard.')
             return redirect(url_for('login'))  # Redirect to login page after onboarding
         else:
             print("User not found.")
@@ -1056,7 +1055,6 @@ def stripe_onboarding_complete():
         print("Stripe onboarding failed: Missing account_id or user_id.")
         flash('Stripe onboarding failed. Please try again.')
         return redirect(url_for('register'))
-
 
 
 
