@@ -311,9 +311,10 @@ def register():
             account_link = stripe.AccountLink.create(
                 account=stripe_account.id,
                 refresh_url=url_for('stripe_onboarding_refresh', _external=True),
-                return_url=url_for('stripe_onboarding_complete', user_id=new_user.id, _external=True),
+                return_url=url_for('stripe_onboarding_complete', user_id=new_user.id, account=stripe_account.id, _external=True),
                 type='account_onboarding',
             )
+
 
             return redirect(account_link.url)
 
@@ -1031,7 +1032,6 @@ def stripe_onboarding_complete():
         print("Stripe onboarding failed: Missing account_id or user_id.")
         flash('Stripe onboarding failed. Please try again.')
         return redirect(url_for('register'))
-
 
 
 
