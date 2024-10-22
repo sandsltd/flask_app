@@ -305,6 +305,8 @@ def register():
                 email=email,
             )
 
+            print(f"Stripe Account Created: {stripe_account.id}")  # Log Stripe account ID
+
             # Create an Account Link for onboarding
             account_link = stripe.AccountLink.create(
                 account=stripe_account.id,
@@ -313,7 +315,6 @@ def register():
                 type='account_onboarding',
             )
 
-            # Redirect the user to complete onboarding on Stripe
             return redirect(account_link.url)
 
     except Exception as e:
@@ -321,6 +322,7 @@ def register():
         return render_template('register.html', error="An error occurred during registration.")
 
     return render_template('register.html')
+
 
 
 
