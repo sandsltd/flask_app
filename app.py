@@ -18,6 +18,7 @@ import pandas as pd
 from io import BytesIO
 from flask import make_response
 import re
+from uuid import uuid4
 
 
 
@@ -104,6 +105,7 @@ class Event(db.Model):
 
 class Attendee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(255), nullable=True) 
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
     ticket_answers = db.Column(db.Text, nullable=False)
     billing_details = db.Column(db.Text, nullable=True)
@@ -392,7 +394,6 @@ def embed_events(unique_id):
     return response, 200, {'Content-Type': 'application/javascript'}
 
 
-# Stripe Checkout session creation
 @app.route('/create-checkout-session/<int:event_id>', methods=['POST'])
 def create_checkout_session(event_id):
     event = Event.query.get(event_id)
@@ -406,38 +407,67 @@ def create_checkout_session(event_id):
     if not user:
         return {"error": "User not found"}, 404
 
+    # Collect the session_id and number of tickets from the request
+    session_id = request.json.get('session_id')  # This is passed from the purchase process
+    number_of_tickets = request.json.get('number_of_tickets', 1)
+
     # Calculate the platform fee (flat_rate as a percentage of total)
     flat_rate = user.flat_rate or 0.01  # Default to 1% if flat_rate is not set
-    platform_fee_amount = int(event.ticket_price * flat_rate * 100)  # Convert to pence
+    total_ticket_price_pence = int(event.ticket_price * number_of_tickets * 100)  # Total price in pence
+    platform_fee_amount = int(total_ticket_price_pence * flat_rate)  # Calculate the platform fee
+
+    # Calculate Stripe fee (2.9% of total amount + 30p per ticket)
+    stripe_fee_pence = int((total_ticket_price_pence + platform_fee_amount) * 0.029) + (30 * number_of_tickets)
+
+    # Total booking fee
+    booking_fee_pence = platform_fee_amount + stripe_fee_pence
 
     try:
-        # Create a Stripe Checkout session
+        # Create a Stripe Checkout session with two line items
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'gbp',
-                    'product_data': {
-                        'name': event.name,
+            line_items=[
+                {
+                    'price_data': {
+                        'currency': 'gbp',
+                        'product_data': {
+                            'name': event.name,
+                        },
+                        'unit_amount': int(event.ticket_price * 100),  # Price per ticket in pence
                     },
-                    'unit_amount': int(event.ticket_price * 100),  # Total ticket price in pence
+                    'quantity': number_of_tickets,  # Number of tickets
                 },
-                'quantity': 1,
-            }],
+                {
+                    'price_data': {
+                        'currency': 'gbp',
+                        'product_data': {
+                            'name': 'Booking Fee',
+                        },
+                        'unit_amount': booking_fee_pence // number_of_tickets,  # Divide booking fee across tickets
+                    },
+                    'quantity': number_of_tickets,
+                }
+            ],
             mode='payment',
             success_url=url_for('success', _external=True),
             cancel_url=url_for('cancel', _external=True),
+            metadata={
+                'session_id': session_id  # Pass session ID to Stripe for linking
+            },
             payment_intent_data={
                 'application_fee_amount': platform_fee_amount,  # Platform fee
                 'transfer_data': {
                     'destination': user.stripe_connect_id,  # User's connected Stripe account
                 },
             },
+            billing_address_collection='required',
+            customer_email=request.json.get('email')  # Fetch customer email from the request
         )
         return {"url": checkout_session.url}, 200
 
     except Exception as e:
         return {"error": str(e)}, 400
+
 
 
 
@@ -503,6 +533,9 @@ def purchase(event_id):
     all_questions = default_question_texts + custom_questions
 
     if request.method == 'POST':
+        # Generate a unique session ID for this purchase
+        session_id = str(uuid4())
+
         # Collect form data
         full_name = request.form.get('full_name')
         email = request.form.get('email')
@@ -526,7 +559,7 @@ def purchase(event_id):
             flash('You must accept the platform\'s Terms and Conditions.')
             return redirect(url_for('purchase', event_id=event_id))
 
-        # Loop to create an `Attendee` entry for each ticket
+        # Loop to create an `Attendee` entry for each ticket, with the same session_id
         for i in range(number_of_tickets):
             ticket_answers = {}
             for q_index, question in enumerate(all_questions):
@@ -537,7 +570,7 @@ def purchase(event_id):
                     return redirect(url_for('purchase', event_id=event_id))
                 ticket_answers[question] = answer
 
-            # Create an attendee record for each ticket
+            # Create an attendee record for each ticket, linked by session_id
             attendee = Attendee(
                 event_id=event_id,
                 ticket_answers=json.dumps(ticket_answers),
@@ -547,10 +580,11 @@ def purchase(event_id):
                 phone_number=phone_number,
                 tickets_purchased=1,  # Store each ticket individually
                 ticket_price_at_purchase=event.ticket_price,
+                session_id=session_id,  # Assign the same session ID for all tickets
                 created_at=datetime.utcnow()
             )
             db.session.add(attendee)
-        
+
         # Commit all the new attendee rows to the database
         db.session.commit()
 
@@ -600,7 +634,7 @@ def purchase(event_id):
                 success_url=url_for('success', _external=True),
                 cancel_url=url_for('cancel', _external=True),
                 metadata={
-                    'attendee_id': attendee.id
+                    'session_id': session_id  # Pass session ID to Stripe
                 },
                 payment_intent_data={
                     'application_fee_amount': platform_fee_pence,
@@ -666,44 +700,31 @@ def stripe_webhook():
 
     return '', 200
 def handle_checkout_session(session):
-    print(f"Handling session: {session.id}")
-    # Retrieve the attendee ID from the session's metadata
-    attendee_id = session.get('metadata', {}).get('attendee_id')
-    if not attendee_id:
-        print("No attendee ID found in session metadata.")
+    session_id = session.get('metadata', {}).get('session_id')
+    if not session_id:
+        print("No session ID found in metadata.")
         return
 
-    # Retrieve the attendee from the database
-    attendee = Attendee.query.get(attendee_id)
-    if not attendee:
-        print(f"No attendee found with ID {attendee_id}.")
+    # Retrieve all attendees for this session ID
+    attendees = Attendee.query.filter_by(session_id=session_id).all()
+
+    if not attendees:
+        print(f"No attendees found for session ID {session_id}.")
         return
 
-    # Retrieve the PaymentIntent to get the charge and billing details
+    # Retrieve the PaymentIntent and charge details
     payment_intent_id = session.get('payment_intent')
-    if not payment_intent_id:
-        print("No payment intent ID found in session.")
-        return
-
-    # Expand the latest_charge when retrieving the PaymentIntent
-    payment_intent = stripe.PaymentIntent.retrieve(
-        payment_intent_id,
-        expand=['latest_charge']
-    )
-
+    payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id, expand=['latest_charge'])
     charge = payment_intent.latest_charge
-    if not charge:
-        print("No charge found in payment intent.")
-        return
 
-    # Update the attendee record
-    attendee.billing_details = json.dumps(charge.billing_details)
-    attendee.stripe_charge_id = charge.id
-    attendee.payment_status = 'succeeded'
-    db.session.commit()
+    # Update all attendee rows with billing details and payment status
+    for attendee in attendees:
+        attendee.billing_details = json.dumps(charge.billing_details)
+        attendee.stripe_charge_id = charge.id
+        attendee.payment_status = 'succeeded'
+        db.session.commit()
 
-    print(f"Attendee {attendee_id} updated with payment details.")
-
+    print(f"Updated {len(attendees)} attendees with payment details.")
 
 
 @app.route('/view_attendees/<int:event_id>')
