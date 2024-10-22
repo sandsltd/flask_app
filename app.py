@@ -56,6 +56,7 @@ class User(db.Model, UserMixin):
     website_url = db.Column(db.String(200), nullable=True)  # Optional
     vat_number = db.Column(db.String(50), nullable=True)  # Optional
     stripe_connect_id = db.Column(db.String(120), nullable=True)
+    onboarding_status = db.Column(db.String(20), default="pending")  # or "incomplete" as the default status
 
     # Address fields
     house_name_or_number = db.Column(db.String(255), nullable=False)
@@ -174,12 +175,27 @@ def login():
         email = request.form['email']
         password = request.form['password']
 
+        # Find the user by email
         user = User.query.filter_by(email=email).first()
-        if user and check_password_hash(user.password, password):
-            login_user(user)
-            return redirect(url_for('dashboard'))
+
+        if user:
+            # Check if the provided password is correct
+            if check_password_hash(user.password, password):
+                # Check if the user has completed Stripe onboarding
+                if user.stripe_connect_id:
+                    # Log the user in
+                    login_user(user)
+                    flash('Logged in successfully!', 'success')
+                    return redirect(url_for('dashboard'))
+                else:
+                    # If the user hasn't completed Stripe onboarding, prompt them to complete it
+                    flash('You need to complete Stripe onboarding before accessing your dashboard.', 'warning')
+                    return redirect(url_for('stripe_onboarding_refresh'))  # Redirect them to complete onboarding
+            else:
+                flash('Invalid email or password', 'danger')
         else:
-            flash('Invalid email or password')
+            flash('Email not found. Please register first.', 'warning')
+
     return render_template('login.html')
 
 
@@ -314,6 +330,11 @@ def register():
                 return_url=url_for('stripe_onboarding_complete', user_id=new_user.id, account=stripe_account.id, _external=True),
                 type='account_onboarding',
             )
+
+            # After user registration and creating the Stripe account
+            new_user.onboarding_status = "incomplete"
+            db.session.add(new_user)
+            db.session.commit()
 
 
             return redirect(account_link.url)
@@ -1018,10 +1039,17 @@ def stripe_onboarding_complete():
         user = User.query.get(user_id)
         if user:
             print(f"User found: {user.email}")
-            # Save the Stripe account ID to the user's row
-            user.stripe_connect_id = account_id
-            db.session.commit()  # Commit changes to the database
-            print(f"Stripe Connect ID {account_id} saved for user {user.email}")
+
+            # Check if the user already has a Stripe Connect ID
+            if not user.stripe_connect_id:
+                # Save the Stripe account ID to the user's row
+                user.stripe_connect_id = account_id
+                user.onboarding_status = "complete"  # Mark onboarding as complete
+                db.session.commit()  # Commit changes to the database
+                print(f"Stripe Connect ID {account_id} saved for user {user.email}")
+            else:
+                print(f"User {user.email} already has a Stripe Connect ID: {user.stripe_connect_id}")
+
             flash('Stripe onboarding complete! Please log in to access your dashboard.')
             return redirect(url_for('login'))  # Redirect to login page after onboarding
         else:
@@ -1032,6 +1060,7 @@ def stripe_onboarding_complete():
         print("Stripe onboarding failed: Missing account_id or user_id.")
         flash('Stripe onboarding failed. Please try again.')
         return redirect(url_for('register'))
+
 
 
 
