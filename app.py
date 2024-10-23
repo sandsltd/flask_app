@@ -1075,6 +1075,9 @@ def stripe_onboarding_complete():
 @app.route('/stripe_onboarding_refresh')
 @login_required
 def stripe_onboarding_refresh():
+    print(f"User authenticated: {current_user.is_authenticated}")
+    print(f"User ID: {current_user.id}")
+
     # Fetch the current user from the database
     user = User.query.get(current_user.id)
     
