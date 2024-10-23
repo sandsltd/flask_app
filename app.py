@@ -1057,7 +1057,7 @@ def stripe_onboarding_complete():
             flash('Stripe onboarding complete! Please log in to access your dashboard.')
             return redirect(url_for('login'))  # Redirect to login page after onboarding
         else:
-            print("User not found.")
+            print("User not found.") 
             flash('User not found.')
             return redirect(url_for('register'))
     else:
@@ -1074,6 +1074,35 @@ def stripe_onboarding_complete():
 
 @app.route('/stripe_onboarding_refresh')
 def stripe_onboarding_refresh():
-    # Optionally, provide logic here to regenerate the onboarding link
-    flash('Please complete the onboarding process.')
-    return redirect(url_for('register'))
+    # Fetch the current user from the database
+    user = User.query.get(current_user.id)
+    
+    # Check if they already have a Stripe Connect ID
+    if not user.stripe_connect_id:
+        try:
+            # Create a new Stripe account but DON'T SAVE stripe_connect_id yet
+            stripe_account = stripe.Account.create(
+                type="standard",
+                country="GB",
+                email=user.email,
+            )
+            
+            # Generate the onboarding link
+            account_link = stripe.AccountLink.create(
+                account=stripe_account.id,
+                refresh_url=url_for('stripe_onboarding_refresh', _external=True),
+                return_url=url_for('stripe_onboarding_complete', account=stripe_account.id, user_id=user.id, _external=True),
+                type='account_onboarding',
+            )
+            
+            # Redirect user to complete the Stripe onboarding
+            return redirect(account_link.url)
+        
+        except Exception as e:
+            flash('Error occurred during the Stripe account creation. Please try again later.')
+            return redirect(url_for('dashboard'))
+    
+    else:
+        # If they already have a Stripe Connect ID, no need to re-onboard
+        flash('You have already completed onboarding.')
+        return redirect(url_for('dashboard'))
