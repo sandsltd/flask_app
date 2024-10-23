@@ -280,7 +280,6 @@ def logout():
 def register():
     try:
         if request.method == 'POST':
-            # User registration form inputs
             email = request.form['email']
             password = request.form['password']
             first_name = request.form['first_name']
@@ -295,16 +294,17 @@ def register():
             town = request.form['town']
             postcode = request.form['postcode']
 
-            # Check if the user already exists
+            # Check if a user with the same email already exists
             user = User.query.filter_by(email=email).first()
             if user:
-                return render_template('register.html', error="Email already in use")
+                flash("Email already in use.")
+                return render_template('register.html')
 
-            # Generate unique user ID and hash the password
+            # Generate a unique ID and hashed password
             unique_id = generate_unique_id()
             hashed_password = generate_password_hash(password)
 
-            # Save the user to the database (no Stripe Connect ID or onboarding status yet)
+            # Create the new user (without Stripe Connect ID yet)
             new_user = User(
                 unique_id=unique_id,
                 email=email,
@@ -321,23 +321,25 @@ def register():
                 town=town,
                 postcode=postcode,
                 stripe_connect_id=None,  # This will be updated after Stripe onboarding is complete
-                onboarding_status="pending"
+                onboarding_status="pending"  # Set the onboarding status to pending
             )
-            db.session.add(new_user)
-            db.session.commit()
 
-            # Create the user's Stripe Connect account (but don't save it yet)
+            # Save the user to the database
+            db.session.add(new_user)
+            db.session.commit()  # Make sure this commits
+
+            # Now create the Stripe account for the user
             stripe_account = stripe.Account.create(
                 type="standard",
-                country="GB",  # Adjust this to your country code
+                country="GB",  # Adjust to your country code
                 email=email,
             )
 
-            # Create an Account Link for onboarding
+            # Create the onboarding link for Stripe
             account_link = stripe.AccountLink.create(
                 account=stripe_account.id,
                 refresh_url=url_for('stripe_onboarding_refresh', user_id=new_user.id, _external=True),
-                return_url=url_for('stripe_onboarding_complete', user_id=new_user.id, account=stripe_account.id, _external=True),
+                return_url=url_for('stripe_onboarding_complete', user_id=new_user.id, _external=True),
                 type='account_onboarding',
             )
 
@@ -345,10 +347,12 @@ def register():
             return redirect(account_link.url)
 
     except Exception as e:
-        print(f"Error during registration: {str(e)}")
-        return render_template('register.html', error="An error occurred during registration.")
+        print(f"Error during registration: {str(e)}")  # Log the error for debugging
+        flash("An error occurred during registration.")  # Display an error message
+        return render_template('register.html')
 
     return render_template('register.html')
+
 
 
 
