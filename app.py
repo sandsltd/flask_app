@@ -19,7 +19,7 @@ from io import BytesIO
 from flask import make_response
 import re
 from uuid import uuid4
-
+from apscheduler.schedulers.background import BackgroundScheduler
 
 
 
@@ -43,6 +43,33 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+# Function to delete pending users
+def delete_pending_users():
+    """Deletes users with onboarding_status 'pending'."""
+    with app.app_context():
+        pending_users = User.query.filter_by(onboarding_status="pending").all()
+        deleted_count = len(pending_users)
+
+        for user in pending_users:
+            db.session.delete(user)
+
+        db.session.commit()
+
+        print(f"Deleted {deleted_count} users with pending onboarding status at {datetime.now()}.")
+
+# Initialize the APScheduler scheduler
+scheduler = BackgroundScheduler()
+
+# Add the job to delete pending users every 5 minutes
+scheduler.add_job(func=delete_pending_users, trigger="interval", minutes=5)
+
+# Start the scheduler
+scheduler.start()
+
+# Ensure the scheduler shuts down properly when the app exits
+import atexit
+atexit.register(lambda: scheduler.shutdown())
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -1078,3 +1105,5 @@ def stripe_onboarding_refresh():
     # Optionally, provide logic here to regenerate the onboarding link
     flash('Please complete the onboarding process.')
     return redirect(url_for('register'))
+
+##
