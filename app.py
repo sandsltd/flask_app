@@ -169,6 +169,8 @@ def load_user(user_id):
 def home():
     return "Hello, World!"
 
+from datetime import datetime, timedelta
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -182,21 +184,22 @@ def login():
             # Check if the provided password is correct
             if check_password_hash(user.password, password):
                 # Check if the user has completed Stripe onboarding
-                if user.stripe_connect_id:
-                    # Log the user in
+                if user.onboarding_status == "complete":
+                    # Log the user in if they have completed onboarding
                     login_user(user)
                     flash('Logged in successfully!', 'success')
                     return redirect(url_for('dashboard'))
                 else:
-                    # If the user hasn't completed Stripe onboarding, prompt them to complete it
-                    flash('You need to complete Stripe onboarding before accessing your dashboard.', 'warning')
-                    return redirect(url_for('stripe_onboarding_refresh'))  # Redirect them to complete onboarding
+                    # Show message if onboarding is incomplete
+                    flash('It looks like you have recently attempted to register but not completed the Stripe setup. Please complete the process before logging in.', 'warning')
+                    return render_template('login.html')  # Stay on the login page
             else:
                 flash('Invalid email or password', 'danger')
         else:
             flash('Email not found. Please register first.', 'warning')
 
     return render_template('login.html')
+
 
 
 @app.route('/dashboard')
