@@ -549,8 +549,6 @@ def success():
 def cancel():
     return "Payment canceled. You can try again."
 
-if __name__ == "__main__":
-    app.run(debug=True)
 
 @app.route('/manage-default-questions', methods=['GET', 'POST'])
 @login_required
