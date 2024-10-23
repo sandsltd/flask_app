@@ -1073,4 +1073,9 @@ scheduler.start()
 
 @app.teardown_appcontext
 def shutdown_scheduler(exception=None):
-    scheduler.shutdown()
+    if scheduler.running:
+        print("Shutting down scheduler...")
+        scheduler.shutdown()
+    else:
+        print("Scheduler is not running, no need to shut down.")
+
