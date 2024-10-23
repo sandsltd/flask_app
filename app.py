@@ -175,19 +175,35 @@ def login():
         email = request.form['email']
         password = request.form['password']
 
+        # Fetch the user from the database by email
         user = User.query.filter_by(email=email).first()
-        if user and check_password_hash(user.password, password):
-            login_user(user)
 
-            # Check if the user has completed Stripe onboarding
-            if user.onboarding_status != 'complete':
-                flash('You need to complete Stripe onboarding.')
-                return redirect(url_for('stripe_onboarding_needed'))  # Redirect to the new page
+        if user and check_password_hash(user.password, password):
+            # If the user exists and the password is correct, check onboarding status
+            if user.onboarding_status == "pending":
+                flash('Please complete the Stripe onboarding process to access your dashboard.')
+
+                # Create a new Stripe onboarding link for the user if status is pending
+                account_link = stripe.AccountLink.create(
+                    account=user.stripe_connect_id,
+                    refresh_url=url_for('stripe_onboarding_refresh', user_id=user.id, _external=True),
+                    return_url=url_for('stripe_onboarding_complete', user_id=user.id, account=user.stripe_connect_id, _external=True),
+                    type='account_onboarding',
+                )
+
+                # Redirect the user to complete onboarding on Stripe
+                return redirect(account_link.url)
+
+            # If onboarding is complete, log the user in and redirect them to the dashboard
+            login_user(user)
             return redirect(url_for('dashboard'))
+
         else:
-            flash('Invalid email or password')
+            flash('Invalid email or password.')
+            return render_template('login.html')
 
     return render_template('login.html')
+
 
 
 
