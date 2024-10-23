@@ -1057,7 +1057,7 @@ def stripe_onboarding_complete():
             flash('Stripe onboarding complete! Please log in to access your dashboard.')
             return redirect(url_for('login'))  # Redirect to login page after onboarding
         else:
-            print("User not found.") 
+            print("User not found.")
             flash('User not found.')
             return redirect(url_for('register'))
     else:
@@ -1073,6 +1073,7 @@ def stripe_onboarding_complete():
 
 
 @app.route('/stripe_onboarding_refresh')
+@login_required  # Ensures the user is logged in
 def stripe_onboarding_refresh():
     # Fetch the current user from the database
     user = User.query.get(current_user.id)
