@@ -47,11 +47,18 @@ migrate = Migrate(app, db)
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ProcessPoolExecutor
 
-# Define the function that deletes pending users
 def delete_pending_users():
-    """Deletes users with onboarding_status 'pending'."""
+    """Deletes users with onboarding_status 'pending' for more than 15 minutes."""
     with app.app_context():
-        pending_users = User.query.filter_by(onboarding_status="pending").all()
+        # Calculate the cutoff time for deletion
+        cutoff_time = datetime.utcnow() - timedelta(minutes=15)
+        
+        # Find all users with onboarding_status 'pending' who were created more than 15 minutes ago
+        pending_users = User.query.filter(
+            User.onboarding_status == "pending",
+            User.created_at < cutoff_time
+        ).all()
+
         deleted_count = len(pending_users)
 
         for user in pending_users:
@@ -60,6 +67,7 @@ def delete_pending_users():
         db.session.commit()
 
         print(f"Deleted {deleted_count} users with pending onboarding status at {datetime.now()}.")
+
 
 # Initialize the APScheduler scheduler
 scheduler = BackgroundScheduler(executors={'default': ProcessPoolExecutor(1)})
@@ -86,7 +94,9 @@ class User(db.Model, UserMixin):
     website_url = db.Column(db.String(200), nullable=True)  # Optional
     vat_number = db.Column(db.String(50), nullable=True)  # Optional
     stripe_connect_id = db.Column(db.String(120), nullable=True)
-    onboarding_status = db.Column(db.String(20), default="pending")  # or "incomplete" as the default status
+    onboarding_status = db.Column(db.String(20), default="pending")  # Onboarding status
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # Add created_at timestamp
+
 
     # Address fields
     house_name_or_number = db.Column(db.String(255), nullable=False)
@@ -345,10 +355,12 @@ def register():
                 locality=locality,
                 town=town,
                 postcode=postcode,
-                stripe_connect_id=None  # No Stripe ID yet
+                stripe_connect_id=None,  # No Stripe ID yet
+                created_at=datetime.utcnow()  # Set created_at when user is created
             )
             db.session.add(new_user)
             db.session.commit()
+
 
             # Create the user's Stripe Connect account (but don't save ID yet)
             stripe_account = stripe.Account.create(
