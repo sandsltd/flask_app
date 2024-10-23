@@ -44,7 +44,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-# Function to delete pending users
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.executors.pool import ProcessPoolExecutor
+
+# Define the function that deletes pending users
 def delete_pending_users():
     """Deletes users with onboarding_status 'pending'."""
     with app.app_context():
@@ -59,10 +62,10 @@ def delete_pending_users():
         print(f"Deleted {deleted_count} users with pending onboarding status at {datetime.now()}.")
 
 # Initialize the APScheduler scheduler
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler(executors={'default': ProcessPoolExecutor(1)})
 
-# Add the job to delete pending users every 5 minutes
-scheduler.add_job(func=delete_pending_users, trigger="interval", minutes=3)
+# Add the job to delete pending users every 3 minutes
+scheduler.add_job(func=delete_pending_users, trigger="interval", minutes=1)
 
 # Start the scheduler
 scheduler.start()
