@@ -19,7 +19,7 @@ from io import BytesIO
 from flask import make_response
 import re
 from uuid import uuid4
-from apscheduler.schedulers.background import BackgroundScheduler
+
 
 
 
@@ -56,6 +56,7 @@ class User(db.Model, UserMixin):
     website_url = db.Column(db.String(200), nullable=True)  # Optional
     vat_number = db.Column(db.String(50), nullable=True)  # Optional
     stripe_connect_id = db.Column(db.String(120), nullable=True)
+    onboarding_status = db.Column(db.String(20), default="pending")  # or "incomplete" as the default status
 
     # Address fields
     house_name_or_number = db.Column(db.String(255), nullable=False)
@@ -174,12 +175,27 @@ def login():
         email = request.form['email']
         password = request.form['password']
 
+        # Find the user by email
         user = User.query.filter_by(email=email).first()
-        if user and check_password_hash(user.password, password):
-            login_user(user)
-            return redirect(url_for('dashboard'))
+
+        if user:
+            # Check if the provided password is correct
+            if check_password_hash(user.password, password):
+                # Check if the user has completed Stripe onboarding
+                if user.stripe_connect_id:
+                    # Log the user in
+                    login_user(user)
+                    flash('Logged in successfully!', 'success')
+                    return redirect(url_for('dashboard'))
+                else:
+                    # If the user hasn't completed Stripe onboarding, prompt them to complete it
+                    flash('You need to complete Stripe onboarding before accessing your dashboard.', 'warning')
+                    return redirect(url_for('stripe_onboarding_refresh'))  # Redirect them to complete onboarding
+            else:
+                flash('Invalid email or password', 'danger')
         else:
-            flash('Invalid email or password')
+            flash('Email not found. Please register first.', 'warning')
+
     return render_template('login.html')
 
 
@@ -256,6 +272,7 @@ def logout():
 def register():
     try:
         if request.method == 'POST':
+            # Collect user data from the form
             email = request.form['email']
             password = request.form['password']
             first_name = request.form['first_name']
@@ -270,14 +287,16 @@ def register():
             town = request.form['town']
             postcode = request.form['postcode']
 
+            # Check if user already exists
             user = User.query.filter_by(email=email).first()
             if user:
                 return render_template('register.html', error="Email already in use")
 
+            # Generate unique ID and hash password
             unique_id = generate_unique_id()
             hashed_password = generate_password_hash(password)
 
-            # Save the user to the database (without Stripe Connect ID for now)
+            # Save the user to the database (without Stripe Connect ID yet)
             new_user = User(
                 unique_id=unique_id,
                 email=email,
@@ -293,29 +312,26 @@ def register():
                 locality=locality,
                 town=town,
                 postcode=postcode,
-                stripe_connect_id=None  # This will be updated after Stripe onboarding is complete
+                stripe_connect_id=None  # No Stripe ID yet
             )
             db.session.add(new_user)
             db.session.commit()
 
-            # Create the user's Stripe Connect account
+            # Create the user's Stripe Connect account (but don't save ID yet)
             stripe_account = stripe.Account.create(
                 type="standard",
-                country="GB",  # Adjust this to your country code
+                country="GB",
                 email=email,
             )
-
-            print(f"Stripe Account Created: {stripe_account.id}")  # Log Stripe account ID
-
-            # Create an Account Link for onboarding
+            # Create the Account Link for onboarding
             account_link = stripe.AccountLink.create(
                 account=stripe_account.id,
                 refresh_url=url_for('stripe_onboarding_refresh', _external=True),
-                return_url=url_for('stripe_onboarding_complete', user_id=new_user.id, account=stripe_account.id, _external=True),
+                return_url=url_for('stripe_onboarding_complete', account=stripe_account.id, user_id=new_user.id, _external=True),
                 type='account_onboarding',
             )
 
-
+            # Redirect the user to complete Stripe onboarding
             return redirect(account_link.url)
 
     except Exception as e:
@@ -323,6 +339,7 @@ def register():
         return render_template('register.html', error="An error occurred during registration.")
 
     return render_template('register.html')
+
 
 
 
@@ -1018,12 +1035,26 @@ def stripe_onboarding_complete():
         user = User.query.get(user_id)
         if user:
             print(f"User found: {user.email}")
+
             # Save the Stripe account ID to the user's row
             user.stripe_connect_id = account_id
             db.session.commit()  # Commit changes to the database
             print(f"Stripe Connect ID {account_id} saved for user {user.email}")
-            flash('Stripe onboarding complete! Your account is now connected.')
-            return redirect(url_for('dashboard'))
+
+            # Fetch the account details from Stripe to check onboarding status
+            try:
+                stripe_account = stripe.Account.retrieve(account_id)
+                # Update the onboarding status based on the Stripe account details
+                onboarding_status = "complete" if stripe_account.details_submitted else "pending"
+                user.onboarding_status = onboarding_status
+                db.session.commit()  # Commit the updated onboarding status to the database
+                print(f"Onboarding status updated to {onboarding_status} for user {user.email}")
+            except Exception as e:
+                print(f"Error fetching account details from Stripe: {str(e)}")
+                flash('Error verifying Stripe onboarding status. Please try again later.')
+
+            flash('Stripe onboarding complete! Please log in to access your dashboard.')
+            return redirect(url_for('login'))  # Redirect to login page after onboarding
         else:
             print("User not found.")
             flash('User not found.')
@@ -1036,46 +1067,11 @@ def stripe_onboarding_complete():
 
 
 
+
+
+
 @app.route('/stripe_onboarding_refresh')
 def stripe_onboarding_refresh():
     # Optionally, provide logic here to regenerate the onboarding link
     flash('Please complete the onboarding process.')
     return redirect(url_for('register'))
-
-# Function to delete users whose Stripe onboarding status is incomplete
-def cleanup_incomplete_onboarding():
-    print("Running cleanup task...")  # For debugging purposes
-
-    # Query users where Stripe onboarding is incomplete
-    incomplete_users = User.query.filter_by(stripe_connect_id=None).all()
-
-    # Log how many users were found
-    print(f"Found {len(incomplete_users)} users with incomplete onboarding.")
-
-    for user in incomplete_users:
-        db.session.delete(user)
-
-    # Commit the changes to delete the users
-    db.session.commit()
-
-    print("Cleanup complete.")
-
-    from apscheduler.schedulers.background import BackgroundScheduler
-
-# Initialize APScheduler
-scheduler = BackgroundScheduler()
-
-# Schedule the cleanup function to run every 2 minutes
-scheduler.add_job(func=cleanup_incomplete_onboarding, trigger="interval", minutes=2)
-
-# Start the scheduler
-scheduler.start()
-
-@app.teardown_appcontext
-def shutdown_scheduler(exception=None):
-    if scheduler.running:
-        print("Shutting down scheduler...")
-        scheduler.shutdown()
-    else:
-        print("Scheduler is not running, no need to shut down.")
-
