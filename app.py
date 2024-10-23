@@ -19,9 +19,10 @@ from io import BytesIO
 from flask import make_response
 import re
 from uuid import uuid4
-
-
-
+import logging
+from datetime import datetime, timedelta
+import sys
+import argparse
 
 app = Flask(__name__)
 
@@ -44,6 +45,11 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     unique_id = db.Column(db.String(36), unique=True, default=lambda: str(uuid.uuid4()))
@@ -56,7 +62,7 @@ class User(db.Model, UserMixin):
     website_url = db.Column(db.String(200), nullable=True)  # Optional
     vat_number = db.Column(db.String(50), nullable=True)  # Optional
     stripe_connect_id = db.Column(db.String(120), nullable=True)
-    onboarding_status = db.Column(db.String(20), default="pending")  # or "incomplete" as the default status
+    onboarding_status = db.Column(db.String(20), default="pending")  # "pending" or "complete"
 
     # Address fields
     house_name_or_number = db.Column(db.String(255), nullable=False)
@@ -74,7 +80,14 @@ class User(db.Model, UserMixin):
     promo_rate = db.Column(db.Float, nullable=True)  # Promotional rate
     promo_rate_date_end = db.Column(db.Date, nullable=True)
 
-    events = db.relationship('Event', backref='user', lazy=True)
+    events = db.relationship('Event', backref='user', lazy=True, cascade="all, delete")
+    default_questions = db.relationship('DefaultQuestion', backref='user', lazy=True, cascade="all, delete")
+
+    # New field to track registration time
+    registered_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+
 
 
 # Event model
@@ -1065,13 +1078,43 @@ def stripe_onboarding_complete():
         return redirect(url_for('register'))
 
 
+def cleanup_incomplete_onboardings():
+    """
+    Deletes users who haven't completed Stripe onboarding within 5 minutes of registration.
+    """
+    logger.info("Starting cleanup of incomplete onboardings.")
+    try:
+        expiration_time = datetime.utcnow() - timedelta(minutes=5)
+        users_to_delete = User.query.filter(
+            User.onboarding_status == "pending",
+            User.registered_at < expiration_time,
+            User.stripe_connect_id == None
+        ).all()
+
+        if not users_to_delete:
+            logger.info("No users to delete at this time.")
+            return
+
+        for user in users_to_delete:
+            logger.info(f"Deleting user: {user.email} (Registered at: {user.registered_at})")
+            db.session.delete(user)
+
+        db.session.commit()
+        logger.info(f"Deleted {len(users_to_delete)} user(s) due to incomplete onboarding.")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error during cleanup: {e}")
 
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Flask App")
+    parser.add_argument('--cleanup', action='store_true', help="Run cleanup of incomplete onboardings")
+    args = parser.parse_args()
 
-
-
-@app.route('/stripe_onboarding_refresh')
-def stripe_onboarding_refresh():
-    # Optionally, provide logic here to regenerate the onboarding link
-    flash('Please complete the onboarding process.')
-    return redirect(url_for('register'))
+    if args.cleanup:
+        with app.app_context():
+            cleanup_incomplete_onboardings()
+        sys.exit(0)
+    else:
+        # Existing code to run the Flask app
+        app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
