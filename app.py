@@ -1036,19 +1036,20 @@ def stripe_onboarding_complete():
         if user:
             print(f"User found: {user.email}")
 
-            # Save the Stripe account ID to the user's row
-            user.stripe_connect_id = account_id
-            db.session.commit()  # Commit changes to the database
-            print(f"Stripe Connect ID {account_id} saved for user {user.email}")
-
             # Fetch the account details from Stripe to check onboarding status
             try:
                 stripe_account = stripe.Account.retrieve(account_id)
+
                 # Update the onboarding status based on the Stripe account details
-                onboarding_status = "complete" if stripe_account.details_submitted else "pending"
-                user.onboarding_status = onboarding_status
-                db.session.commit()  # Commit the updated onboarding status to the database
-                print(f"Onboarding status updated to {onboarding_status} for user {user.email}")
+                if stripe_account.details_submitted:
+                    user.stripe_connect_id = account_id  # Save the Stripe account ID only if onboarding is complete
+                    user.onboarding_status = "complete"
+                    db.session.commit()  # Commit the updated onboarding status to the database
+                    print(f"Onboarding status updated to 'complete' for user {user.email}")
+                else:
+                    user.onboarding_status = "pending"  # Incomplete onboarding
+                    db.session.commit()
+                    print(f"Onboarding status still 'pending' for user {user.email}")
             except Exception as e:
                 print(f"Error fetching account details from Stripe: {str(e)}")
                 flash('Error verifying Stripe onboarding status. Please try again later.')
@@ -1063,6 +1064,7 @@ def stripe_onboarding_complete():
         print("Stripe onboarding failed: Missing account_id or user_id.")
         flash('Stripe onboarding failed. Please try again.')
         return redirect(url_for('register'))
+
 
 
 
