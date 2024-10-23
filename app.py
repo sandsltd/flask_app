@@ -1036,20 +1036,19 @@ def stripe_onboarding_complete():
         if user:
             print(f"User found: {user.email}")
 
+            # Save the Stripe account ID to the user's row
+            user.stripe_connect_id = account_id
+            db.session.commit()  # Commit changes to the database
+            print(f"Stripe Connect ID {account_id} saved for user {user.email}")
+
             # Fetch the account details from Stripe to check onboarding status
             try:
                 stripe_account = stripe.Account.retrieve(account_id)
-
                 # Update the onboarding status based on the Stripe account details
-                if stripe_account.details_submitted:
-                    user.stripe_connect_id = account_id  # Save the Stripe account ID only if onboarding is complete
-                    user.onboarding_status = "complete"
-                    db.session.commit()  # Commit the updated onboarding status to the database
-                    print(f"Onboarding status updated to 'complete' for user {user.email}")
-                else:
-                    user.onboarding_status = "pending"  # Incomplete onboarding
-                    db.session.commit()
-                    print(f"Onboarding status still 'pending' for user {user.email}")
+                onboarding_status = "complete" if stripe_account.details_submitted else "pending"
+                user.onboarding_status = onboarding_status
+                db.session.commit()  # Commit the updated onboarding status to the database
+                print(f"Onboarding status updated to {onboarding_status} for user {user.email}")
             except Exception as e:
                 print(f"Error fetching account details from Stripe: {str(e)}")
                 flash('Error verifying Stripe onboarding status. Please try again later.')
@@ -1071,42 +1070,8 @@ def stripe_onboarding_complete():
 
 
 
-
 @app.route('/stripe_onboarding_refresh')
-@login_required
 def stripe_onboarding_refresh():
-    print(f"User authenticated: {current_user.is_authenticated}")
-    print(f"User ID: {current_user.id}")
-
-    # Fetch the current user from the database
-    user = User.query.get(current_user.id)
-    
-    if not user.stripe_connect_id:
-        try:
-            # Create a new Stripe account (but don't save the account ID yet)
-            stripe_account = stripe.Account.create(
-                type="standard",
-                country="GB",
-                email=user.email,
-            )
-            
-            # Generate the Stripe onboarding link
-            account_link = stripe.AccountLink.create(
-                account=stripe_account.id,
-                refresh_url=url_for('stripe_onboarding_refresh', _external=True),
-                return_url=url_for('stripe_onboarding_complete', account=stripe_account.id, user_id=user.id, _external=True),
-                type='account_onboarding',
-            )
-            
-            # Redirect the user to complete the Stripe onboarding
-            return redirect(account_link.url)
-
-        except Exception as e:
-            flash('Error occurred during the Stripe account creation. Please try again later.')
-            print(f"Stripe error: {e}")  # Log error for debugging
-            return redirect(url_for('dashboard'))
-    
-    else:
-        # If the user already has a Stripe Connect ID, no need to onboard again
-        flash('You have already completed onboarding.')
-        return redirect(url_for('dashboard'))
+    # Optionally, provide logic here to regenerate the onboarding link
+    flash('Please complete the onboarding process.')
+    return redirect(url_for('register'))
