@@ -62,7 +62,7 @@ def delete_pending_users():
 scheduler = BackgroundScheduler()
 
 # Add the job to delete pending users every 5 minutes
-scheduler.add_job(func=delete_pending_users, trigger="interval", minutes=5)
+scheduler.add_job(func=delete_pending_users, trigger="interval", minutes=1)
 
 # Start the scheduler
 scheduler.start()
