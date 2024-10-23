@@ -1073,22 +1073,21 @@ def stripe_onboarding_complete():
 
 
 @app.route('/stripe_onboarding_refresh')
-@login_required  # Ensures the user is logged in
+@login_required
 def stripe_onboarding_refresh():
     # Fetch the current user from the database
     user = User.query.get(current_user.id)
     
-    # Check if they already have a Stripe Connect ID
     if not user.stripe_connect_id:
         try:
-            # Create a new Stripe account but DON'T SAVE stripe_connect_id yet
+            # Create a new Stripe account (but don't save the account ID yet)
             stripe_account = stripe.Account.create(
                 type="standard",
                 country="GB",
                 email=user.email,
             )
             
-            # Generate the onboarding link
+            # Generate the Stripe onboarding link
             account_link = stripe.AccountLink.create(
                 account=stripe_account.id,
                 refresh_url=url_for('stripe_onboarding_refresh', _external=True),
@@ -1096,14 +1095,15 @@ def stripe_onboarding_refresh():
                 type='account_onboarding',
             )
             
-            # Redirect user to complete the Stripe onboarding
+            # Redirect the user to complete the Stripe onboarding
             return redirect(account_link.url)
-        
+
         except Exception as e:
             flash('Error occurred during the Stripe account creation. Please try again later.')
+            print(f"Stripe error: {e}")  # Log error for debugging
             return redirect(url_for('dashboard'))
     
     else:
-        # If they already have a Stripe Connect ID, no need to re-onboard
+        # If the user already has a Stripe Connect ID, no need to onboard again
         flash('You have already completed onboarding.')
         return redirect(url_for('dashboard'))
