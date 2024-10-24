@@ -485,9 +485,9 @@ def create_checkout_session(event_id):
     number_of_tickets = request.json.get('number_of_tickets', 1)
 
     # Constants for the fees
-    platform_fee_per_ticket_pence = 30  # 30p per ticket platform fee
-    stripe_percentage_fee = 0.014  # 1.4% Stripe percentage fee
-    stripe_fixed_fee_pence = 20  # 20p flat fee per transaction
+    platform_fee_per_ticket_pence = 0  # 30p per ticket platform fee
+    stripe_percentage_fee = 0.000  # 1.4% Stripe percentage fee
+    stripe_fixed_fee_pence =  0  # 20p flat fee per transaction
 
     # Calculate the total ticket price that the organizer wants to receive
     total_ticket_price_pence = int(event.ticket_price * number_of_tickets * 100)
