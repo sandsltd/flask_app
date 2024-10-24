@@ -598,7 +598,7 @@ def purchase(event_id):
     default_question_texts = [dq.question for dq in default_questions]
 
     custom_questions = []
-    for i in range(1, 10):
+    for i in range(1, 11):  # Adjusted to include 10 questions
         question = getattr(event, f'custom_question_{i}')
         if question:
             custom_questions.append(question)
@@ -661,24 +661,34 @@ def purchase(event_id):
         # Commit all the new attendee rows to the database
         db.session.commit()
 
-        # Calculate the ticket price in pence
-        ticket_price_pence = int(event.ticket_price * 100)
-        total_ticket_price_pence = ticket_price_pence * number_of_tickets
+        # Calculate the total amount to charge the customer
+        total_amount_pence = calculate_total_charge(number_of_tickets, event.ticket_price)
 
-        # Calculate platform fee (2% of ticket price)
-        platform_fee_pence = int(total_ticket_price_pence * 0.02)
+        # Calculate platform fees
+        fixed_platform_fee_pence = 30 * number_of_tickets + 20  # 30p per ticket + 20p per sale
+        platform_percentage_fee_pence = int(round(total_amount_pence * 0.014))  # 1.4%
+        total_platform_fee_pence = fixed_platform_fee_pence + platform_percentage_fee_pence
 
-        # Calculate Stripe fee (2.9% of total amount + 30p per ticket)
-        stripe_fee_pence = int((total_ticket_price_pence + platform_fee_pence) * 0.029) + (30 * number_of_tickets)
+        # Calculate Stripe fees
+        stripe_percentage_fee_pence = int(round(total_amount_pence * 0.029))  # 2.9%
+        stripe_fixed_fee_pence = 30 * number_of_tickets  # 30p per ticket
+        total_stripe_fee_pence = stripe_percentage_fee_pence + stripe_fixed_fee_pence
 
-        # Total booking fee
-        booking_fee_pence = platform_fee_pence + stripe_fee_pence
-
-        # Total amount to charge the customer
-        total_amount_pence = total_ticket_price_pence + booking_fee_pence
+        # Debugging Logs
+        app.logger.debug(f"Number of Tickets: {number_of_tickets}")
+        app.logger.debug(f"Ticket Price per Ticket: £{event.ticket_price}")
+        app.logger.debug(f"Total Ticket Price: £{number_of_tickets * event.ticket_price}")
+        app.logger.debug(f"Fixed Platform Fee: {fixed_platform_fee_pence} pence")
+        app.logger.debug(f"Platform Percentage Fee (1.4%): {platform_percentage_fee_pence} pence")
+        app.logger.debug(f"Total Platform Fee: {total_platform_fee_pence} pence")
+        app.logger.debug(f"Stripe Percentage Fee (2.9%): {stripe_percentage_fee_pence} pence")
+        app.logger.debug(f"Stripe Fixed Fee (30p per ticket): {stripe_fixed_fee_pence} pence")
+        app.logger.debug(f"Total Stripe Fee: {total_stripe_fee_pence} pence")
+        app.logger.debug(f"Total Amount to Charge (pence): {total_amount_pence}")
+        app.logger.debug(f"Total Amount to Charge (£): {total_amount_pence / 100}")
 
         try:
-            # Create a Stripe Checkout session with two line items
+            # Create a Stripe Checkout session
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[
@@ -688,7 +698,7 @@ def purchase(event_id):
                             'product_data': {
                                 'name': event.name,
                             },
-                            'unit_amount': ticket_price_pence,
+                            'unit_amount': int(event.ticket_price * 100),  # Price per ticket in pence
                         },
                         'quantity': number_of_tickets,
                     },
@@ -696,11 +706,11 @@ def purchase(event_id):
                         'price_data': {
                             'currency': 'gbp',
                             'product_data': {
-                                'name': 'Booking Fee',
+                                'name': 'Platform Fee',
                             },
-                            'unit_amount': booking_fee_pence // number_of_tickets,
+                            'unit_amount': platform_percentage_fee_pence + fixed_platform_fee_pence,
                         },
-                        'quantity': number_of_tickets,
+                        'quantity': 1,
                     }
                 ],
                 mode='payment',
@@ -710,10 +720,9 @@ def purchase(event_id):
                     'session_id': session_id  # Pass session ID to Stripe
                 },
                 payment_intent_data={
-                    'application_fee_amount': platform_fee_pence,
-                    'on_behalf_of': user.stripe_connect_id,
+                    'application_fee_amount': total_platform_fee_pence,  # Platform fee
                     'transfer_data': {
-                        'destination': user.stripe_connect_id,
+                        'destination': user.stripe_connect_id,  # User's connected Stripe account
                     },
                 },
                 billing_address_collection='required',
@@ -723,7 +732,7 @@ def purchase(event_id):
             return redirect(checkout_session.url)
 
         except Exception as e:
-            print(f"Error creating checkout session: {str(e)}")
+            app.logger.error(f"Error creating checkout session: {str(e)}")
             flash('An error occurred while processing your payment.')
             return redirect(url_for('purchase', event_id=event_id))
 
