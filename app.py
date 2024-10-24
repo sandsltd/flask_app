@@ -631,7 +631,7 @@ def purchase(event_id):
         return "Event organizer not found", 404
 
     # Fetch default and custom questions
-    default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
+    default_questions = DefaultQuestion.query.filter_by(user_id=user.id).order_by(DefaultQuestion.id).all()
     default_question_texts = [dq.question for dq in default_questions]
 
     custom_questions = []
