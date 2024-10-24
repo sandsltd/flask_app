@@ -490,7 +490,7 @@ def create_checkout_session(event_id):
 
     # Stripe fee: 1.4% of the total ticket price + 20p flat fee per transaction (not per ticket)
     stripe_fee_percentage = 0.014  # Stripe percentage fee
-    stripe_fixed_fee_pence = 20  # 20p flat fee
+    stripe_fixed_fee_pence = 20  # 20p flat fee for the whole transaction
 
     # Calculate the total ticket price in pence
     total_ticket_price_pence = int(event.ticket_price * number_of_tickets * 100)
@@ -498,15 +498,17 @@ def create_checkout_session(event_id):
     # Calculate the Stripe percentage fee on the total ticket price
     stripe_percentage_fee_pence = int(total_ticket_price_pence * stripe_fee_percentage)
 
-    # Stripe total fee (percentage fee + fixed fee applied to the entire transaction)
+    # Total Stripe fee (percentage fee + fixed fee applied only once for the transaction)
     stripe_total_fee_pence = stripe_percentage_fee_pence + stripe_fixed_fee_pence
 
     # Calculate the total booking fee (platform fee + Stripe fee)
-    booking_fee_pence = total_platform_fee_pence + stripe_total_fee_pence
+    total_booking_fee_pence = total_platform_fee_pence + stripe_total_fee_pence
 
     # Final total amount the customer will pay (ticket price + booking fee)
-    total_amount_pence = total_ticket_price_pence + booking_fee_pence
+    total_amount_pence = total_ticket_price_pence + total_booking_fee_pence
 
+    # Calculate the booking fee per ticket (total booking fee divided by number of tickets)
+    booking_fee_per_ticket_pence = total_booking_fee_pence // number_of_tickets
 
     try:
         # Create a Stripe Checkout session with two line items (ticket and booking fee)
@@ -529,7 +531,7 @@ def create_checkout_session(event_id):
                         'product_data': {
                             'name': 'Booking Fee',
                         },
-                        'unit_amount': booking_fee_pence // number_of_tickets,  # Booking fee per ticket in pence
+                        'unit_amount': booking_fee_per_ticket_pence,  # Booking fee per ticket in pence
                     },
                     'quantity': number_of_tickets,
                 }
@@ -553,9 +555,6 @@ def create_checkout_session(event_id):
 
     except Exception as e:
         return {"error": str(e)}, 400
-
-
-
 
 
 # Success and cancel routes
