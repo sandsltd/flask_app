@@ -22,6 +22,7 @@ from uuid import uuid4
 from apscheduler.schedulers.background import BackgroundScheduler
 import math
 from flask_mail import Mail, Message
+from flask import Markup
 
 
 app = Flask(__name__)
