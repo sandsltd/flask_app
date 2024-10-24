@@ -862,14 +862,26 @@ def view_attendees(event_id):
 
     all_questions = default_question_texts + custom_questions
 
-    # Fetch attendees and parse ticket_answers JSON
+    # Fetch attendees and parse ticket_answers and billing_details JSON
     attendees = Attendee.query.filter_by(event_id=event_id).all()
     for attendee in attendees:
         if attendee.ticket_answers:
-            attendee.ticket_answers = json.loads(attendee.ticket_answers)  # Parse ticket_answers from JSON string to dict
+            try:
+                attendee.ticket_answers = json.loads(attendee.ticket_answers)
+            except json.JSONDecodeError:
+                attendee.ticket_answers = {}
+        else:
+            attendee.ticket_answers = {}
+
+        if attendee.billing_details:
+            try:
+                attendee.billing_details = json.loads(attendee.billing_details)
+            except json.JSONDecodeError:
+                attendee.billing_details = {}
+        else:
+            attendee.billing_details = {}
 
     return render_template('view_attendees.html', event=event, attendees=attendees, questions=all_questions)
-
 
 
 

@@ -32,18 +32,23 @@
                 <li>
                     <h3>{{ attendee.full_name }}</h3>
 
-                    <!-- Organiser Information (formerly Billing Details) -->
+                    <!-- Organiser Information (Billing Details) -->
                     <h4>Organiser Information:</h4>
-                    <p><strong>Full Name:</strong> {{ attendee.billing_details.name }}</p>
+                    <p><strong>Full Name:</strong> {{ attendee.full_name }}</p>
+                    <p><strong>Email:</strong> {{ attendee.email }}</p>
+                    <p><strong>Phone Number:</strong> {{ attendee.phone_number }}</p>
 
                     {% if attendee.billing_details.address %}
-                        <p><strong>Address:</strong> {{ attendee.billing_details.address.line1 }}, {{ attendee.billing_details.address.city }}, {{ attendee.billing_details.address.postal_code }}</p>
+                        <p><strong>Address:</strong> 
+                            {{ attendee.billing_details.address.line1 }}
+                            {% if attendee.billing_details.address.line2 %}, {{ attendee.billing_details.address.line2 }}{% endif %},
+                            {{ attendee.billing_details.address.city }},
+                            {{ attendee.billing_details.address.postal_code }}
+                        </p>
                     {% else %}
                         <p><strong>Address:</strong> Not provided</p>
                     {% endif %}
                     
-                    <p><strong>Email:</strong> {{ attendee.billing_details.email }}</p>
-
                     <!-- Ticket Questions and Answers -->
                     <h4>Ticket Questions and Answers:</h4>
                     <ul>
