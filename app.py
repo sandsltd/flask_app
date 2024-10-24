@@ -22,7 +22,6 @@ from uuid import uuid4
 from apscheduler.schedulers.background import BackgroundScheduler
 import math
 from flask_mail import Mail, Message
-from markupsafe import Markup
 
 
 app = Flask(__name__)
@@ -50,7 +49,6 @@ app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')  # Your email here (fro
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')  # Your password here (from Render)
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')  # Default sender email
 
 mail = Mail(app)
 
@@ -833,7 +831,6 @@ def stripe_webhook():
 
 
 from flask_mail import Message
-from flask import Markup
 
 def send_confirmation_email_to_attendee(attendee, billing_details, event):
     try:
@@ -904,7 +901,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details, event):
         msg = Message(
             subject=f"Your Ticket Purchase for {event.organizer.business_name}",
             recipients=[attendee.email],
-            html=Markup(email_body),  # Use Markup to ensure proper HTML rendering
+            html=email_body,  # No need for Markup, using HTML directly
             sender="TicketRush <no-reply@ticketrush.io>"
         )
         mail.send(msg)  # Send the email using Flask-Mail
@@ -983,7 +980,7 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
         msg = Message(
             subject=f"New Ticket Purchase for {event.name}",
             recipients=[organizer.email],
-            html=Markup(email_body),  # Use Markup to ensure proper HTML rendering
+            html=email_body,  # No need for Markup, using HTML directly
             sender="TicketRush <no-reply@ticketrush.io>"
         )
         mail.send(msg)  # Send the email using Flask-Mail
