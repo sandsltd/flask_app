@@ -640,7 +640,8 @@ def purchase(event_id):
         if question:
             custom_questions.append(question)
 
-    all_questions = default_question_texts + custom_questions
+    all_questions = list(set(default_question_texts + custom_questions)) 
+
 
     if request.method == 'POST':
         # Generate a unique session ID for this purchase
