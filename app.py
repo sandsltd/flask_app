@@ -25,7 +25,7 @@ from flask_mail import Mail, Message
 
 
 app = Flask(__name__)
-mail = Mail(app)
+
 
 # Enable CORS for all routes and origins
 CORS(app)  # This will allow all origins by default, but you can restrict it if needed.
@@ -49,6 +49,8 @@ app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')  # Your email here (fro
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')  # Your password here (from Render)
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
+
+mail = Mail(app)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
