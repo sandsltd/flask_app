@@ -840,6 +840,8 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
             body=f"Dear {attendee.full_name},\n\n"
                  f"Thank you for purchasing tickets for the event. Below are your details:\n\n"
                  f"Event: {attendee.event.name}\n"
+                 f"Event Date: {attendee.event.date}\n"
+                 f"Event Time: {attendee.event.start_time} - {attendee.event.end_time}\n"  # Event time added
                  f"Full Name: {attendee.full_name}\n"
                  f"Email: {attendee.email}\n"
                  f"Phone Number: {attendee.phone_number}\n"
@@ -852,6 +854,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         print(f"Confirmation email sent to attendee {attendee.email}.")
     except Exception as e:
         print(f"Failed to send confirmation email to attendee {attendee.email}. Error: {str(e)}")
+
 
 
 def send_confirmation_email_to_organizer(organizer, attendees, billing_details, event):
@@ -869,6 +872,7 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
             body=f"Dear {organizer.first_name},\n\n"
                  f"You have new ticket purchases for your event '{event.name}'.\n"
                  f"Event Date: {event.date}\n"
+                 f"Event Time: {event.start_time} - {event.end_time}\n"  # Event time added
                  f"Here are the details of the attendee(s):\n\n"
                  f"{attendee_info}\n\n"
                  f"Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}\n\n"
@@ -878,6 +882,7 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
         print(f"Confirmation email sent to organizer {organizer.email}.")
     except Exception as e:
         print(f"Failed to send confirmation email to organizer {organizer.email}. Error: {str(e)}")
+
 
 def handle_checkout_session(session):
     session_id = session.get('metadata', {}).get('session_id')
