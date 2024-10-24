@@ -640,7 +640,14 @@ def purchase(event_id):
         if question:
             custom_questions.append(question)
 
-    all_questions = list(set(default_question_texts + custom_questions)) 
+    # Initialize with default questions in their original order
+    all_questions = default_question_texts.copy()
+
+    # Add custom questions in the original order, only if they don't already exist in default questions
+    for question in custom_questions:
+        if question not in all_questions:
+            all_questions.append(question)
+
 
 
     if request.method == 'POST':
