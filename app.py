@@ -833,18 +833,15 @@ def stripe_webhook():
 
 def send_confirmation_email_to_attendee(attendee, billing_details, total_amount_paid):
     try:
-        # Log the email details for debugging
         print(f"Preparing to send email to attendee {attendee.email} for event {attendee.event.name}")
         
-        # Check if the billing details contain required information
         if not billing_details or not billing_details.get('address', {}).get('line1'):
             print(f"Billing details missing for attendee {attendee.email}")
         else:
             print(f"Billing details found for attendee {attendee.email}: {billing_details.get('address', {}).get('line1')}")
 
-        # Log the total amount paid
         print(f"Total amount paid for attendee {attendee.email}: £{total_amount_paid}")
-
+        
         # Prepare the email message with HTML formatting
         msg = Message(
             subject=f"Your Ticket Purchase Confirmation - {attendee.event.user.business_name}",
@@ -930,15 +927,17 @@ def send_confirmation_email_to_attendee(attendee, billing_details, total_amount_
             </html>
             """
         )
-
-        # Attempt to send the email
-        print(f"Sending email to {attendee.email}")
-        mail.send(msg)  # Send the email using Flask-Mail
+        
+        # Log the message object for debugging
+        print(f"Message prepared for attendee {attendee.email}: {msg}")
+        
+        # Send the email
+        mail.send(msg)
         print(f"Confirmation email successfully sent to attendee {attendee.email}.")
     
     except Exception as e:
-        # Log the exception with details for debugging
         print(f"Failed to send confirmation email to attendee {attendee.email}. Error: {str(e)}")
+
 
 
 
