@@ -831,22 +831,80 @@ def stripe_webhook():
     return '', 200
 
 
-def send_confirmation_email_to_attendee(attendee, billing_details):
+from flask_mail import Message
+from flask import Markup
+
+def send_confirmation_email_to_attendee(attendee, billing_details, event):
     try:
+        # Prepare the HTML content with inline CSS
+        email_body = f"""
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    background-color: #ffffff;
+                    color: #000000;
+                }}
+                .header {{
+                    background-color: #ff0000;
+                    padding: 20px;
+                    text-align: center;
+                }}
+                .content {{
+                    padding: 20px;
+                }}
+                .footer {{
+                    background-color: #000000;
+                    color: #ffffff;
+                    padding: 10px;
+                    text-align: center;
+                }}
+                .logo {{
+                    text-align: center;
+                    margin-bottom: 20px;
+                }}
+                .logo img {{
+                    width: 150px;
+                }}
+                a {{
+                    color: #ff0000;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Your Ticket Purchase Confirmation</h1>
+            </div>
+            <div class="logo">
+                <a href="https://ticketrush.io"><img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush"></a>
+            </div>
+            <div class="content">
+                <p>Dear {attendee.full_name},</p>
+                <p>Thank you for purchasing tickets for <strong>{event.name}</strong> hosted by <strong>{event.organizer.business_name}</strong>.</p>
+                <p><strong>Event Date:</strong> {event.date}<br>
+                   <strong>Event Time:</strong> {event.time}<br>
+                   <strong>Location:</strong> {event.location}</p>
+                <p><strong>Ticket Quantity:</strong> {attendee.tickets_purchased}</p>
+                <p><strong>Billing Address:</strong> {billing_details['address']['line1']}, {billing_details['address']['city']}</p>
+                <p>We look forward to seeing you at the event!</p>
+                <p>If you have any questions, feel free to contact the event organizer at their website: 
+                <a href="{event.organizer.website_url}">{event.organizer.business_name}</a>.</p>
+            </div>
+            <div class="footer">
+                <p>Best regards,<br>The TicketRush Team</p>
+                <p><a href="{event.organizer.terms_url}">Terms and Conditions</a></p>
+            </div>
+        </body>
+        </html>
+        """
+        
         # Prepare the email message
         msg = Message(
-            subject="Your Ticket Purchase Confirmation",
+            subject=f"Your Ticket Purchase for {event.organizer.business_name}",
             recipients=[attendee.email],
-            body=f"Dear {attendee.full_name},\n\n"
-                 f"Thank you for purchasing tickets for the event. Below are your details:\n\n"
-                 f"Event: {attendee.event.name}\n"
-                 f"Full Name: {attendee.full_name}\n"
-                 f"Email: {attendee.email}\n"
-                 f"Phone Number: {attendee.phone_number}\n"
-                 f"Ticket Quantity: {attendee.tickets_purchased}\n"
-                 f"Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}\n\n"
-                 f"We look forward to seeing you at the event!\n\n"
-                 f"Best regards,\nThe Event Team"
+            html=Markup(email_body),  # Use Markup to ensure proper HTML rendering
+            sender="TicketRush <no-reply@ticketrush.io>"
         )
         mail.send(msg)  # Send the email using Flask-Mail
         print(f"Confirmation email sent to attendee {attendee.email}.")
@@ -862,22 +920,76 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
             for attendee in attendees
         ])
 
-        # Prepare the email message for the event organizer
+        # Prepare the HTML content with inline CSS
+        email_body = f"""
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    background-color: #ffffff;
+                    color: #000000;
+                }}
+                .header {{
+                    background-color: #ff0000;
+                    padding: 20px;
+                    text-align: center;
+                }}
+                .content {{
+                    padding: 20px;
+                }}
+                .footer {{
+                    background-color: #000000;
+                    color: #ffffff;
+                    padding: 10px;
+                    text-align: center;
+                }}
+                .logo {{
+                    text-align: center;
+                    margin-bottom: 20px;
+                }}
+                .logo img {{
+                    width: 150px;
+                }}
+                a {{
+                    color: #ff0000;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>New Ticket Purchase Notification</h1>
+            </div>
+            <div class="content">
+                <p>Dear {organizer.first_name},</p>
+                <p>There has been a new ticket purchase for <strong>{event.name}</strong> hosted by your business <strong>{event.organizer.business_name}</strong>.</p>
+                <p><strong>Event Date:</strong> {event.date}<br>
+                   <strong>Event Time:</strong> {event.time}<br>
+                   <strong>Location:</strong> {event.location}</p>
+                <p>Here are the details of the attendee(s):</p>
+                <p>{attendee_info}</p>
+                <p><strong>Billing Address:</strong> {billing_details['address']['line1']}, {billing_details['address']['city']}</p>
+            </div>
+            <div class="footer">
+                <p>Best regards,<br>The TicketRush Team</p>
+                <p><a href="{event.organizer.terms_url}">Organizer Terms and Conditions</a></p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Prepare the email message
         msg = Message(
-            subject="New Ticket Purchase for Your Event",
+            subject=f"New Ticket Purchase for {event.name}",
             recipients=[organizer.email],
-            body=f"Dear {organizer.first_name},\n\n"
-                 f"You have new ticket purchases for your event '{event.name}'.\n"
-                 f"Event Date: {event.date}\n"
-                 f"Here are the details of the attendee(s):\n\n"
-                 f"{attendee_info}\n\n"
-                 f"Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}\n\n"
-                 f"Best regards,\nYour Platform Team"
+            html=Markup(email_body),  # Use Markup to ensure proper HTML rendering
+            sender="TicketRush <no-reply@ticketrush.io>"
         )
         mail.send(msg)  # Send the email using Flask-Mail
         print(f"Confirmation email sent to organizer {organizer.email}.")
     except Exception as e:
         print(f"Failed to send confirmation email to organizer {organizer.email}. Error: {str(e)}")
+
 
 def handle_checkout_session(session):
     session_id = session.get('metadata', {}).get('session_id')
