@@ -44,38 +44,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.executors.pool import ProcessPoolExecutor
-
-def delete_pending_users():
-    with app.app_context():
-        time_threshold = datetime.utcnow() - timedelta(minutes=3)
-        pending_users = User.query.filter(User.onboarding_status == "pending", User.created_at < time_threshold).all()
-        deleted_count = len(pending_users)
-
-        for user in pending_users:
-            db.session.delete(user)
-
-        db.session.commit()
-
-        print(f"Deleted {deleted_count} users with pending onboarding status at {datetime.now()}.")
-        # Log how many users exist and when the job runs
-        print(f"Total pending users count: {len(pending_users)}")
-
-
-
-# Initialize the APScheduler scheduler
-scheduler = BackgroundScheduler(executors={'default': ProcessPoolExecutor(1)})
-
-# Add the job to delete pending users every 3 minutes
-scheduler.add_job(func=delete_pending_users, trigger="interval", minutes=1)
-
-# Start the scheduler
-scheduler.start()
-
-# Ensure the scheduler shuts down properly when the app exits
-import atexit
-atexit.register(lambda: scheduler.shutdown())
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -325,16 +293,23 @@ def register():
             town = request.form['town']
             postcode = request.form['postcode']
 
-            # Check if user already exists
-            user = User.query.filter_by(email=email).first()
-            if user:
-                return render_template('register.html', error="Email already in use")
+            # Check if user already exists with the same email
+            existing_user = User.query.filter_by(email=email).first()
 
-            # Generate unique ID and hash password
+            if existing_user:
+                if existing_user.onboarding_status == "pending":
+                    # If a pending user is found, delete their old entry
+                    db.session.delete(existing_user)
+                    db.session.commit()
+                    flash('Previous registration found with incomplete onboarding. Re-registering...', 'info')
+                else:
+                    # If the user exists and completed onboarding, don't allow re-registration
+                    return render_template('register.html', error="Email already in use and completed onboarding.")
+            
+            # If no user or the old pending user has been deleted, proceed with creating a new one
             unique_id = generate_unique_id()
             hashed_password = generate_password_hash(password)
 
-            # Save the user to the database (without Stripe Connect ID yet)
             new_user = User(
                 unique_id=unique_id,
                 email=email,
@@ -351,18 +326,19 @@ def register():
                 town=town,
                 postcode=postcode,
                 stripe_connect_id=None,  # No Stripe ID yet
-                created_at=datetime.utcnow()  # Set created_at when user is created
+                onboarding_status="pending",  # Mark onboarding as pending
+                created_at=datetime.utcnow()  # Set the created_at timestamp
             )
             db.session.add(new_user)
             db.session.commit()
 
-
-            # Create the user's Stripe Connect account (but don't save ID yet)
+            # Create the user's Stripe Connect account
             stripe_account = stripe.Account.create(
                 type="standard",
                 country="GB",
                 email=email,
             )
+
             # Create the Account Link for onboarding
             account_link = stripe.AccountLink.create(
                 account=stripe_account.id,
@@ -379,6 +355,7 @@ def register():
         return render_template('register.html', error="An error occurred during registration.")
 
     return render_template('register.html')
+
 
 
 
