@@ -48,17 +48,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ProcessPoolExecutor
 
 def delete_pending_users():
-    """Deletes users with onboarding_status 'pending' for more than 15 minutes."""
     with app.app_context():
-        # Calculate the cutoff time for deletion
-        cutoff_time = datetime.utcnow() - timedelta(minutes=15)
-        
-        # Find all users with onboarding_status 'pending' who were created more than 15 minutes ago
-        pending_users = User.query.filter(
-            User.onboarding_status == "pending",
-            User.created_at < cutoff_time
-        ).all()
-
+        time_threshold = datetime.utcnow() - timedelta(minutes=3)
+        pending_users = User.query.filter(User.onboarding_status == "pending", User.created_at < time_threshold).all()
         deleted_count = len(pending_users)
 
         for user in pending_users:
@@ -67,6 +59,9 @@ def delete_pending_users():
         db.session.commit()
 
         print(f"Deleted {deleted_count} users with pending onboarding status at {datetime.now()}.")
+        # Log how many users exist and when the job runs
+        print(f"Total pending users count: {len(pending_users)}")
+
 
 
 # Initialize the APScheduler scheduler
