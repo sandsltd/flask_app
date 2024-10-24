@@ -20,6 +20,8 @@ from flask import make_response
 import re
 from uuid import uuid4
 from apscheduler.schedulers.background import BackgroundScheduler
+import math
+
 
 
 
@@ -582,6 +584,34 @@ def manage_default_questions():
     default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
     return render_template('manage_default_questions.html', questions=default_questions, user=current_user)
 
+def calculate_total_charge(n_tickets, ticket_price_gbp):
+    """
+    Calculate the total amount to charge the buyer to ensure the seller receives exactly the ticket price.
+
+    :param n_tickets: Number of tickets being purchased.
+    :param ticket_price_gbp: Price per ticket in GBP.
+    :return: Total amount to charge in pence.
+    """
+    # Constants
+    platform_fee_per_ticket_pence = 30  # 30p per ticket
+    stripe_percent_fee = 0.014          # 1.4%
+    stripe_fixed_fee_pence = 20         # 20p per transaction
+
+    # Calculate total ticket price in pence
+    total_ticket_price_pence = int(n_tickets * ticket_price_gbp * 100)
+
+    # Calculate total platform fee in pence
+    total_platform_fee_pence = platform_fee_per_ticket_pence * n_tickets
+
+    # Total fees in pence
+    total_fees_pence = total_platform_fee_pence + stripe_fixed_fee_pence
+
+    # Calculate total amount to charge (X) using the formula:
+    # X = (Total Ticket Price + Total Fees) / (1 - Stripe Percentage Fee)
+    total_charge_pence = (total_ticket_price_pence + total_fees_pence) / (1 - stripe_percent_fee)
+
+    # Round up to the nearest penny to ensure all fees are covered
+    return int(math.ceil(total_charge_pence))
 
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
 def purchase(event_id):
@@ -661,29 +691,21 @@ def purchase(event_id):
         # Commit all the new attendee rows to the database
         db.session.commit()
 
-        # Calculate the total amount to charge the customer
+        # Calculate the total amount to charge the customer in pence
         total_amount_pence = calculate_total_charge(number_of_tickets, event.ticket_price)
 
-        # Calculate platform fees
-        fixed_platform_fee_pence = 30 * number_of_tickets + 20  # 30p per ticket + 20p per sale
-        platform_percentage_fee_pence = int(round(total_amount_pence * 0.014))  # 1.4%
-        total_platform_fee_pence = fixed_platform_fee_pence + platform_percentage_fee_pence
+        # Calculate the platform's total fee
+        platform_fee_pence = 30 * number_of_tickets  # 30p per ticket
+        transaction_fee_pence = 20               # 20p per transaction
+        application_fee_pence = platform_fee_pence + transaction_fee_pence  # Total application fee
 
-        # Calculate Stripe fees
-        stripe_percentage_fee_pence = int(round(total_amount_pence * 0.029))  # 2.9%
-        stripe_fixed_fee_pence = 30 * number_of_tickets  # 30p per ticket
-        total_stripe_fee_pence = stripe_percentage_fee_pence + stripe_fixed_fee_pence
-
-        # Debugging Logs
+        # Logging for debugging
         app.logger.debug(f"Number of Tickets: {number_of_tickets}")
         app.logger.debug(f"Ticket Price per Ticket: £{event.ticket_price}")
         app.logger.debug(f"Total Ticket Price: £{number_of_tickets * event.ticket_price}")
-        app.logger.debug(f"Fixed Platform Fee: {fixed_platform_fee_pence} pence")
-        app.logger.debug(f"Platform Percentage Fee (1.4%): {platform_percentage_fee_pence} pence")
-        app.logger.debug(f"Total Platform Fee: {total_platform_fee_pence} pence")
-        app.logger.debug(f"Stripe Percentage Fee (2.9%): {stripe_percentage_fee_pence} pence")
-        app.logger.debug(f"Stripe Fixed Fee (30p per ticket): {stripe_fixed_fee_pence} pence")
-        app.logger.debug(f"Total Stripe Fee: {total_stripe_fee_pence} pence")
+        app.logger.debug(f"Platform Fixed Fee (30p per ticket): {platform_fee_pence} pence")
+        app.logger.debug(f"Platform Transaction Fee (20p): {transaction_fee_pence} pence")
+        app.logger.debug(f"Total Application Fee: {application_fee_pence} pence")
         app.logger.debug(f"Total Amount to Charge (pence): {total_amount_pence}")
         app.logger.debug(f"Total Amount to Charge (£): {total_amount_pence / 100}")
 
@@ -701,17 +723,8 @@ def purchase(event_id):
                             'unit_amount': int(event.ticket_price * 100),  # Price per ticket in pence
                         },
                         'quantity': number_of_tickets,
-                    },
-                    {
-                        'price_data': {
-                            'currency': 'gbp',
-                            'product_data': {
-                                'name': 'Platform Fee',
-                            },
-                            'unit_amount': platform_percentage_fee_pence + fixed_platform_fee_pence,
-                        },
-                        'quantity': 1,
                     }
+                    # Note: Removed the separate Platform Fee line item to avoid double charging
                 ],
                 mode='payment',
                 success_url=url_for('success', _external=True),
@@ -720,7 +733,7 @@ def purchase(event_id):
                     'session_id': session_id  # Pass session ID to Stripe
                 },
                 payment_intent_data={
-                    'application_fee_amount': total_platform_fee_pence,  # Platform fee
+                    'application_fee_amount': application_fee_pence,  # Platform fee: 30p per ticket + 20p per transaction
                     'transfer_data': {
                         'destination': user.stripe_connect_id,  # User's connected Stripe account
                     },
@@ -748,6 +761,7 @@ def purchase(event_id):
             organizer_terms_link=organizer_terms_link,
             platform_terms_link=platform_terms_link
         )
+
 
 
 
