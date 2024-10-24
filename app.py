@@ -883,7 +883,7 @@ def view_attendees(event_id):
 
     return render_template('view_attendees.html', event=event, attendees=attendees, questions=all_questions)
 
-
+#
 
 
 @app.route('/delete_event/<int:event_id>', methods=['POST'])
