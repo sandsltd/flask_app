@@ -675,10 +675,10 @@ def purchase(event_id):
         total_ticket_price_pence = ticket_price_pence * number_of_tickets
 
         # Calculate platform fee (2% of ticket price)
-        platform_fee_pence = int(total_ticket_price_pence * 0.02)
+        platform_fee_pence = int(total_ticket_price_pence * 0.00)
 
         # Calculate Stripe fee (2.9% of total amount + 30p per ticket)
-        stripe_fee_pence = int((total_ticket_price_pence + platform_fee_pence) * 0.014) + (20 * number_of_tickets)
+        stripe_fee_pence = int((total_ticket_price_pence + platform_fee_pence) * 0.000) + (00 * number_of_tickets)
 
         # Total booking fee
         booking_fee_pence = platform_fee_pence + stripe_fee_pence
