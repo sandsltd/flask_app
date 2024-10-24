@@ -833,27 +833,95 @@ def stripe_webhook():
 
 def send_confirmation_email_to_attendee(attendee, billing_details):
     try:
-        # Prepare the email message
+        # Prepare the email message with HTML formatting
         msg = Message(
-            subject="Your Ticket Purchase Confirmation",
+            subject=f"Your Ticket Purchase Confirmation - {attendee.event.user.business_name}",
             recipients=[attendee.email],
-            body=f"Dear {attendee.full_name},\n\n"
-                 f"Thank you for purchasing tickets for the event. Below are your details:\n\n"
-                 f"Event: {attendee.event.name}\n"
-                 f"Event Date: {attendee.event.date}\n"
-                 f"Event Time: {attendee.event.start_time} - {attendee.event.end_time}\n"  # Event time added
-                 f"Full Name: {attendee.full_name}\n"
-                 f"Email: {attendee.email}\n"
-                 f"Phone Number: {attendee.phone_number}\n"
-                 f"Ticket Quantity: {attendee.tickets_purchased}\n"
-                 f"Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}\n\n"
-                 f"We look forward to seeing you at the event!\n\n"
-                 f"Best regards,\nThe Event Team"
+            html=f"""
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        background-color: #f8f9fa;
+                        margin: 0;
+                        padding: 20px;
+                    }}
+                    .email-container {{
+                        max-width: 600px;
+                        margin: 0 auto;
+                        background-color: #ffffff;
+                        padding: 20px;
+                        border-radius: 10px;
+                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                    }}
+                    .header {{
+                        background-color: #e83e31;
+                        color: #ffffff;
+                        text-align: center;
+                        padding: 10px 0;
+                        border-radius: 10px 10px 0 0;
+                    }}
+                    .content {{
+                        color: #333;
+                        padding: 20px;
+                    }}
+                    .content h2 {{
+                        color: #e83e31;
+                    }}
+                    .footer {{
+                        margin-top: 20px;
+                        text-align: center;
+                        color: #777;
+                    }}
+                    .button {{
+                        display: inline-block;
+                        padding: 10px 20px;
+                        background-color: #e83e31;
+                        color: #ffffff;
+                        border-radius: 5px;
+                        text-decoration: none;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="email-container">
+                    <div class="header">
+                        <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush Logo" width="150">
+                    </div>
+                    <div class="content">
+                        <h2>Ticket Purchase Confirmation</h2>
+                        <p>Dear {attendee.full_name},</p>
+                        <p>Thank you for purchasing tickets for the event: <strong>{attendee.event.name}</strong> hosted by <strong>{attendee.event.user.business_name}</strong>.</p>
+                        <p>Here are your ticket details:</p>
+                        <ul>
+                            <li><strong>Event:</strong> {attendee.event.name}</li>
+                            <li><strong>Date:</strong> {attendee.event.date}</li>
+                            <li><strong>Time:</strong> {attendee.event.start_time} - {attendee.event.end_time}</li>
+                            <li><strong>Full Name:</strong> {attendee.full_name}</li>
+                            <li><strong>Email:</strong> {attendee.email}</li>
+                            <li><strong>Phone Number:</strong> {attendee.phone_number}</li>
+                            <li><strong>Ticket Quantity:</strong> {attendee.tickets_purchased}</li>
+                            <li><strong>Billing Address:</strong> {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}</li>
+                        </ul>
+                        <p>If you have any questions or queries about your booking, please contact the event organizer directly at:</p>
+                        <p><a href="{attendee.event.user.website_url}" class="button">{attendee.event.user.business_name} Website</a></p>
+                        <p>We look forward to seeing you at the event!</p>
+                    </div>
+                    <div class="footer">
+                        <p>Best regards,</p>
+                        <p>The Event Team at <a href="https://ticketrush.io" class="button">TicketRush.io</a></p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
         )
         mail.send(msg)  # Send the email using Flask-Mail
         print(f"Confirmation email sent to attendee {attendee.email}.")
     except Exception as e:
         print(f"Failed to send confirmation email to attendee {attendee.email}. Error: {str(e)}")
+
 
 
 
@@ -869,19 +937,85 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
         msg = Message(
             subject="New Ticket Purchase for Your Event",
             recipients=[organizer.email],
-            body=f"Dear {organizer.first_name},\n\n"
-                 f"You have new ticket purchases for your event '{event.name}'.\n"
-                 f"Event Date: {event.date}\n"
-                 f"Event Time: {event.start_time} - {event.end_time}\n"  # Event time added
-                 f"Here are the details of the attendee(s):\n\n"
-                 f"{attendee_info}\n\n"
-                 f"Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}\n\n"
-                 f"Best regards,\nYour Platform Team"
+            html=f"""
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        background-color: #f8f9fa;
+                        margin: 0;
+                        padding: 20px;
+                    }}
+                    .email-container {{
+                        max-width: 600px;
+                        margin: 0 auto;
+                        background-color: #ffffff;
+                        padding: 20px;
+                        border-radius: 10px;
+                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                    }}
+                    .header {{
+                        background-color: #e83e31;
+                        color: #ffffff;
+                        text-align: center;
+                        padding: 10px 0;
+                        border-radius: 10px 10px 0 0;
+                    }}
+                    .content {{
+                        color: #333;
+                        padding: 20px;
+                    }}
+                    .content h2 {{
+                        color: #e83e31;
+                    }}
+                    .footer {{
+                        margin-top: 20px;
+                        text-align: center;
+                        color: #777;
+                    }}
+                    .button {{
+                        display: inline-block;
+                        padding: 10px 20px;
+                        background-color: #e83e31;
+                        color: #ffffff;
+                        border-radius: 5px;
+                        text-decoration: none;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="email-container">
+                    <div class="header">
+                        <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush Logo" width="150">
+                    </div>
+                    <div class="content">
+                        <h2>New Ticket Purchase for Your Event</h2>
+                        <p>Dear {organizer.first_name},</p>
+                        <p>You have new ticket purchases for your event: <strong>{event.name}</strong>.</p>
+                        <p><strong>Event Date:</strong> {event.date} <br> <strong>Time:</strong> {event.start_time} - {event.end_time}</p>
+                        <p>Here are the details of the attendee(s):</p>
+                        <ul>
+                            {attendee_info}
+                        </ul>
+                        <p>Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}</p>
+                        <p>To view the booking in more detail, please log in to your dashboard:</p>
+                        <p><a href="https://placeholder-for-dashboard-link.com" class="button">View Dashboard</a></p>
+                    </div>
+                    <div class="footer">
+                        <p>Best regards,</p>
+                        <p>Your Platform Team</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
         )
         mail.send(msg)  # Send the email using Flask-Mail
         print(f"Confirmation email sent to organizer {organizer.email}.")
     except Exception as e:
         print(f"Failed to send confirmation email to organizer {organizer.email}. Error: {str(e)}")
+
 
 
 def handle_checkout_session(session):
