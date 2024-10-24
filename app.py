@@ -484,21 +484,21 @@ def create_checkout_session(event_id):
     session_id = request.json.get('session_id')  # This is passed from the purchase process
     number_of_tickets = request.json.get('number_of_tickets', 1)
 
-    # Calculate the platform fee (flat £0.30 per ticket)
+    # Platform fee: fixed 30p per ticket
     platform_fee_per_ticket_pence = 30  # 30p per ticket
     total_platform_fee_pence = platform_fee_per_ticket_pence * number_of_tickets
 
-    # Calculate Stripe fee (1.4% of total ticket price + £0.20 per transaction)
-    stripe_fee_percentage = 0.014  # Stripe fee is 1.4%
+    # Stripe fee: 1.4% of the total ticket price + 20p flat fee per transaction (not per ticket)
+    stripe_fee_percentage = 0.014  # Stripe percentage fee
     stripe_fixed_fee_pence = 20  # 20p flat fee
 
     # Calculate the total ticket price in pence
-    total_ticket_price_pence = int(event.ticket_price * number_of_tickets * 100)  # Convert to pence
+    total_ticket_price_pence = int(event.ticket_price * number_of_tickets * 100)
 
-    # Stripe percentage fee on the total ticket price
+    # Calculate the Stripe percentage fee on the total ticket price
     stripe_percentage_fee_pence = int(total_ticket_price_pence * stripe_fee_percentage)
 
-    # Stripe total fee (percentage fee + fixed fee)
+    # Stripe total fee (percentage fee + fixed fee applied to the entire transaction)
     stripe_total_fee_pence = stripe_percentage_fee_pence + stripe_fixed_fee_pence
 
     # Calculate the total booking fee (platform fee + Stripe fee)
@@ -506,6 +506,7 @@ def create_checkout_session(event_id):
 
     # Final total amount the customer will pay (ticket price + booking fee)
     total_amount_pence = total_ticket_price_pence + booking_fee_pence
+
 
     try:
         # Create a Stripe Checkout session with two line items (ticket and booking fee)
