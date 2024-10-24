@@ -723,8 +723,27 @@ def purchase(event_id):
                             'unit_amount': int(event.ticket_price * 100),  # Price per ticket in pence
                         },
                         'quantity': number_of_tickets,
+                    },
+                    {
+                        'price_data': {
+                            'currency': 'gbp',
+                            'product_data': {
+                                'name': 'Platform Fee',
+                            },
+                            'unit_amount': 30,  # 30p per ticket
+                        },
+                        'quantity': number_of_tickets,  # 30p per ticket
+                    },
+                    {
+                        'price_data': {
+                            'currency': 'gbp',
+                            'product_data': {
+                                'name': 'Transaction Fee',
+                            },
+                            'unit_amount': 20,  # 20p per transaction
+                        },
+                        'quantity': 1,  # 20p per transaction
                     }
-                    # Note: Removed the separate Platform Fee line item to avoid double charging
                 ],
                 mode='payment',
                 success_url=url_for('success', _external=True),
