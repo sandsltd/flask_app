@@ -584,13 +584,14 @@ def manage_default_questions():
     default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
     return render_template('manage_default_questions.html', questions=default_questions, user=current_user)
 
+# Define the helper function here
 def calculate_total_charge(n_tickets, ticket_price_gbp):
     """
     Calculate the total amount to charge the buyer to ensure the seller receives exactly the ticket price.
 
     :param n_tickets: Number of tickets being purchased.
     :param ticket_price_gbp: Price per ticket in GBP.
-    :return: Total amount to charge in pence.
+    :return: Tuple of total amount to charge in pence and stripe percentage fee in pence.
     """
     # Constants
     platform_fee_per_ticket_pence = 30  # 30p per ticket
@@ -603,16 +604,19 @@ def calculate_total_charge(n_tickets, ticket_price_gbp):
     # Calculate total platform fee in pence
     total_platform_fee_pence = platform_fee_per_ticket_pence * n_tickets
 
-    # Total fees in pence
-    total_fees_pence = total_platform_fee_pence + stripe_fixed_fee_pence
+    # Total fixed fees in pence
+    total_fixed_fees_pence = total_platform_fee_pence + stripe_fixed_fee_pence
 
-    # Calculate total amount to charge (X) using the formula:
-    # X = (Total Ticket Price + Total Fees) / (1 - Stripe Percentage Fee)
-    total_charge_pence = (total_ticket_price_pence + total_fees_pence) / (1 - stripe_percent_fee)
+    # Calculate stripe percentage fee based on initial sum (ticket + platform + transaction)
+    initial_sum_pence = total_ticket_price_pence + total_platform_fee_pence + stripe_fixed_fee_pence
+    stripe_percent_fee_pence = int(math.ceil(initial_sum_pence * stripe_percent_fee))
 
-    # Round up to the nearest penny to ensure all fees are covered
-    return int(math.ceil(total_charge_pence))
+    # Calculate total amount to charge (X) to cover all fees
+    total_charge_pence = initial_sum_pence + stripe_percent_fee_pence
 
+    return total_charge_pence, stripe_percent_fee_pence
+
+# Define the /purchase/<int:event_id> route
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
 def purchase(event_id):
     event = Event.query.get(event_id)
@@ -691,8 +695,8 @@ def purchase(event_id):
         # Commit all the new attendee rows to the database
         db.session.commit()
 
-        # Calculate the total amount to charge the customer in pence
-        total_amount_pence = calculate_total_charge(number_of_tickets, event.ticket_price)
+        # Calculate the total amount to charge the customer in pence and stripe fee
+        total_charge_pence, stripe_percent_fee_pence = calculate_total_charge(number_of_tickets, event.ticket_price)
 
         # Calculate the platform's total fee
         platform_fee_pence = 30 * number_of_tickets  # 30p per ticket
@@ -705,9 +709,9 @@ def purchase(event_id):
         app.logger.debug(f"Total Ticket Price: £{number_of_tickets * event.ticket_price}")
         app.logger.debug(f"Platform Fixed Fee (30p per ticket): {platform_fee_pence} pence")
         app.logger.debug(f"Platform Transaction Fee (20p): {transaction_fee_pence} pence")
-        app.logger.debug(f"Total Application Fee: {application_fee_pence} pence")
-        app.logger.debug(f"Total Amount to Charge (pence): {total_amount_pence}")
-        app.logger.debug(f"Total Amount to Charge (£): {total_amount_pence / 100}")
+        app.logger.debug(f"Stripe Percentage Fee (1.4% of initial sum): {stripe_percent_fee_pence} pence")
+        app.logger.debug(f"Total Amount to Charge (pence): {total_charge_pence}")
+        app.logger.debug(f"Total Amount to Charge (£): {total_charge_pence / 100}")
 
         try:
             # Create a Stripe Checkout session
@@ -743,6 +747,16 @@ def purchase(event_id):
                             'unit_amount': 20,  # 20p per transaction
                         },
                         'quantity': 1,  # 20p per transaction
+                    },
+                    {
+                        'price_data': {
+                            'currency': 'gbp',
+                            'product_data': {
+                                'name': 'Stripe Fee (1.4%)',
+                            },
+                            'unit_amount': stripe_percent_fee_pence,  # 1.4% of initial sum
+                        },
+                        'quantity': 1,  # 1 Stripe fee per transaction
                     }
                 ],
                 mode='payment',
