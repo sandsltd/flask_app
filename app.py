@@ -485,9 +485,9 @@ def create_checkout_session(event_id):
     number_of_tickets = request.json.get('number_of_tickets', 1)
 
     # Constants for the fees
-    platform_fee_per_ticket_pence = 30  # 30p per ticket platform fee
-    stripe_percentage_fee = 0.014  # 1.4% Stripe percentage fee
-    stripe_fixed_fee_pence = 20  # 20p flat fee per transaction
+    platform_fee_per_ticket_pence = 0  # 30p per ticket platform fee
+    stripe_percentage_fee = 0.000  # 1.4% Stripe percentage fee
+    stripe_fixed_fee_pence =  0  # 20p flat fee per transaction
 
     # Calculate the total ticket price that the organizer wants to receive
     total_ticket_price_pence = int(event.ticket_price * number_of_tickets * 100)
@@ -495,16 +495,14 @@ def create_checkout_session(event_id):
     # Calculate total platform fee for all tickets
     total_platform_fee_pence = platform_fee_per_ticket_pence * number_of_tickets
 
-    # Calculate Stripe fee (percentage + flat fee)
-    total_stripe_fee_pence = (total_ticket_price_pence + total_platform_fee_pence) * stripe_percentage_fee + stripe_fixed_fee_pence
+    # Now calculate the total amount the customer needs to pay so that after Stripe fees and platform fees,
+    # the organizer receives the full ticket price.
+    total_amount_pence = (total_ticket_price_pence + total_platform_fee_pence + stripe_fixed_fee_pence) / (1 - stripe_percentage_fee)
 
-    # Total amount customer pays (ticket price + platform fee + Stripe fee)
-    total_amount_pence = total_ticket_price_pence + total_platform_fee_pence + total_stripe_fee_pence
+    # Calculate the total booking fee (platform fee + Stripe fee).
+    total_booking_fee_pence = total_amount_pence - total_ticket_price_pence
 
-    # Calculate the total booking fee (platform + Stripe)
-    total_booking_fee_pence = total_platform_fee_pence + total_stripe_fee_pence
-
-    # Booking fee per ticket (only if you want to display it per ticket)
+    # Calculate the booking fee per ticket (to display in Stripe Checkout).
     booking_fee_per_ticket_pence = total_booking_fee_pence // number_of_tickets
 
     try:
@@ -528,9 +526,9 @@ def create_checkout_session(event_id):
                         'product_data': {
                             'name': 'Booking Fee',
                         },
-                        'unit_amount': int(total_booking_fee_pence),  # Total booking fee for all tickets
+                        'unit_amount': booking_fee_per_ticket_pence,  # Booking fee per ticket in pence
                     },
-                    'quantity': 1,  # Apply booking fee once per transaction
+                    'quantity': number_of_tickets,
                 }
             ],
             mode='payment',
@@ -540,7 +538,7 @@ def create_checkout_session(event_id):
                 'session_id': session_id  # Pass session ID to Stripe for linking
             },
             payment_intent_data={
-                'application_fee_amount': total_platform_fee_pence,  # Platform fee (30p per ticket)
+                'application_fee_amount': total_platform_fee_pence,  # Platform fee (your 30p per ticket)
                 'transfer_data': {
                     'destination': user.stripe_connect_id,  # Transfer to the event organizer's Stripe account
                 },
@@ -552,7 +550,6 @@ def create_checkout_session(event_id):
 
     except Exception as e:
         return {"error": str(e)}, 400
-
 
 
 
@@ -664,7 +661,7 @@ def purchase(event_id):
                 email=email,
                 phone_number=phone_number,
                 tickets_purchased=1,  # Store each ticket individually
-                ticket_price_at_purchase=event.ticket_price,  # Store the event's ticket price
+                ticket_price_at_purchase=event.ticket_price,
                 session_id=session_id,  # Assign the same session ID for all tickets
                 created_at=datetime.utcnow()
             )
@@ -673,7 +670,7 @@ def purchase(event_id):
         # Commit all the new attendee rows to the database
         db.session.commit()
 
-        # Pass ticket price and session info to `create_checkout_session`
+        # Redirect to the checkout session (handled in `create-checkout-session`)
         return redirect(url_for('create_checkout_session', event_id=event_id, session_id=session_id, number_of_tickets=number_of_tickets))
 
     else:
