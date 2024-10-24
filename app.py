@@ -49,6 +49,7 @@ app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')  # Your email here (fro
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')  # Your password here (from Render)
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')  # Default sender email
 
 mail = Mail(app)
 
