@@ -854,7 +854,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         print(f"Failed to send confirmation email to attendee {attendee.email}. Error: {str(e)}")
 
 
-def send_confirmation_email_to_organizer(organizer, attendees, billing_details, event, total_amount_paid):
+def send_confirmation_email_to_organizer(organizer, attendees, billing_details, event):
     try:
         # Collect attendee details to include in the email to the organizer
         attendee_info = "\n".join([
@@ -864,90 +864,20 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
 
         # Prepare the email message for the event organizer
         msg = Message(
-            subject=f"New Ticket Purchase for Your Event - {event.name}",
+            subject="New Ticket Purchase for Your Event",
             recipients=[organizer.email],
-            html=f"""
-            <html>
-            <head>
-                <style>
-                    body {{
-                        font-family: Arial, sans-serif;
-                        background-color: #f8f9fa;
-                        margin: 0;
-                        padding: 20px;
-                    }}
-                    .email-container {{
-                        max-width: 600px;
-                        margin: 0 auto;
-                        background-color: #ffffff;
-                        padding: 20px;
-                        border-radius: 10px;
-                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                    }}
-                    .header {{
-                        background-color: #e83e31;
-                        color: #ffffff;
-                        text-align: center;
-                        padding: 10px 0;
-                        border-radius: 10px 10px 0 0;
-                    }}
-                    .content {{
-                        color: #333;
-                        padding: 20px;
-                    }}
-                    .content h2 {{
-                        color: #e83e31;
-                    }}
-                    .footer {{
-                        margin-top: 20px;
-                        text-align: center;
-                        color: #777;
-                    }}
-                    .button {{
-                        display: inline-block;
-                        padding: 10px 20px;
-                        background-color: #e83e31;
-                        color: #ffffff;
-                        border-radius: 5px;
-                        text-decoration: none;
-                    }}
-                </style>
-            </head>
-            <body>
-                <div class="email-container">
-                    <div class="header">
-                        <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush Logo" width="150">
-                    </div>
-                    <div class="content">
-                        <h2>New Ticket Purchase for Your Event</h2>
-                        <p>Dear {organizer.first_name},</p>
-                        <p>You have new ticket purchases for your event: <strong>{event.name}</strong>.</p>
-                        <p><strong>Event Date:</strong> {event.date} <br> <strong>Time:</strong> {event.start_time} - {event.end_time}</p>
-                        <p>Here are the details of the attendee(s):</p>
-                        <ul>
-                            {attendee_info}
-                        </ul>
-                        <p>Total Amount Paid: £{total_amount_paid}</p>
-                        <p>Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}</p>
-                        <p>To view the booking in more detail, please log in to your dashboard:</p>
-                        <p><a href="https://placeholder-for-dashboard-link.com" class="button">View Dashboard</a></p>
-                    </div>
-                    <div class="footer">
-                        <p>Best regards,</p>
-                        <p>TicketRush</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-            """
+            body=f"Dear {organizer.first_name},\n\n"
+                 f"You have new ticket purchases for your event '{event.name}'.\n"
+                 f"Event Date: {event.date}\n"
+                 f"Here are the details of the attendee(s):\n\n"
+                 f"{attendee_info}\n\n"
+                 f"Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}\n\n"
+                 f"Best regards,\nYour Platform Team"
         )
         mail.send(msg)  # Send the email using Flask-Mail
         print(f"Confirmation email sent to organizer {organizer.email}.")
     except Exception as e:
         print(f"Failed to send confirmation email to organizer {organizer.email}. Error: {str(e)}")
-
-
-
 
 def handle_checkout_session(session):
     session_id = session.get('metadata', {}).get('session_id')
@@ -973,9 +903,6 @@ def handle_checkout_session(session):
         print("No billing details found for this session.")
         return
 
-    # Get the total amount paid (from Stripe) in the correct format
-    total_amount_paid = charge.amount / 100  # Amount is in cents/pence, so convert to currency units
-
     # Update all attendee rows with billing details and payment status
     for attendee in attendees:
         attendee.billing_details = json.dumps(billing_details)
@@ -986,7 +913,7 @@ def handle_checkout_session(session):
     print(f"Updated {len(attendees)} attendees with payment details.")
 
     # Send confirmation email to the attendee (buyer)
-    send_confirmation_email_to_attendee(attendees[0], billing_details, total_amount_paid)
+    send_confirmation_email_to_attendee(attendees[0], billing_details)
 
     # Retrieve the event organizer (seller) details
     event = Event.query.get(attendees[0].event_id)
@@ -994,8 +921,7 @@ def handle_checkout_session(session):
     
     if organizer:
         # Send email to the event organizer
-        send_confirmation_email_to_organizer(organizer, attendees, billing_details, event, total_amount_paid)
-
+        send_confirmation_email_to_organizer(organizer, attendees, billing_details, event)
 
 
 
