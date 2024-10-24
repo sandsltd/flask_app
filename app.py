@@ -484,19 +484,31 @@ def create_checkout_session(event_id):
     session_id = request.json.get('session_id')  # This is passed from the purchase process
     number_of_tickets = request.json.get('number_of_tickets', 1)
 
-    # Calculate the platform fee (flat_rate as a percentage of total)
-    flat_rate = user.flat_rate or 0.01  # Default to 1% if flat_rate is not set
-    total_ticket_price_pence = int(event.ticket_price * number_of_tickets * 100)  # Total price in pence
-    platform_fee_amount = int(total_ticket_price_pence * flat_rate)  # Calculate the platform fee
+    # Calculate the platform fee (flat £0.30 per ticket)
+    platform_fee_per_ticket_pence = 30  # 30p per ticket
+    total_platform_fee_pence = platform_fee_per_ticket_pence * number_of_tickets
 
-    # Calculate Stripe fee (2.9% of total amount + 30p per ticket)
-    stripe_fee_pence = int((total_ticket_price_pence + platform_fee_amount) * 0.029) + (30 * number_of_tickets)
+    # Calculate Stripe fee (1.4% of total ticket price + £0.20 per transaction)
+    stripe_fee_percentage = 0.014  # Stripe fee is 1.4%
+    stripe_fixed_fee_pence = 20  # 20p flat fee
 
-    # Total booking fee
-    booking_fee_pence = platform_fee_amount + stripe_fee_pence
+    # Calculate the total ticket price in pence
+    total_ticket_price_pence = int(event.ticket_price * number_of_tickets * 100)  # Convert to pence
+
+    # Stripe percentage fee on the total ticket price
+    stripe_percentage_fee_pence = int(total_ticket_price_pence * stripe_fee_percentage)
+
+    # Stripe total fee (percentage fee + fixed fee)
+    stripe_total_fee_pence = stripe_percentage_fee_pence + stripe_fixed_fee_pence
+
+    # Calculate the total booking fee (platform fee + Stripe fee)
+    booking_fee_pence = total_platform_fee_pence + stripe_total_fee_pence
+
+    # Final total amount the customer will pay (ticket price + booking fee)
+    total_amount_pence = total_ticket_price_pence + booking_fee_pence
 
     try:
-        # Create a Stripe Checkout session with two line items
+        # Create a Stripe Checkout session with two line items (ticket and booking fee)
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[
@@ -506,7 +518,7 @@ def create_checkout_session(event_id):
                         'product_data': {
                             'name': event.name,
                         },
-                        'unit_amount': int(event.ticket_price * 100),  # Price per ticket in pence
+                        'unit_amount': int(event.ticket_price * 100),  # Ticket price in pence
                     },
                     'quantity': number_of_tickets,  # Number of tickets
                 },
@@ -516,7 +528,7 @@ def create_checkout_session(event_id):
                         'product_data': {
                             'name': 'Booking Fee',
                         },
-                        'unit_amount': booking_fee_pence // number_of_tickets,  # Divide booking fee across tickets
+                        'unit_amount': booking_fee_pence // number_of_tickets,  # Booking fee per ticket in pence
                     },
                     'quantity': number_of_tickets,
                 }
@@ -528,9 +540,9 @@ def create_checkout_session(event_id):
                 'session_id': session_id  # Pass session ID to Stripe for linking
             },
             payment_intent_data={
-                'application_fee_amount': platform_fee_amount,  # Platform fee
+                'application_fee_amount': total_platform_fee_pence,  # Platform fee (your 30p per ticket)
                 'transfer_data': {
-                    'destination': user.stripe_connect_id,  # User's connected Stripe account
+                    'destination': user.stripe_connect_id,  # Transfer to the event organizer's Stripe account
                 },
             },
             billing_address_collection='required',
@@ -540,6 +552,7 @@ def create_checkout_session(event_id):
 
     except Exception as e:
         return {"error": str(e)}, 400
+
 
 
 
