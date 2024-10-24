@@ -21,11 +21,11 @@ import re
 from uuid import uuid4
 from apscheduler.schedulers.background import BackgroundScheduler
 import math
-
-
+from flask_mail import Mail, Message
 
 
 app = Flask(__name__)
+mail = Mail(app)
 
 # Enable CORS for all routes and origins
 CORS(app)  # This will allow all origins by default, but you can restrict it if needed.
@@ -42,6 +42,13 @@ STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Configuration for Flask-Mail
+app.config['MAIL_SERVER'] = 'mail.saunders-simmons.co.uk'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')  # Your email here (from Render)
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')  # Your password here (from Render)
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -819,6 +826,56 @@ def stripe_webhook():
         print(f"Unhandled event type: {event['type']}")
 
     return '', 200
+
+
+def send_confirmation_email_to_attendee(attendee, billing_details):
+    try:
+        # Prepare the email message
+        msg = Message(
+            subject="Your Ticket Purchase Confirmation",
+            recipients=[attendee.email],
+            body=f"Dear {attendee.full_name},\n\n"
+                 f"Thank you for purchasing tickets for the event. Below are your details:\n\n"
+                 f"Event: {attendee.event.name}\n"
+                 f"Full Name: {attendee.full_name}\n"
+                 f"Email: {attendee.email}\n"
+                 f"Phone Number: {attendee.phone_number}\n"
+                 f"Ticket Quantity: {attendee.tickets_purchased}\n"
+                 f"Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}\n\n"
+                 f"We look forward to seeing you at the event!\n\n"
+                 f"Best regards,\nThe Event Team"
+        )
+        mail.send(msg)  # Send the email using Flask-Mail
+        print(f"Confirmation email sent to attendee {attendee.email}.")
+    except Exception as e:
+        print(f"Failed to send confirmation email to attendee {attendee.email}. Error: {str(e)}")
+
+
+def send_confirmation_email_to_organizer(organizer, attendees, billing_details, event):
+    try:
+        # Collect attendee details to include in the email to the organizer
+        attendee_info = "\n".join([
+            f"Name: {attendee.full_name}, Email: {attendee.email}, Phone: {attendee.phone_number}, Quantity: {attendee.tickets_purchased}"
+            for attendee in attendees
+        ])
+
+        # Prepare the email message for the event organizer
+        msg = Message(
+            subject="New Ticket Purchase for Your Event",
+            recipients=[organizer.email],
+            body=f"Dear {organizer.first_name},\n\n"
+                 f"You have new ticket purchases for your event '{event.name}'.\n"
+                 f"Event Date: {event.date}\n"
+                 f"Here are the details of the attendee(s):\n\n"
+                 f"{attendee_info}\n\n"
+                 f"Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}\n\n"
+                 f"Best regards,\nYour Platform Team"
+        )
+        mail.send(msg)  # Send the email using Flask-Mail
+        print(f"Confirmation email sent to organizer {organizer.email}.")
+    except Exception as e:
+        print(f"Failed to send confirmation email to organizer {organizer.email}. Error: {str(e)}")
+
 def handle_checkout_session(session):
     session_id = session.get('metadata', {}).get('session_id')
     if not session_id:
@@ -837,14 +894,32 @@ def handle_checkout_session(session):
     payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id, expand=['latest_charge'])
     charge = payment_intent.latest_charge
 
+    # Extract billing details
+    billing_details = charge.billing_details
+    if billing_details is None:
+        print("No billing details found for this session.")
+        return
+
     # Update all attendee rows with billing details and payment status
     for attendee in attendees:
-        attendee.billing_details = json.dumps(charge.billing_details)
+        attendee.billing_details = json.dumps(billing_details)
         attendee.stripe_charge_id = charge.id
         attendee.payment_status = 'succeeded'
         db.session.commit()
 
     print(f"Updated {len(attendees)} attendees with payment details.")
+
+    # Send confirmation email to the attendee (buyer)
+    send_confirmation_email_to_attendee(attendees[0], billing_details)
+
+    # Retrieve the event organizer (seller) details
+    event = Event.query.get(attendees[0].event_id)
+    organizer = User.query.get(event.user_id)
+    
+    if organizer:
+        # Send email to the event organizer
+        send_confirmation_email_to_organizer(organizer, attendees, billing_details, event)
+
 
 
 @app.route('/view_attendees/<int:event_id>')
