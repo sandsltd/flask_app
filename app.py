@@ -262,8 +262,9 @@ def dashboard():
         total_tickets_sold += tickets_sold
         total_revenue += event_revenue
 
-        # Determine if the event is upcoming or past
-        event_status = "Upcoming" if event.date and str_to_date(event.date) >= datetime.now() else "Past"
+        event_date = str_to_date(event.date) if event.date else None
+        event_status = "Upcoming" if event_date and event_date >= datetime.now() else "Past"
+
 
 
         # Append event data to the list
