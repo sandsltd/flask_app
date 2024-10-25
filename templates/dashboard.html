@@ -3,230 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - TicketRush</title>
-    <style>
-        /* Global Styles */
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f7f7f7;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-
-        /* Header Section */
-        .header {
-            background-color: #ff0000;  /* TicketRush red */
-            padding: 20px;
-            text-align: center;
-            color: white;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            margin: 0;
-            color: white;
-        }
-
-        /* Container */
-        .content-wrapper {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 20px;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        }
-
-        h2 {
-            color: #333;
-            font-size: 22px;
-            margin-bottom: 10px;
-        }
-
-        p {
-            font-size: 16px;
-        }
-
-        /* Create Event Button */
-        .create-event-btn {
-            display: inline-block;
-            background-color: #ff0000;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-
-        .create-event-btn:hover {
-            background-color: #d40000;
-        }
-
-        /* Summary Section */
-        .summary {
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        .summary p {
-            margin: 10px 0;
-            font-weight: bold;
-        }
-
-        /* Filter Form */
-        form {
-            margin-bottom: 20px;
-        }
-
-        select {
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-        }
-
-        button {
-            padding: 10px 20px;
-            background-color: #ff0000;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-
-        button:hover {
-            background-color: #d40000;
-        }
-
-        /* Events Section */
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        li {
-            background-color: #f9f9f9;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-
-        li strong {
-            font-size: 18px;
-            color: #333;
-        }
-
-        li a {
-            color: #ff0000;
-            text-decoration: none;
-            margin-right: 10px;
-        }
-
-        li a:hover {
-            text-decoration: underline;
-        }
-
-        /* Embed Code Section */
-        .embed-code {
-            background-color: #f9f9f9;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            color: #555;
-        }
-
-        /* Footer Section */
-        footer {
-            background-color: #ff0000;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-            margin-top: 20px;
-        }
-
-    </style>
+    <title>Dashboard</title>
 </head>
 <body>
+    <h1>Dashboard</h1>
+    <a href="/create_event">Create New Event</a>
 
-    <!-- Header Section -->
-    <header class="header">
-        <h1>Welcome to your Dashboard, {{ user.name }}!</h1>
-    </header>
+    <!-- Summary Section -->
+    <h2>Dashboard Summary</h2>
+    <p><strong>Total Tickets Sold:</strong> {{ total_tickets_sold }}</p>
+    <p><strong>Total Revenue Generated:</strong> £{{ total_revenue }}</p>
 
-    <!-- Content Wrapper Section -->
-    <div class="content-wrapper">
+    <form method="GET" action="{{ url_for('dashboard') }}">
+        <select name="filter">
+            <option value="all">All Events</option>
+            <option value="upcoming">Upcoming Events</option>
+            <option value="past">Past Events</option>
+        </select>
+        <button type="submit">Filter</button>
+    </form>
+    
+    <!-- Events Section -->
+    <h2>Your Events:</h2>
+    <ul>
+        {% for event_data in events %}
+            <li>
+                <strong>{{ event_data.name }}</strong> - {{ event_data.date }}
+                <br>
+                <strong>Location:</strong> {{ event_data.location }}
+                <br>
+                <strong>Tickets Sold:</strong> {{ event_data.tickets_sold }} / {{ event_data.ticket_quantity }}
+                <br>
+                <strong>Tickets Remaining:</strong> {{ event_data.tickets_remaining }}
+                <br>
+                <strong>Total Revenue:</strong> £{{ event_data.total_revenue }}
+                <br>
+                <strong>Status:</strong> {{ event_data.status }}
+                <br>
+                <a href="{{ url_for('view_attendees', event_id=event_data.id) }}">View Attendees</a> | 
+                <a href="{{ url_for('edit_event', event_id=event_data.id) }}">Edit</a> | 
+                <a href="{{ url_for('delete_event', event_id=event_data.id) }}" onclick="return confirm('Are you sure you want to delete this event?');">Delete</a>
+            </li>
+        {% else %}
+            <li>No events yet.</li>
+        {% endfor %}
+    </ul>
 
-        <!-- Create Event Button -->
-        <a href="/create_event" class="create-event-btn">Create New Event</a>
-        <a href="/manage-default-questions" class="create-event-btn">Account Settings</a>
-        <br><br>
-        <a href="/logout" class="create-event-btn">Logout</a>
+    <!-- Embed Code Section -->
+    <h3>Your Embed Code:</h3>
+    <pre>
+        &lt;script src="https://flask-app-2gp0.onrender.com/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
+    </pre>
+    <p>Copy this code and paste it into your website to display your events.</p>
 
-        <!-- Summary Section -->
-        <h2>Dashboard Summary</h2>
-        <div class="summary">
-            <p><strong>Total Tickets Sold:</strong> {{ total_tickets_sold }}</p>
-            <p><strong>Total Revenue Generated:</strong> £{{ total_revenue }}</p>
-        </div>
-
-        <!-- Filter Form -->
-        <form method="GET" action="{{ url_for('dashboard') }}">
-            <select name="filter">
-                <option value="all">All Events</option>
-                <option value="upcoming">Upcoming Events</option>
-                <option value="past">Past Events</option>
-            </select>
-            <button type="submit">Filter</button>
-        </form>
-
-        <!-- Events Section -->
-        <h2>Your Events:</h2>
-        <ul>
-            {% for event_data in events %}
-                <li>
-                    <strong>{{ event_data.name }}</strong> - {{ event_data.date }}
-                    <br>
-                    <strong>Location:</strong> {{ event_data.location }}
-                    <br>
-                    <strong>Tickets Sold:</strong> {{ event_data.tickets_sold }} / {{ event_data.ticket_quantity }}
-                    <br>
-                    <strong>Tickets Remaining:</strong> {{ event_data.tickets_remaining }}
-                    <br>
-                    <strong>Total Revenue:</strong> £{{ event_data.total_revenue }}
-                    <br>
-                    <strong>Status:</strong> {{ event_data.status }}
-                    <br>
-                    <a href="{{ url_for('view_attendees', event_id=event_data.id) }}">View Attendees</a> | 
-                    <a href="{{ url_for('edit_event', event_id=event_data.id) }}">Edit</a> | 
-                    <a href="{{ url_for('delete_event', event_id=event_data.id) }}" onclick="return confirm('Are you sure you want to delete this event?');">Delete</a>
-                </li>
-            {% else %}
-                <li>No events yet.</li>
-            {% endfor %}
-        </ul>
-
-        <!-- Embed Code Section -->
-        <h3>Your Embed Code:</h3>
-        <pre class="embed-code">
-&lt;script src="https://flask-app-2gp0.onrender.com/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
-        </pre>
-        <p>Copy this code and paste it into your website to display your events.</p>
-
-        
-    </div>
-
-    <!-- Footer Section -->
-    <footer>
-        <p>TicketRush Is A Trading Name Of Saunders Simmons Ltd</p>
-        <p>Registered Address: 15 Oxford Road, Yeovil, Somerset, BA21 5HR</p>
-        <p>Company Number: 15839557</p>
-    </footer>
-
+    <a href="/manage-default-questions">Manage Default Questions</a>
+    <br>
+    <a href="/logout">Logout</a>
 </body>
 </html>
