@@ -873,11 +873,8 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         event = Event.query.get(attendee.event_id)
         organizer = User.query.get(event.user_id)
 
-        # Calculate the total payment including ticket price and booking fee
+        # Calculate the total payment based on the ticket price
         total_ticket_price = attendee.tickets_purchased * attendee.ticket_price_at_purchase
-        platform_fee = 0.30 * attendee.tickets_purchased  # Assuming 30p booking fee per ticket
-        transaction_fee = 0.20  # Assuming 20p transaction fee
-        total_payment = total_ticket_price + platform_fee + transaction_fee
 
         # Prepare the subject line
         subject = f"Your Ticket Confirmation for {event.name}"
@@ -929,7 +926,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
                 <strong>Email:</strong> {attendee.email}<br>
                 <strong>Phone Number:</strong> {attendee.phone_number}<br>
                 <strong>Ticket Quantity:</strong> {attendee.tickets_purchased}<br>
-                <strong>Amount Paid (including fees):</strong> £{total_payment:.2f}<br>
+                <strong>Amount Paid:</strong> £{total_ticket_price:.2f}<br>
                 <strong>Billing Address:</strong> {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}
             </p>
             
@@ -950,9 +947,18 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
                 <strong>Website:</strong> <a href="{organizer.website_url or '#'}" style="color: #ff0000;">{organizer.website_url or 'No website provided'}</a><br>
                 <strong>Terms:</strong> <a href="{organizer.terms or '#'}" style="color: #ff0000;">{organizer.terms or 'No terms provided'}</a>
             </p>
-            
+
             <hr style="border: 1px solid #ff0000;">
 
+            <!-- New Need Help Section -->
+            <h3 style="color: #ff0000;">Need Help?</h3>
+            <p>
+                If you have any issues or questions about the event, please reach out directly to the organizer, 
+                {organizer.business_name}, at <a href="mailto:{organizer.email}" style="color: #ff0000;">{organizer.email}</a>.
+            </p>
+
+            <hr style="border: 1px solid #ff0000;">
+            
             <p style="color: #ff0000;"><strong>Powered by Ticket Rush</strong></p>
 
             <p>We look forward to seeing you at the event!</p>
@@ -974,8 +980,6 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
 
     except Exception as e:
         print(f"Failed to send confirmation email to attendee {attendee.email}. Error: {str(e)}")
-
-
 
 
 
