@@ -894,48 +894,65 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         # iOS/ICS Calendar file link
         ics_file_url = url_for('download_ics', event_id=event.id, _external=True)
 
-        # Prepare the email body with cleaner links
+        # Prepare the email body with inline CSS and logo
         body = f"""
-        Dear {attendee.full_name},
+        <html>
+        <body style="background-color: #ffffff; color: #000000; font-family: Arial, sans-serif; padding: 20px;">
+            <!-- Include Logo -->
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
+            </div>
 
-        Thank you for purchasing tickets for the event '{event.name}'. Below are your details:
+            <h2 style="color: #ff0000;">Dear {attendee.full_name},</h2>
 
-        -------------------------
-        Event Information:
-        -------------------------
-        Event: {event.name}
-        Date: {event.date}
-        Time: {event.start_time} - {event.end_time}
-        Location: {event.location}
+            <p>Thank you for purchasing tickets for the event <strong>'{event.name}'</strong>. Below are your details:</p>
 
-        Full Name: {attendee.full_name}
-        Email: {attendee.email}
-        Phone Number: {attendee.phone_number}
-        Ticket Quantity: {attendee.tickets_purchased}
-        Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}
+            <hr style="border: 1px solid #ff0000;">
+            
+            <h3 style="color: #ff0000;">Event Information:</h3>
+            <p>
+                <strong>Event:</strong> {event.name}<br>
+                <strong>Date:</strong> {event.date}<br>
+                <strong>Time:</strong> {event.start_time} - {event.end_time}<br>
+                <strong>Location:</strong> {event.location}
+            </p>
+            
+            <h3 style="color: #ff0000;">Your Details:</h3>
+            <p>
+                <strong>Full Name:</strong> {attendee.full_name}<br>
+                <strong>Email:</strong> {attendee.email}<br>
+                <strong>Phone Number:</strong> {attendee.phone_number}<br>
+                <strong>Ticket Quantity:</strong> {attendee.tickets_purchased}<br>
+                <strong>Billing Address:</strong> {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}
+            </p>
+            
+            <hr style="border: 1px solid #ff0000;">
+            
+            <h3 style="color: #ff0000;">Add to Calendar:</h3>
+            <p>
+                - <a href="{google_calendar_url}" style="background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Click here to add to Google Calendar</a><br>
+                - <a href="{ics_file_url}" style="background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Click here to add to Apple/iOS or other Calendar</a>
+            </p>
+            
+            <hr style="border: 1px solid #ff0000;">
+            
+            <h3 style="color: #ff0000;">Organiser Details:</h3>
+            <p>
+                <strong>Business:</strong> {organizer.business_name}<br>
+                <strong>Contact:</strong> <a href="mailto:{organizer.email}" style="color: #ff0000;">{organizer.email}</a> (Please contact the organiser directly for any event-related inquiries)<br>
+                <strong>Website:</strong> <a href="{organizer.website_url or '#'}" style="color: #ff0000;">{organizer.website_url or 'No website provided'}</a><br>
+                <strong>Terms:</strong> <a href="{organizer.terms or '#'}" style="color: #ff0000;">{organizer.terms or 'No terms provided'}</a>
+            </p>
+            
+            <hr style="border: 1px solid #ff0000;">
 
-        -------------------------
-        Add to Calendar:
-        -------------------------
-        - <a href="{google_calendar_url}">Click here to add to Google Calendar</a>
-        - <a href="{ics_file_url}">Click here to add to Apple/iOS or other Calendar</a>
+            <p style="color: #ff0000;"><strong>Powered by Ticket Rush</strong></p>
 
-        -------------------------
-        Organiser Details:
-        -------------------------
-        Business: {organizer.business_name}
-        Contact: <a href="mailto:{organizer.email}">{organizer.email}</a> (Please contact the organiser directly for any event-related inquiries)
-        Website: <a href="{organizer.website_url or '#'}">{organizer.website_url or 'No website provided'}</a>
-        Terms: <a href="{organizer.terms or '#'}">{organizer.terms or 'No terms provided'}</a>
+            <p>We look forward to seeing you at the event!</p>
 
-        -------------------------
-        Powered by Ticket Rush
-        -------------------------
-
-        We look forward to seeing you at the event!
-
-        Best regards,
-        Ticket Rush Team
+            <p>Best regards,<br>Ticket Rush Team</p>
+        </body>
+        </html>
         """
 
         # Create and send the email using Flask-Mail
@@ -943,13 +960,14 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
             subject=subject,
             recipients=[attendee.email],
             body=body,
-            html=body  # Render the email as HTML to support links
+            html=body  # Render the email as HTML to support links and styling
         )
         mail.send(msg)
         print(f"Confirmation email sent to attendee {attendee.email}.")
 
     except Exception as e:
         print(f"Failed to send confirmation email to attendee {attendee.email}. Error: {str(e)}")
+
 
 
 
