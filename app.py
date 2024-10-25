@@ -482,15 +482,25 @@ def embed_events(unique_id):
             Location: {event.location}<br>
             Description: {event.description}<br>
             Time: {event.start_time} - {event.end_time}<br>
+        '''
+        # Check if tickets are sold out
+        if tickets_available > 0:
+            events_html += f'''
             Tickets Available: {tickets_available}<br>
             Ticket Price: £{event.ticket_price}<br>
             <button onclick="window.location.href='https://flask-app-2gp0.onrender.com/purchase/{event.id}'">Buy Ticket</button>
-        </li><br>
-        '''
+            '''
+        else:
+            events_html += '''
+            <span style="color:red; font-weight:bold;">Sold Out</span><br>
+            '''
+
+        events_html += '</li><br>'
     events_html += '</ul>'
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 '''
