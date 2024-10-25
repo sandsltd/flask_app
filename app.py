@@ -474,10 +474,10 @@ def embed_events(unique_id):
 
     # If no future events, show a message
     if not future_events:
-        events_html = '<p style="font-family: \'Roboto\', sans-serif; color: #444; font-size: 16px;">No upcoming events available.</p>'
+        events_html = '<p style="font-family: \'Roboto\', sans-serif; color: #444; font-size: 16px; text-align: center;">No upcoming events available.</p>'
     else:
         events_html = '''
-        <ul style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; justify-content: space-between;">
+        <ul style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px;">
         '''
         for event in future_events:
             # Calculate tickets sold
@@ -501,41 +501,41 @@ def embed_events(unique_id):
             # Optional: Truncate the event description for cleaner layout (limit to 100 characters)
             truncated_description = (event.description[:100] + '...') if len(event.description) > 100 else event.description
 
-            # Design for each event
+            # Design for each event with explicit labels for each field
             events_html += f'''
-            <li style="border: 1px solid #ddd; margin-bottom: 20px; padding: 20px; border-radius: 8px; background-color: #fff; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); width: 48%; position: relative;">
+            <li style="border: 1px solid #ddd; padding: 20px; border-radius: 10px; background-color: #fff; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); width: 48%; position: relative; transition: all 0.3s ease;">
                 <!-- Floating Badge for Days Remaining -->
-                <span style="background-color: #ff0000; color: white; padding: 5px 10px; border-radius: 50px; position: absolute; top: 10px; right: 10px; font-family: 'Roboto', sans-serif; font-size: 12px;">
+                <span style="background-color: #ff0000; color: white; padding: 5px 15px; border-radius: 50px; position: absolute; top: 10px; right: 10px; font-family: 'Roboto', sans-serif; font-size: 14px;">
                     {days_remaining} days left
                 </span>
                 <div style="padding: 15px;">
-                    <strong style="font-family: 'Roboto', sans-serif; font-size: 20px; color: #333;">{event.name}</strong><br>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">
-                        <i class="fa fa-calendar" aria-hidden="true" style="margin-right: 5px;"></i>{formatted_date}
-                    </span><br>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">
-                        <i class="fa fa-map-marker" aria-hidden="true" style="margin-right: 5px;"></i>{event.location}
-                    </span><br>
-                    <p style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #444;">{truncated_description}</p>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">
-                        <i class="fa fa-clock-o" aria-hidden="true" style="margin-right: 5px;"></i>{event.start_time} - {event.end_time}
-                    </span><br>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: {ticket_status_color}; font-weight: bold;">{ticket_status_text}</span><br>
+                    <strong style="font-family: 'Roboto', sans-serif; font-size: 22px; color: #333; display: block; margin-bottom: 10px;">Event: {event.name}</strong>
+                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666; display: block; margin-bottom: 5px;">
+                        <i class="fa fa-calendar" aria-hidden="true" style="margin-right: 5px;"></i><strong>Date:</strong> {formatted_date}
+                    </span>
+                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666; display: block; margin-bottom: 5px;">
+                        <i class="fa fa-map-marker" aria-hidden="true" style="margin-right: 5px;"></i><strong>Location:</strong> {event.location}
+                    </span>
+                    <p style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #444; margin-bottom: 10px;"><strong>Description:</strong> {truncated_description}</p>
+                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666; display: block; margin-bottom: 10px;">
+                        <i class="fa fa-clock-o" aria-hidden="true" style="margin-right: 5px;"></i><strong>Time:</strong> {event.start_time} - {event.end_time}
+                    </span>
+                    <span style="font-family: 'Roboto', sans-serif; font-size: 16px; color: {ticket_status_color}; font-weight: bold; display: block; margin-bottom: 10px;">{ticket_status_text}</span>
             '''
             # Show the 'Buy Ticket' button if tickets are available
             if tickets_available > 0:
                 events_html += f'''
-                    <button style="padding: 10px 20px; background-color: #ff0000; color: #fff; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; transition: background-color 0.3s ease, transform 0.3s ease;" 
+                    <button style="padding: 10px 20px; background-color: #ff0000; color: #fff; border: none; border-radius: 5px; cursor: pointer; transition: all 0.3s ease; margin-top: 10px; font-family: 'Roboto', sans-serif; font-size: 14px;" 
                     onmouseover="this.style.backgroundColor='#d40000'; this.style.transform='scale(1.05)';"
                     onmouseout="this.style.backgroundColor='#ff0000'; this.style.transform='scale(1.0)';"
                     onclick="window.location.href='https://flask-app-2gp0.onrender.com/purchase/{event.id}'">Buy Ticket</button>
                 '''
-            events_html += '</div></li><br>'
+            events_html += '</div></li>'
         events_html += '</ul>'
 
     # Add the "Powered by TicketRush" footer with logo and link
     events_html += f'''
-    <div style="text-align: center; margin-top: 20px;">
+    <div style="text-align: center; margin-top: 30px;">
         <span style="font-family: 'Roboto', sans-serif; color: #444; font-size: 14px;">Powered by </span>
         <a href="https://www.ticketrush.io" target="_blank" style="text-decoration: none;">
             <span style="color: #ff0000; font-size: 14px; font-weight: bold;">TicketRush</span>
