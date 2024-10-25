@@ -3,73 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Attendees</title>
+    <title>Edit Attendee - {{ attendee.full_name }}</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        /* Header Section */
+        .header {
+            background-color: #ff0000;  /* TicketRush red background */
+            padding: 20px;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+
+        .header img {
+            max-width: 120px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            color: white; /* White text */
+        }
+
+        .header p {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        /* Container for the form */
+        .content-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        .form-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: white;
+        }
+
+        p {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="email"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        /* Shared Styles for Both Buttons */
+        .btn-common {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+            font-size: 16px;
+            text-align: center;
+            display: block;
+        }
+
+        /* Save Changes Button Specific Styles */
+        .submit-btn {
+            background-color: #555;  /* Grey for submit button */
+            color: white;
+            margin-top: 20px;
+        }
+
+        .submit-btn:hover {
+            background-color: #333;  /* Darker grey on hover */
+        }
+
+        /* Back to Dashboard Link */
+        .back-to-dashboard {
+            display: block;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 16px;
+            color: #ff0000;
+        }
+
+        .back-to-dashboard:hover {
+            color: #d40000;
+        }
+
+        /* Footer Styling */
+        footer {
+            background-color: #ff0000;  /* TicketRush red background */
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            position: relative;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
 </head>
 <body>
 
-    <!-- Include the Navbar -->
-    {% include 'partials/navbar.html' %}
+    <!-- Header Section -->
+    <header class="header">
+        <img src="https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush Logo">
+        <h1>Edit Attendee: {{ attendee.full_name }}</h1>
+        <p>Update the attendee's information below. You can edit their name, email, phone number, and any ticket-specific answers they provided during the booking process.</p>
+    </header>
 
-    <h1>Attendees for Event: {{ event.name }}</h1>
-    <h2>Date: {{ event.date }}</h2>
-    <h3>Location: {{ event.location }}</h3>
+    <!-- Content Wrapper Section -->
+    <div class="content-wrapper">
+        <div class="form-container">
+            <h1>Edit Attendee</h1>
 
-    <hr>
+            <!-- Edit Attendee Form -->
+            <form action="{{ url_for('edit_attendee', attendee_id=attendee.id) }}" method="POST">
+                <label for="full_name">Full Name:</label>
+                <input type="text" id="full_name" name="full_name" value="{{ attendee.full_name }}" required>
 
-    <a href="{{ url_for('export_attendees', event_id=event.id) }}">
-        <button>Export Attendees</button>
-    </a>
-    
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" value="{{ attendee.email }}" required>
 
-    <a href="{{ url_for('add_attendee', event_id=event.id) }}">
-        <button>Add New Attendee</button>
-    </a>
+                <label for="phone_number">Phone Number:</label>
+                <input type="text" id="phone_number" name="phone_number" value="{{ attendee.phone_number }}" required>
 
-    {% if attendees %}
-        <h2>Attendees List</h2>
-        <ul>
-            {% for attendee in attendees %}
-                <li>
-                    <h3>{{ attendee.full_name }}</h3>
+                <!-- Display ticket answers for editing -->
+                <h3>Edit Ticket Answers</h3>
+                {% for question, answer in ticket_answers.items() %}
+                    <label for="answer_{{ question }}">{{ question }}:</label>
+                    <input type="text" id="answer_{{ question }}" name="answer_{{ question }}" value="{{ answer }}" required>
+                {% endfor %}
 
-                    <!-- Organiser Information (Billing Details) -->
-                    <h4>Organiser Information:</h4>
-                    <p><strong>Full Name:</strong> {{ attendee.full_name }}</p>
-                    <p><strong>Email:</strong> {{ attendee.email }}</p>
-                    <p><strong>Phone Number:</strong> {{ attendee.phone_number }}</p>
+                <button type="submit" class="btn-common submit-btn">Save Changes</button>
+            </form>
 
-                    {% if attendee.billing_details.address %}
-                        <p><strong>Address:</strong> 
-                            {{ attendee.billing_details.address.line1 }}
-                            {% if attendee.billing_details.address.line2 %}, {{ attendee.billing_details.address.line2 }}{% endif %},
-                            {{ attendee.billing_details.address.city }},
-                            {{ attendee.billing_details.address.postal_code }}
-                        </p>
-                    {% else %}
-                        <p><strong>Address:</strong> Not provided</p>
-                    {% endif %}
-                    
-                    <!-- Ticket Questions and Answers -->
-                    <h4>Ticket Questions and Answers:</h4>
-                    <ul>
-                        {% for question, answer in attendee.ticket_answers.items() %}
-                            <li><strong>{{ question }}:</strong> {{ answer }}</li>
-                        {% endfor %}
-                    </ul>
+            <!-- Back to Dashboard Link -->
+            <a href="{{ url_for('dashboard') }}" class="back-to-dashboard">Back to Dashboard</a>
+        </div>
+    </div>
 
-                    <!-- Edit and Delete Buttons -->
-                    <a href="{{ url_for('edit_attendee', attendee_id=attendee.id) }}">Edit</a>
-                    <form action="{{ url_for('delete_attendee', attendee_id=attendee.id) }}" method="POST" style="display:inline;">
-                        <button type="submit">Delete</button>
-                    </form>
-                    
-                    <hr>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No attendees for this event yet.</p>
-    {% endif %}
+    <!-- Footer Section -->
+    <footer>
+        <p>TicketRush Is A Trading Name Of Saunders Simmons Ltd</p>
+        <p>Registered Address: 15 Oxford Road, Yeovil, Somerset, BA21 5HR</p>
+        <p>Company Number: 15839557</p>
+    </footer>
 
 </body>
 </html>

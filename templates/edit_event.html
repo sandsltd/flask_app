@@ -3,30 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Event</title>
+    <title>Edit Event - {{ event.name }}</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        /* Header Section */
+        .header {
+            background-color: #ff0000;  /* TicketRush red background */
+            padding: 20px;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+
+        .header img {
+            max-width: 120px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            color: white; /* White text */
+        }
+
+        .header p {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        /* Container for the form */
+        .content-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        .form-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: white;
+        }
+
+        p {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        /* Shared Styles for Both Buttons */
+        .btn-common {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+            font-size: 16px;
+            text-align: center;
+            display: block;
+        }
+
+        /* Save Changes Button Specific Styles */
+        .submit-btn {
+            background-color: #555;  /* Grey for submit button */
+            color: white;
+            margin-top: 20px;
+        }
+
+        .submit-btn:hover {
+            background-color: #333;  /* Darker grey on hover */
+        }
+
+        /* Back to Dashboard Link */
+        .back-to-dashboard {
+            display: block;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 16px;
+            color: #ff0000;
+        }
+
+        .back-to-dashboard:hover {
+            color: #d40000;
+        }
+
+        /* Footer Styling */
+        footer {
+            background-color: #ff0000;  /* TicketRush red background */
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            position: relative;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
 </head>
 <body>
-    <h1>Edit Event: {{ event.name }}</h1>
 
-    <form method="POST" action="{{ url_for('edit_event', event_id=event.id) }}">
-        <label for="name">Event Name:</label>
-        <input type="text" id="name" name="name" value="{{ event.name }}" required><br>
+    <!-- Header Section -->
+    <header class="header">
+        <img src="https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush Logo">
+        <h1>Edit Event: {{ event.name }}</h1>
+        <p>Use this form to update the details of your event. You can change the event name, date, location, ticket quantity, and price below. Once you're happy with the changes, click "Save Changes" to update your event.</p>
+    </header>
 
-        <label for="date">Event Date (YYYY-MM-DD):</label>
-        <input type="date" id="date" name="date" value="{{ event.date }}" required><br>
+    <!-- Content Wrapper Section -->
+    <div class="content-wrapper">
+        <div class="form-container">
+            <h1>Edit Event</h1>
 
-        <label for="location">Location:</label>
-        <input type="text" id="location" name="location" value="{{ event.location }}" required><br>
+            <!-- Edit Event Form -->
+            <form method="POST" action="{{ url_for('edit_event', event_id=event.id) }}">
+                <label for="name">Event Name:</label>
+                <input type="text" id="name" name="name" value="{{ event.name }}" required>
 
-        <label for="ticket_quantity">Total Tickets:</label>
-        <input type="number" id="ticket_quantity" name="ticket_quantity" value="{{ event.ticket_quantity }}" required><br>
+                <label for="date">Event Date (DD-MM-YYYY):</label>
+                <input type="date" id="date" name="date" value="{{ event.date }}" required>
 
-        <label for="ticket_price">Ticket Price (£):</label>
-        <input type="number" id="ticket_price" name="ticket_price" step="0.01" value="{{ event.ticket_price }}" required><br>
+                <label for="location">Location:</label>
+                <input type="text" id="location" name="location" value="{{ event.location }}" required>
 
-        <button type="submit">Save Changes</button>
-    </form>
+                <label for="ticket_quantity">Total Tickets:</label>
+                <input type="number" id="ticket_quantity" name="ticket_quantity" value="{{ event.ticket_quantity }}" required>
 
-    <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+                <label for="ticket_price">Ticket Price (£):</label>
+                <input type="number" id="ticket_price" name="ticket_price" step="0.01" value="{{ event.ticket_price }}" required>
+
+                <button type="submit" class="btn-common submit-btn">Save Changes</button>
+            </form>
+
+            <!-- Back to Dashboard Link -->
+            <a href="{{ url_for('dashboard') }}" class="back-to-dashboard">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Footer Section -->
+    <footer>
+        <p>TicketRush Is A Trading Name Of Saunders Simmons Ltd</p>
+        <p>Registered Address: 15 Oxford Road, Yeovil, Somerset, BA21 5HR</p>
+        <p>Company Number: 15839557</p>
+    </footer>
+
 </body>
 </html>
