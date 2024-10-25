@@ -873,6 +873,9 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         event = Event.query.get(attendee.event_id)
         organizer = User.query.get(event.user_id)
 
+        # Calculate total payment amount (ticket quantity * ticket price)
+        total_payment = attendee.tickets_purchased * attendee.ticket_price_at_purchase
+
         # Prepare the subject line
         subject = f"Your Ticket Confirmation for {event.name}"
 
@@ -923,16 +926,17 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
                 <strong>Email:</strong> {attendee.email}<br>
                 <strong>Phone Number:</strong> {attendee.phone_number}<br>
                 <strong>Ticket Quantity:</strong> {attendee.tickets_purchased}<br>
+                <strong>Amount Paid:</strong> £{total_payment:.2f}<br>
                 <strong>Billing Address:</strong> {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}
             </p>
             
             <hr style="border: 1px solid #ff0000;">
             
             <h3 style="color: #ff0000;">Add to Calendar:</h3>
-            <p>
-                - <a href="{google_calendar_url}" style="background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Click here to add to Google Calendar</a><br>
-                - <a href="{ics_file_url}" style="background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Click here to add to Apple/iOS or other Calendar</a>
-            </p>
+            <div style="margin-bottom: 20px;">
+                <a href="{google_calendar_url}" style="display: inline-block; background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px; margin-right: 10px;">Click here to add to Google Calendar</a>
+                <a href="{ics_file_url}" style="display: inline-block; background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Click here to add to Apple/iOS or other Calendar</a>
+            </div>
             
             <hr style="border: 1px solid #ff0000;">
             
