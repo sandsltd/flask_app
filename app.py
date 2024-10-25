@@ -484,38 +484,42 @@ def embed_events(unique_id):
             # Calculate tickets available
             tickets_available = event.ticket_quantity - tickets_sold
 
-            # Calculate days remaining
+            # Format the event date to 'Monday 12th October 2024'
             event_date = datetime.strptime(event.date, '%Y-%m-%d')
+            formatted_date = event_date.strftime('%A %-d %B %Y')
+
+            # Calculate days remaining
             days_remaining = (event_date - datetime.now()).days
 
-            # Use an event image or a default fallback image
-            event_image_url = event.event_image if event.event_image else "https://via.placeholder.com/300x200?text=Event+Image"
+            # Use color-coding for sold out or available tickets
+            ticket_status_color = '#28a745' if tickets_available > 0 else '#ff0000'
+            ticket_status_text = f'Tickets Available: {tickets_available}' if tickets_available > 0 else 'Sold Out'
 
             # Design for each event
             events_html += f'''
             <li style="border: 1px solid #ddd; margin-bottom: 20px; padding: 20px; border-radius: 8px; background-color: #fff; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); width: 48%; position: relative;">
-                <img src="{event_image_url}" alt="{event.name}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;">
                 <div style="padding: 15px;">
                     <strong style="font-family: 'Roboto', sans-serif; font-size: 20px; color: #333;">{event.name}</strong><br>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">Date: {event.date}</span><br>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">Location: {event.location}</span><br>
+                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">
+                        <i class="fa fa-calendar" aria-hidden="true" style="margin-right: 5px;"></i>{formatted_date}
+                    </span><br>
+                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">
+                        <i class="fa fa-map-marker" aria-hidden="true" style="margin-right: 5px;"></i>{event.location}
+                    </span><br>
                     <p style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #444;">{event.description}</p>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">Time: {event.start_time} - {event.end_time}</span><br>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #444;">Days Remaining: {days_remaining} days</span><br>
+                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">
+                        <i class="fa fa-clock-o" aria-hidden="true" style="margin-right: 5px;"></i>{event.start_time} - {event.end_time}
+                    </span><br>
+                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">Days Remaining: {days_remaining} days</span><br>
+                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: {ticket_status_color}; font-weight: bold;">{ticket_status_text}</span><br>
             '''
-            # Check if tickets are sold out
+            # Show the 'Buy Ticket' button if tickets are available
             if tickets_available > 0:
                 events_html += f'''
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #444;">Tickets Available: {tickets_available}</span><br>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #444;">Ticket Price: £{event.ticket_price}</span><br>
                     <button style="padding: 10px 20px; background-color: #ff0000; color: #fff; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; transition: background-color 0.3s ease;" 
                     onmouseover="this.style.backgroundColor='#d40000';" 
                     onmouseout="this.style.backgroundColor='#ff0000';"
                     onclick="window.location.href='https://flask-app-2gp0.onrender.com/purchase/{event.id}'">Buy Ticket</button>
-                '''
-            else:
-                events_html += '''
-                    <span style="color:red; font-weight:bold; font-family: 'Roboto', sans-serif; font-size: 16px;">Sold Out</span><br>
                 '''
             events_html += '</div></li><br>'
         events_html += '</ul>'
@@ -533,7 +537,6 @@ def embed_events(unique_id):
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
-
 
 '''
 
