@@ -501,7 +501,7 @@ def embed_events(unique_id):
             # Optional: Truncate the event description for cleaner layout (limit to 100 characters)
             truncated_description = (event.description[:100] + '...') if len(event.description) > 100 else event.description
 
-            # Design for each event
+            # Design for each event with explicit labels for each field
             events_html += f'''
             <li style="border: 1px solid #ddd; margin-bottom: 20px; padding: 20px; border-radius: 8px; background-color: #fff; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); width: 48%; position: relative;">
                 <!-- Floating Badge for Days Remaining -->
@@ -509,16 +509,16 @@ def embed_events(unique_id):
                     {days_remaining} days left
                 </span>
                 <div style="padding: 15px;">
-                    <strong style="font-family: 'Roboto', sans-serif; font-size: 20px; color: #333;">{event.name}</strong><br>
+                    <strong style="font-family: 'Roboto', sans-serif; font-size: 20px; color: #333;">Event: {event.name}</strong><br>
                     <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">
-                        <i class="fa fa-calendar" aria-hidden="true" style="margin-right: 5px;"></i>{formatted_date}
+                        <i class="fa fa-calendar" aria-hidden="true" style="margin-right: 5px;"></i>Date: {formatted_date}
                     </span><br>
                     <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">
-                        <i class="fa fa-map-marker" aria-hidden="true" style="margin-right: 5px;"></i>{event.location}
+                        <i class="fa fa-map-marker" aria-hidden="true" style="margin-right: 5px;"></i>Location: {event.location}
                     </span><br>
-                    <p style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #444;">{truncated_description}</p>
+                    <p style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #444;">Description: {truncated_description}</p>
                     <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">
-                        <i class="fa fa-clock-o" aria-hidden="true" style="margin-right: 5px;"></i>{event.start_time} - {event.end_time}
+                        <i class="fa fa-clock-o" aria-hidden="true" style="margin-right: 5px;"></i>Time: {event.start_time} - {event.end_time}
                     </span><br>
                     <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: {ticket_status_color}; font-weight: bold;">{ticket_status_text}</span><br>
             '''
