@@ -188,9 +188,9 @@ def load_user(user_id):
 # Routes for login, logout, registration
 @app.route('/')
 def home():
-    return "Hello, World!"
+    return redirect(url_for('login'))
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -532,7 +532,7 @@ def embed_events(unique_id):
         <span style="font-family: 'Roboto', sans-serif; color: #444; font-size: 14px;">Powered by </span>
         <a href="https://www.ticketrush.io" target="_blank" style="text-decoration: none;">
             <span style="color: #ff0000; font-size: 14px; font-weight: bold;">TicketRush</span>
-            <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush Logo" style="width: 80px; vertical-align: middle; margin-left: 10px;">
+            <img src="https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Logo.png alt="TicketRush Logo" style="width: 80px; vertical-align: middle; margin-left: 10px;">
         </a>
     </div>
     '''
@@ -965,7 +965,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         <body style="background-color: #ffffff; color: #000000; font-family: Arial, sans-serif; padding: 20px;">
             <!-- Include Logo -->
             <div style="text-align: center; margin-bottom: 20px;">
-                <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
+                <img src="https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
             </div>
 
             <h2 style="color: #ff0000;">Hello {attendee.full_name},</h2>
@@ -1080,7 +1080,7 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
         <body style="background-color: #ffffff; color: #000000; font-family: Arial, sans-serif; padding: 20px;">
             <!-- Include Logo -->
             <div style="text-align: center; margin-bottom: 20px;">
-                <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
+                <img src="https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
             </div>
 
             <h2 style="color: #ff0000;">Hello {organizer.first_name},</h2>
