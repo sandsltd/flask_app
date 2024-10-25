@@ -943,9 +943,8 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
             <h3 style="color: #ff0000;">Organiser Details:</h3>
             <p>
                 <strong>Business:</strong> {organizer.business_name}<br>
-                <strong>Contact:</strong> <a href="mailto:{organizer.email}" style="color: #ff0000;">{organizer.email}</a> (Please contact the organiser directly for any event-related inquiries)<br>
                 <strong>Website:</strong> <a href="{organizer.website_url or '#'}" style="color: #ff0000;">{organizer.website_url or 'No website provided'}</a><br>
-                <strong>Terms:</strong> <a href="{organizer.terms or '#'}" style="color: #ff0000;">{organizer.terms or 'No terms provided'}</a>
+                <strong>Organisers Terms (Please Read):</strong> <a href="{organizer.terms or '#'}" style="color: #ff0000;">{organizer.terms or 'No terms provided'}</a>
             </p>
 
             <hr style="border: 1px solid #ff0000;">
@@ -953,17 +952,17 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
             <!-- New Need Help Section -->
             <h3 style="color: #ff0000;">Need Help?</h3>
             <p>
-                If you have any issues or questions about the event, please reach out directly to the organizer, 
+                If you have any issues or questions about the event, please reach out directly to  
                 {organizer.business_name}, at <a href="mailto:{organizer.email}" style="color: #ff0000;">{organizer.email}</a>.
             </p>
 
             <hr style="border: 1px solid #ff0000;">
-            
-            <p style="color: #ff0000;"><strong>Powered by Ticket Rush</strong></p>
 
-            <p>We look forward to seeing you at the event!</p>
+            <p>Thank you for using TicketRush</p>
 
             <p>Best regards,<br>Ticket Rush Team</p>
+
+            <p style="color: #ff0000;"><strong>Powered by Ticket Rush</strong></p>
         </body>
         </html>
         """
@@ -988,27 +987,86 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
 def send_confirmation_email_to_organizer(organizer, attendees, billing_details, event):
     try:
         # Collect attendee details to include in the email to the organizer
-        attendee_info = "\n".join([
+        attendee_info = "<br>".join([
             f"Name: {attendee.full_name}, Email: {attendee.email}, Phone: {attendee.phone_number}, Quantity: {attendee.tickets_purchased}"
             for attendee in attendees
         ])
 
-        # Prepare the email message for the event organizer
+        # Prepare the subject line
+        subject = f"New Ticket Purchase for Your Event '{event.name}'"
+
+        # Placeholder for the dashboard link
+        dashboard_link = "#"
+
+        # Prepare the email body with the same inline CSS and logo as the attendee email
+        body = f"""
+        <html>
+        <body style="background-color: #ffffff; color: #000000; font-family: Arial, sans-serif; padding: 20px;">
+            <!-- Include Logo -->
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
+            </div>
+
+            <h2 style="color: #ff0000;">Dear {organizer.first_name},</h2>
+
+            <p>You've received new ticket purchases for your event <strong>'{event.name}'</strong>. Here are the details:</p>
+
+            <hr style="border: 1px solid #ff0000;">
+            
+            <h3 style="color: #ff0000;">Event Information:</h3>
+            <p>
+                <strong>Event:</strong> {event.name}<br>
+                <strong>Date:</strong> {event.date}<br>
+                <strong>Time:</strong> {event.start_time} - {event.end_time}<br>
+                <strong>Location:</strong> {event.location}
+            </p>
+
+            <h3 style="color: #ff0000;">Attendee Details:</h3>
+            <p>{attendee_info}</p>
+
+            <h3 style="color: #ff0000;">Billing Information:</h3>
+            <p>
+                <strong>Billing Address:</strong> {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}
+            </p>
+
+            <hr style="border: 1px solid #ff0000;">
+            
+            <h3 style="color: #ff0000;">View This Booking:</h3>
+            <div style="margin-bottom: 20px;">
+                <a href="{dashboard_link}" style="display: inline-block; background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px;">View in Your Dashboard</a>
+            </div>
+            
+            <hr style="border: 1px solid #ff0000;">
+            
+            <!-- Support Section -->
+            <h3 style="color: #ff0000;">Need Help?</h3>
+            <p>
+                If you have any questions or need assistance, feel free to reach out to TicketRush support at 
+                <a href="mailto:support@ticketrush.co.uk" style="color: #ff0000;">support@ticketrush.co.uk</a>.
+            </p>
+
+            <hr style="border: 1px solid #ff0000;">
+            
+            <p style="color: #ff0000;"><strong>Powered by Ticket Rush</strong></p>
+
+            <p>Best regards,<br>Ticket Rush Team</p>
+        </body>
+        </html>
+        """
+
+        # Create and send the email using Flask-Mail
         msg = Message(
-            subject="New Ticket Purchase for Your Event",
+            subject=subject,
             recipients=[organizer.email],
-            body=f"Dear {organizer.first_name},\n\n"
-                 f"You have new ticket purchases for your event '{event.name}'.\n"
-                 f"Event Date: {event.date}\n"
-                 f"Here are the details of the attendee(s):\n\n"
-                 f"{attendee_info}\n\n"
-                 f"Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}\n\n"
-                 f"Best regards,\nYour Platform Team"
+            body=body,
+            html=body  # Render the email as HTML to support links and styling
         )
-        mail.send(msg)  # Send the email using Flask-Mail
+        mail.send(msg)
         print(f"Confirmation email sent to organizer {organizer.email}.")
+
     except Exception as e:
         print(f"Failed to send confirmation email to organizer {organizer.email}. Error: {str(e)}")
+
 
 def handle_checkout_session(session):
     session_id = session.get('metadata', {}).get('session_id')
