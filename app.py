@@ -23,6 +23,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import math
 from flask_mail import Mail, Message
 import urllib.parse
+from flask import Response
+
 
 
 app = Flask(__name__)
@@ -91,6 +93,9 @@ class User(db.Model, UserMixin):
     promo_rate_date_end = db.Column(db.Date, nullable=True)
 
     events = db.relationship('Event', backref='user', lazy=True)
+
+
+
 
 
 # Event model
@@ -834,20 +839,49 @@ def stripe_webhook():
 
 
 
+# Route to generate ICS file
+@app.route('/download_ics/<int:event_id>')
+def download_ics(event_id):
+    event = Event.query.get_or_404(event_id)
+    organizer = User.query.get(event.user_id)
+
+    # Prepare ICS file content
+    ics_content = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Your Company//NONSGML Event//EN
+BEGIN:VEVENT
+UID:{event.id}@your-platform.com
+DTSTAMP:{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}
+DTSTART:{event.date.replace('-', '')}T{event.start_time.replace(':', '')}00Z
+DTEND:{event.date.replace('-', '')}T{event.end_time.replace(':', '')}00Z
+SUMMARY:{event.name}
+DESCRIPTION:{event.description}
+LOCATION:{event.location}
+END:VEVENT
+END:VCALENDAR
+"""
+
+    # Return the ICS file as a download
+    return Response(ics_content, mimetype='text/calendar', headers={
+        'Content-Disposition': f'attachment; filename={event.name}.ics'
+    })
+
+
+# Update the send_confirmation_email_to_attendee function
 def send_confirmation_email_to_attendee(attendee, billing_details):
     try:
         # Fetch event and organizer (user) details
         event = Event.query.get(attendee.event_id)
         organizer = User.query.get(event.user_id)
-        
+
         # Prepare the subject line
         subject = f"Your Ticket Confirmation for {event.name}"
-        
+
         # Generate "Add to Calendar" links (Google Calendar and iOS .ics file)
         start_time = event.start_time.replace(':', '')  # Assuming time is 'HH:MM'
         end_time = event.end_time.replace(':', '')  # End time in the same format
         event_date = event.date.replace('-', '')  # Assuming date is 'YYYY-MM-DD'
-        
+
         # Google Calendar link
         google_calendar_url = (
             f"https://www.google.com/calendar/render?"
@@ -857,8 +891,8 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
             f"&location={urllib.parse.quote(event.location)}"
             f"&sf=true&output=xml"
         )
-        
-        # iOS/ICS Calendar file (served via your route)
+
+        # iOS/ICS Calendar file link
         ics_file_url = url_for('download_ics', event_id=event.id, _external=True)
 
         # Prepare the email body
@@ -904,7 +938,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         Best regards,
         Ticket Rush Team
         """
-        
+
         # Create and send the email using Flask-Mail
         msg = Message(
             subject=subject,
@@ -913,9 +947,10 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         )
         mail.send(msg)
         print(f"Confirmation email sent to attendee {attendee.email}.")
-    
+
     except Exception as e:
         print(f"Failed to send confirmation email to attendee {attendee.email}. Error: {str(e)}")
+
 
 
 
