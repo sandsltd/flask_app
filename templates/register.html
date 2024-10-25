@@ -133,6 +133,11 @@
             background-color: #d40000;
         }
 
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
         /* Additional Button Styling */
         .login-btn {
             display: block;
@@ -147,6 +152,20 @@
 
         .login-btn:hover {
             background-color: #333;
+        }
+
+        /* Stripe Explanation */
+        .stripe-info {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        /* Terms Checkbox */
+        .terms {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #333;
         }
 
         /* Info Section */
@@ -227,8 +246,16 @@
                 max-width: 100%;
             }
         }
-
     </style>
+
+    <script>
+        // Disable the Register button until terms are agreed
+        function toggleRegisterButton() {
+            var termsCheckbox = document.getElementById('terms');
+            var registerButton = document.getElementById('registerButton');
+            registerButton.disabled = !termsCheckbox.checked;
+        }
+    </script>
 </head>
 <body>
 
@@ -288,8 +315,23 @@
                     <label for="postcode">Postcode:</label>
                     <input type="text" id="postcode" name="postcode" required>
 
-                    <button type="submit">Register</button>
+                <!-- Stripe Explanation Section -->
+                <div class="stripe-info">
+                    <p><strong>Next step:</strong> After registering, you'll be prompted to create a Stripe account (or connect an existing one). This is necessary to accept payments on our platform. Even if you already have a Stripe account, you'll need to go through this process to ensure everything is integrated with TicketRush.</p>
+                </div>
+
+                    <!-- Terms of Service Checkbox -->
+                    <div class="terms">
+                        <input type="checkbox" id="terms" onclick="toggleRegisterButton()">
+                        <label for="terms">
+                            I agree to <a href="#" target="_blank">TicketRush's terms of service</a>.
+                        </label>
+                    </div>
+
+                    <button type="submit" id="registerButton" disabled>Register</button>
                 </form>
+
+
 
                 <!-- Already Registered Button -->
                 <a href="/login" class="login-btn">Already registered? Click here to login</a>
@@ -298,6 +340,8 @@
                 {% if error %}
                     <p style="color:red;">{{ error }}</p>
                 {% endif %}
+
+ 
             </div>
 
             <!-- Info Section -->
