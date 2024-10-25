@@ -79,7 +79,7 @@
 
         p {
             font-size: 16px;
-            color: #ffffff;
+            color: #333;
         }
 
         label {
@@ -188,56 +188,57 @@
         <p><strong>Location:</strong> {{ event.location }}</p>
         <p><strong>Price per ticket:</strong> £{{ event.ticket_price }}</p>
 
-        <form method="POST">
-            <!-- Organizer Details at the Top -->
-            <h3>Organizer Details</h3>
-            <p><strong>Business Name:</strong> {{ user.business_name }}</p>
-            <p><strong>Website:</strong> <a href="{{ user.website_url }}" target="_blank">{{ user.website_url }}</a></p>
+        <!-- Organizer Details at the Top -->
+        <h3>Organizer Details</h3>
+        <p><strong>Business Name:</strong> {{ user.business_name }}</p>
+        <p><strong>Website:</strong> <a href="{{ user.website_url }}" target="_blank">{{ user.website_url }}</a></p>
 
-            <!-- Number of Tickets -->
-            <label for="number_of_tickets">Number of Tickets:</label>
-            <input
-                type="number"
-                id="number_of_tickets"
-                name="number_of_tickets"
-                min="1"
-                max="{{ event.ticket_quantity }}"
-                required
-                onchange="updateQuestionForms()"
-            >
+        <!-- Personal Information Section -->
+        <h3>Your Details</h3>
 
-            <!-- Dynamically added question forms per ticket -->
-            <div id="question_forms"></div>
+        <!-- Full Name -->
+        <label for="full_name">Full Name:</label>
+        <input type="text" id="full_name" name="full_name" required>
 
-            <!-- Full Name -->
-            <label for="full_name">Full Name:</label>
-            <input type="text" id="full_name" name="full_name" required>
+        <!-- Email -->
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
 
-            <!-- Email -->
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
+        <!-- Phone Number -->
+        <label for="phone_number">Phone Number:</label>
+        <input type="tel" id="phone_number" name="phone_number" required>
 
-            <!-- Phone Number -->
-            <label for="phone_number">Phone Number:</label>
-            <input type="tel" id="phone_number" name="phone_number" required>
+        <!-- Number of Tickets -->
+        <label for="number_of_tickets">Number of Tickets:</label>
+        <input
+            type="number"
+            id="number_of_tickets"
+            name="number_of_tickets"
+            min="1"
+            max="{{ event.ticket_quantity }}"
+            required
+            onchange="updateQuestionForms()"
+        >
 
-            <!-- Terms and Conditions Checkboxes -->
-            <h3>Terms and Conditions</h3>
-            <div class="terms">
-                <input type="checkbox" id="accept_organiser_terms" name="accept_organizer_terms" required>
-                <label for="accept_organizer_terms">
-                    I accept the <a href="{{ organizer_terms_link }}" target="_blank" style="color: black;">event organizer's Terms and Conditions</a>.
-                </label>
-            </div>
-            <div class="terms">
-                <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
-                <label for="accept_platform_terms">
-                    I accept the <a href="{{ platform_terms_link }}" target="_blank" style="color: black;">platform's Terms and Conditions</a>.
-                </label>
-            </div>
+        <!-- Dynamically added question forms per ticket -->
+        <div id="question_forms"></div>
 
-            <button type="submit">Proceed to Payment</button>
-        </form>
+        <!-- Terms and Conditions Checkboxes -->
+        <h3>Terms and Conditions</h3>
+        <div class="terms">
+            <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
+            <label for="accept_organizer_terms">
+                I accept the <a href="{{ organizer_terms_link }}" target="_blank" style="color: black;">event organizer's Terms and Conditions</a>.
+            </label>
+        </div>
+        <div class="terms">
+            <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
+            <label for="accept_platform_terms">
+                I accept the <a href="{{ platform_terms_link }}" target="_blank" style="color: black;">platform's Terms and Conditions</a>.
+            </label>
+        </div>
+
+        <button type="submit">Proceed to Payment</button>
     </div>
 
     <!-- Footer Section -->
