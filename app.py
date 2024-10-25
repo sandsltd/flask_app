@@ -467,6 +467,14 @@ def embed_events(unique_id):
 
     events_html = '<ul>'
     for event in user_events:
+        # Calculate tickets sold
+        succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
+        tickets_sold = sum([attendee.tickets_purchased for attendee in succeeded_attendees])
+
+        # Calculate tickets available
+        tickets_available = event.ticket_quantity - tickets_sold
+
+        # Display event details along with available tickets
         events_html += f'''
         <li>
             <strong>{event.name}</strong><br>
@@ -474,7 +482,7 @@ def embed_events(unique_id):
             Location: {event.location}<br>
             Description: {event.description}<br>
             Time: {event.start_time} - {event.end_time}<br>
-            Ticket Quantity: {event.ticket_quantity}<br>
+            Tickets Available: {tickets_available}<br>
             Ticket Price: £{event.ticket_price}<br>
             <button onclick="window.location.href='https://flask-app-2gp0.onrender.com/purchase/{event.id}'">Buy Ticket</button>
         </li><br>
@@ -483,6 +491,7 @@ def embed_events(unique_id):
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 '''
 
