@@ -1,214 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Tickets - {{ event.name }}</title>
-    <style>
-        /* Global Styles */
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f7f7f7;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-
-        /* Header Styling */
-        .header {
-            background-color: #ff0000;  /* Red background */
-            padding: 20px;
-            text-align: center;
-            color: white;  /* White text */
-            position: relative;
-        }
-
-        .header img {
-            max-width: 120px;
-            display: block;
-            margin: 0 auto 10px;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 14px;
-        }
-
-        /* Back to Website Button in the header */
-        .back-to-website {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background-color: white;
-            color: #ff0000;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .back-to-website:hover {
-            background-color: #e6e6e6;
-        }
-
-        .header a {
-            color: black;
-            text-decoration: none;
-        }
-
-        /* Form Container */
-        .container {
-            max-width: 800px;
-            margin: 20px auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            color: #333;
-            font-size: 24px;
-        }
-
-        p {
-            font-size: 16px;
-            color: #333;
-        }
-
-        label {
-            display: block;
-            margin: 10px 0 5px;
-            font-weight: bold;
-        }
-
-        input[type="text"],
-        input[type="email"],
-        input[type="tel"],
-        input[type="number"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        input[type="checkbox"] {
-            margin-right: 10px;
-        }
-
-        button {
-            background-color: #ff0000;  /* Red button */
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        button:hover {
-            background-color: #d40000;
-        }
-
-        /* Terms and Conditions */
-        .terms {
-            margin-bottom: 20px;
-        }
-
-        .ticket-question {
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #f0f0f0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-
-        .ticket-question h3 {
-            margin-bottom: 10px;
-        }
-
-        /* Footer Styling */
-        footer {
-            background-color: #ff0000;  /* Red background */
-            color: white;  /* White text */
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-        }
-
-        footer a {
-            color: black;
-            text-decoration: underline;
-        }
-
-        /* Mobile Responsive */
-        @media only screen and (max-width: 600px) {
-            .container {
-                padding: 15px;
-            }
-
-            h1 {
-                font-size: 20px;
-            }
-
-            .header h1 {
-                font-size: 24px;
-            }
-
-            .header img {
-                max-width: 100px;
-            }
-        }
-    </style>
+    <title>Purchase Tickets</title>
 </head>
 <body>
-
-    <!-- Header Section -->
-    <header class="header">
-        <!-- Back to Website Button -->
-        <button class="back-to-website" onclick="window.location.href='{{ user.website_url }}'">Back to Website</button>
-
-        <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush Logo">
-        <h1>{{ user.business_name }} Booking Portal</h1>
-        <p>Powered by <a href="https://ticketrush.io" target="_blank"><strong>TicketRush</strong></a></p>
-    </header>
-
-    <!-- Form Section -->
-    <div class="container">
-        <h1>Book Tickets for {{ event.name }}</h1>
-        <p><strong>Event Description:</strong> {{ event.description }}</p>
-        <p><strong>Date:</strong> {{ event.date.strftime('%d %B %Y') }}</p>
-        <p><strong>Location:</strong> {{ event.location }}</p>
-        <p><strong>Price per ticket:</strong> £{{ event.ticket_price }}</p>
-
-        <!-- Organizer Details at the Top -->
-        <h3>Organiser Details</h3>
-        <p><strong>Business Name:</strong> {{ user.business_name }}</p>
-        <p><strong>Website:</strong> <a href="{{ user.website_url }}" target="_blank">{{ user.website_url }}</a></p>
-
-        <!-- Personal Information Section -->
-        <h3>Your Details</h3>
-
-        <!-- Full Name -->
-        <label for="full_name">Full Name:</label>
-        <input type="text" id="full_name" name="full_name" required>
-
-        <!-- Email -->
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
-
-        <!-- Phone Number -->
-        <label for="phone_number">Phone Number:</label>
-        <input type="tel" id="phone_number" name="phone_number" required>
-
-        <!-- Number of Tickets -->
+    <h1>Purchase Tickets for {{ event.name }}</h1>
+    <p>{{ event.description }}</p>
+    <p>Date: {{ event.date }}</p>
+    <p>Location: {{ event.location }}</p>
+    <p>Price per ticket: £{{ event.ticket_price }}</p>
+    <form method="POST">
         <label for="number_of_tickets">Number of Tickets:</label>
         <input
             type="number"
@@ -219,37 +20,43 @@
             required
             onchange="updateQuestionForms()"
         >
+        <div id="question_forms">
+            <!-- Question forms will be dynamically added here -->
+        </div>
 
-        <!-- Dynamically added question forms per ticket -->
-        <div id="question_forms"></div>
+        <form method="POST">
+            <!-- Full Name -->
+            <label for="full_name">Full Name:</label>
+            <input type="text" id="full_name" name="full_name" required><br><br>
+        
+            <!-- Email -->
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required><br><br>
+        
+            <!-- Telephone Number -->
+            <label for="phone_number">Telephone Number:</label>
+            <input type="tel" id="phone_number" name="phone_number" required><br><br>
+
 
         <!-- Terms and Conditions Checkboxes -->
         <h3>Terms and Conditions</h3>
-        <div class="terms">
+        <div>
             <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
             <label for="accept_organizer_terms">
-                I accept the <a href="{{ organizer_terms_link }}" target="_blank" style="color: black;">event organiser's Terms and Conditions</a>.
+                I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organizer's Terms and Conditions</a>.
             </label>
         </div>
-        <div class="terms">
+        <div>
             <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
             <label for="accept_platform_terms">
-                I accept the <a href="{{ platform_terms_link }}" target="_blank" style="color: black;">platform's Terms and Conditions</a>.
+                I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>.
             </label>
         </div>
 
         <button type="submit">Proceed to Payment</button>
-    </div>
+    </form>
 
-    <!-- Footer Section -->
-    <footer>
-        <p>TicketRush Is A Trading Name Of Saunders Simmons Ltd</p>
-        <p>Registered Address: 15 Oxford Road, Yeovil, Somerset, BA21 5HR</p>
-        <p>Company Number: 15839557</p>
-        <p>For any support queries, please raise a support ticket <a href="https://saunderssimmons.freshdesk.com/support/tickets/new" target="_blank">here</a>.</p>
-    </footer>
-
-    <!-- JavaScript to dynamically add questions based on the number of tickets -->
+    <!-- Include your JavaScript code after the form -->
     <script type="application/json" id="questions-data">
         {{ questions | tojson }}
     </script>
@@ -262,11 +69,10 @@
         function updateQuestionForms() {
             var numberOfTickets = document.getElementById('number_of_tickets').value;
             var formsContainer = document.getElementById('question_forms');
-            formsContainer.innerHTML = ''; // Clear the previous question forms
+            formsContainer.innerHTML = '';
 
             for (var i = 0; i < numberOfTickets; i++) {
                 var ticketDiv = document.createElement('div');
-                ticketDiv.classList.add('ticket-question');
                 ticketDiv.innerHTML = '<h3>Ticket ' + (i + 1) + '</h3>';
 
                 for (var j = 0; j < questions.length; j++) {
@@ -278,14 +84,16 @@
                     input.name = 'ticket_' + i + '_question_' + j;
                     input.required = true;
 
+                    var br = document.createElement('br');
+
                     ticketDiv.appendChild(label);
                     ticketDiv.appendChild(input);
+                    ticketDiv.appendChild(br);
                 }
 
                 formsContainer.appendChild(ticketDiv);
             }
         }
     </script>
-
 </body>
 </html>
