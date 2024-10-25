@@ -22,6 +22,7 @@ from uuid import uuid4
 from apscheduler.schedulers.background import BackgroundScheduler
 import math
 from flask_mail import Mail, Message
+import urllib.parse
 
 
 app = Flask(__name__)
@@ -831,27 +832,92 @@ def stripe_webhook():
     return '', 200
 
 
+
+
 def send_confirmation_email_to_attendee(attendee, billing_details):
     try:
-        # Prepare the email message
-        msg = Message(
-            subject="Your Ticket Purchase Confirmation",
-            recipients=[attendee.email],
-            body=f"Dear {attendee.full_name},\n\n"
-                 f"Thank you for purchasing tickets for the event. Below are your details:\n\n"
-                 f"Event: {attendee.event.name}\n"
-                 f"Full Name: {attendee.full_name}\n"
-                 f"Email: {attendee.email}\n"
-                 f"Phone Number: {attendee.phone_number}\n"
-                 f"Ticket Quantity: {attendee.tickets_purchased}\n"
-                 f"Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}\n\n"
-                 f"We look forward to seeing you at the event!\n\n"
-                 f"Best regards,\nThe Event Team"
+        # Fetch event and organizer (user) details
+        event = Event.query.get(attendee.event_id)
+        organizer = User.query.get(event.user_id)
+        
+        # Prepare the subject line
+        subject = f"Your Ticket Confirmation for {event.name}"
+        
+        # Generate "Add to Calendar" links (Google Calendar and iOS .ics file)
+        start_time = event.start_time.replace(':', '')  # Assuming time is 'HH:MM'
+        end_time = event.end_time.replace(':', '')  # End time in the same format
+        event_date = event.date.replace('-', '')  # Assuming date is 'YYYY-MM-DD'
+        
+        # Google Calendar link
+        google_calendar_url = (
+            f"https://www.google.com/calendar/render?"
+            f"action=TEMPLATE&text={urllib.parse.quote(event.name)}"
+            f"&dates={event_date}T{start_time}Z/{event_date}T{end_time}Z"
+            f"&details=Event+at+{urllib.parse.quote(event.location)}"
+            f"&location={urllib.parse.quote(event.location)}"
+            f"&sf=true&output=xml"
         )
-        mail.send(msg)  # Send the email using Flask-Mail
+        
+        # iOS/ICS Calendar file (served via your route)
+        ics_file_url = url_for('download_ics', event_id=event.id, _external=True)
+
+        # Prepare the email body
+        body = f"""
+        Dear {attendee.full_name},
+
+        Thank you for purchasing tickets for the event '{event.name}'. Below are your details:
+
+        -------------------------
+        Event Information:
+        -------------------------
+        Event: {event.name}
+        Date: {event.date}
+        Time: {event.start_time} - {event.end_time}
+        Location: {event.location}
+
+        Full Name: {attendee.full_name}
+        Email: {attendee.email}
+        Phone Number: {attendee.phone_number}
+        Ticket Quantity: {attendee.tickets_purchased}
+        Billing Address: {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}
+
+        -------------------------
+        Add to Calendar:
+        -------------------------
+        - [Add to Google Calendar]({google_calendar_url})
+        - [Add to iOS / Other Calendar]({ics_file_url})
+
+        -------------------------
+        Organiser Details:
+        -------------------------
+        Business: {organizer.business_name}
+        Contact: {organizer.email} (Please contact the organiser directly for any event-related inquiries)
+        Website: {organizer.website_url or 'No website provided'}
+        Terms: {organizer.terms or 'No terms provided'}
+
+        -------------------------
+        Powered by Ticket Rush
+        -------------------------
+
+        We look forward to seeing you at the event!
+
+        Best regards,
+        Ticket Rush Team
+        """
+        
+        # Create and send the email using Flask-Mail
+        msg = Message(
+            subject=subject,
+            recipients=[attendee.email],
+            body=body
+        )
+        mail.send(msg)
         print(f"Confirmation email sent to attendee {attendee.email}.")
+    
     except Exception as e:
         print(f"Failed to send confirmation email to attendee {attendee.email}. Error: {str(e)}")
+
+
 
 
 def send_confirmation_email_to_organizer(organizer, attendees, billing_details, event):
