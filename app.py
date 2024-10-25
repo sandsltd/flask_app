@@ -873,8 +873,11 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         event = Event.query.get(attendee.event_id)
         organizer = User.query.get(event.user_id)
 
-        # Calculate total payment amount (ticket quantity * ticket price)
-        total_payment = attendee.tickets_purchased * attendee.ticket_price_at_purchase
+        # Calculate the total payment including ticket price and booking fee
+        total_ticket_price = attendee.tickets_purchased * attendee.ticket_price_at_purchase
+        platform_fee = 0.30 * attendee.tickets_purchased  # Assuming 30p booking fee per ticket
+        transaction_fee = 0.20  # Assuming 20p transaction fee
+        total_payment = total_ticket_price + platform_fee + transaction_fee
 
         # Prepare the subject line
         subject = f"Your Ticket Confirmation for {event.name}"
@@ -926,7 +929,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
                 <strong>Email:</strong> {attendee.email}<br>
                 <strong>Phone Number:</strong> {attendee.phone_number}<br>
                 <strong>Ticket Quantity:</strong> {attendee.tickets_purchased}<br>
-                <strong>Amount Paid:</strong> £{total_payment:.2f}<br>
+                <strong>Amount Paid (including fees):</strong> £{total_payment:.2f}<br>
                 <strong>Billing Address:</strong> {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}
             </p>
             
@@ -934,7 +937,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
             
             <h3 style="color: #ff0000;">Add to Calendar:</h3>
             <div style="margin-bottom: 20px;">
-                <a href="{google_calendar_url}" style="display: inline-block; background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px; margin-right: 10px;">Click here to add to Google Calendar</a>
+                <a href="{google_calendar_url}" style="display: inline-block; background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px; margin-right: 20px;">Click here to add to Google Calendar</a>
                 <a href="{ics_file_url}" style="display: inline-block; background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Click here to add to Apple/iOS or other Calendar</a>
             </div>
             
@@ -971,6 +974,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
 
     except Exception as e:
         print(f"Failed to send confirmation email to attendee {attendee.email}. Error: {str(e)}")
+
 
 
 
