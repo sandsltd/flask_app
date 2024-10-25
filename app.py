@@ -465,38 +465,57 @@ def embed_events(unique_id):
 
     user_events = Event.query.filter_by(user_id=user.id).all()
 
-    events_html = '<ul>'
-    for event in user_events:
-        # Calculate tickets sold
-        succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
-        tickets_sold = sum([attendee.tickets_purchased for attendee in succeeded_attendees])
+    # Filter out past events based on the current date
+    current_date = datetime.now().date()
+    future_events = [event for event in user_events if datetime.strptime(event.date, '%Y-%m-%d').date() >= current_date]
 
-        # Calculate tickets available
-        tickets_available = event.ticket_quantity - tickets_sold
+    # If no future events, show a message
+    if not future_events:
+        events_html = '<p style="font-family: Arial, sans-serif; color: #444; font-size: 16px;">No upcoming events available.</p>'
+    else:
+        events_html = '<ul style="list-style: none; padding: 0;">'
+        for event in future_events:
+            # Calculate tickets sold
+            succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
+            tickets_sold = sum([attendee.tickets_purchased for attendee in succeeded_attendees])
 
-        # Display event details along with available tickets
-        events_html += f'''
-        <li>
-            <strong>{event.name}</strong><br>
-            Date: {event.date}<br>
-            Location: {event.location}<br>
-            Description: {event.description}<br>
-            Time: {event.start_time} - {event.end_time}<br>
-        '''
-        # Check if tickets are sold out
-        if tickets_available > 0:
+            # Calculate tickets available
+            tickets_available = event.ticket_quantity - tickets_sold
+
+            # Design for each event
             events_html += f'''
-            Tickets Available: {tickets_available}<br>
-            Ticket Price: £{event.ticket_price}<br>
-            <button onclick="window.location.href='https://flask-app-2gp0.onrender.com/purchase/{event.id}'">Buy Ticket</button>
+            <li style="border: 1px solid #ddd; margin-bottom: 20px; padding: 20px; border-radius: 5px; background-color: #f9f9f9; box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);">
+                <strong style="font-family: Arial, sans-serif; font-size: 18px; color: #333;">{event.name}</strong><br>
+                <span style="font-family: Arial, sans-serif; font-size: 14px; color: #666;">Date: {event.date}</span><br>
+                <span style="font-family: Arial, sans-serif; font-size: 14px; color: #666;">Location: {event.location}</span><br>
+                <p style="font-family: Arial, sans-serif; font-size: 14px; color: #444;">{event.description}</p>
+                <span style="font-family: Arial, sans-serif; font-size: 14px; color: #666;">Time: {event.start_time} - {event.end_time}</span><br>
             '''
-        else:
-            events_html += '''
-            <span style="color:red; font-weight:bold;">Sold Out</span><br>
-            '''
+            # Check if tickets are sold out
+            if tickets_available > 0:
+                events_html += f'''
+                <span style="font-family: Arial, sans-serif; font-size: 14px; color: #444;">Tickets Available: {tickets_available}</span><br>
+                <span style="font-family: Arial, sans-serif; font-size: 14px; color: #444;">Ticket Price: £{event.ticket_price}</span><br>
+                <button style="padding: 10px 20px; background-color: #ff0000; color: #fff; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px;" 
+                onclick="window.location.href='https://flask-app-2gp0.onrender.com/purchase/{event.id}'">Buy Ticket</button>
+                '''
+            else:
+                events_html += '''
+                <span style="color:red; font-weight:bold; font-family: Arial, sans-serif; font-size: 16px;">Sold Out</span><br>
+                '''
+            events_html += '</li><br>'
+        events_html += '</ul>'
 
-        events_html += '</li><br>'
-    events_html += '</ul>'
+    # Add the "Powered by TicketRush" footer with logo and link
+    events_html += f'''
+    <div style="text-align: center; margin-top: 20px;">
+        <span style="font-family: Arial, sans-serif; color: #444; font-size: 14px;">Powered by </span>
+        <a href="https://www.ticketrush.io" target="_blank" style="text-decoration: none;">
+            <span style="color: #ff0000; font-size: 14px; font-weight: bold;">TicketRush</span>
+            <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush Logo" style="width: 80px; vertical-align: middle; margin-left: 10px;">
+        </a>
+    </div>
+    '''
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
