@@ -184,12 +184,12 @@
     <div class="container">
         <h1>Book Tickets for {{ event.name }}</h1>
         <p><strong>Event Description:</strong> {{ event.description }}</p>
-        <p><strong>Date:</strong> {{ event.date }}</p>
+        <p><strong>Date:</strong> {{ event.date.strftime('%A %d %B %Y') }}</p>
         <p><strong>Location:</strong> {{ event.location }}</p>
         <p><strong>Price per ticket:</strong> £{{ event.ticket_price }}</p>
 
-        <!-- Organizer Details at the Top -->
-        <h3>Organizer Details</h3>
+        <!-- Organiser Details at the Top -->
+        <h3>Organiser Details</h3>
         <p><strong>Business Name:</strong> {{ user.business_name }}</p>
         <p><strong>Website:</strong> <a href="{{ user.website_url }}" target="_blank">{{ user.website_url }}</a></p>
 
@@ -226,9 +226,9 @@
         <!-- Terms and Conditions Checkboxes -->
         <h3>Terms and Conditions</h3>
         <div class="terms">
-            <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
-            <label for="accept_organizer_terms">
-                I accept the <a href="{{ organizer_terms_link }}" target="_blank" style="color: black;">event organizer's Terms and Conditions</a>.
+            <input type="checkbox" id="accept_organiser_terms" name="accept_organiser_terms" required>
+            <label for="accept_organiser_terms">
+                I accept the <a href="{{ organiser_terms_link }}" target="_blank" style="color: black;">event organiser's Terms and Conditions</a>.
             </label>
         </div>
         <div class="terms">
