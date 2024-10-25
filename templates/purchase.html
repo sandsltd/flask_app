@@ -134,21 +134,6 @@
             margin-bottom: 10px;
         }
 
-        /* Booking Fee Notice */
-        .booking-fee-notice {
-            background-color: #ffebcd;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-
-        .booking-fee-notice p {
-            margin: 0;
-            font-size: 16px;
-            color: #333;
-        }
-
         /* Footer Styling */
         footer {
             background-color: #ff0000;  /* Red background */
@@ -190,7 +175,7 @@
         <!-- Back to Website Button -->
         <button class="back-to-website" onclick="window.location.href='{{ user.website_url }}'">Back to Website</button>
 
-        <img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T.png" alt="TicketRush Logo">
+        <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush Logo">
         <h1>{{ user.business_name }} Booking Portal</h1>
         <p>Powered by <a href="https://ticketrush.io" target="_blank"><strong>TicketRush</strong></a></p>
     </header>
@@ -207,8 +192,6 @@
         <h3>Organiser Details</h3>
         <p><strong>Business Name:</strong> {{ user.business_name }}</p>
         <p><strong>Website:</strong> <a href="{{ user.website_url }}" target="_blank">{{ user.website_url }}</a></p>
-
-
 
         <!-- Personal Information Section -->
         <h3>Your Details</h3>
@@ -254,11 +237,6 @@
                 I accept the <a href="{{ platform_terms_link }}" target="_blank" style="color: black;">platform's Terms and Conditions</a>.
             </label>
         </div>
-
-                <!-- Booking Fee Notice -->
-                <div class="booking-fee-notice">
-                    <p><strong>Note:</strong> A small booking fee will be applied at checkout to cover payment processing and platform fees. We work hard to keep these fees as low as possible to ensure affordability while continuing to provide a seamless experience. Thank you for your understanding!</p>
-                </div>
 
         <button type="submit">Proceed to Payment</button>
     </div>
