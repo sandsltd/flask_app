@@ -184,7 +184,7 @@
     <div class="container">
         <h1>Book Tickets for {{ event.name }}</h1>
         <p><strong>Event Description:</strong> {{ event.description }}</p>
-        <p><strong>Date:</strong> {{ event.date }}</p>
+        <p><strong>Date:</strong> {{ event.date.strftime('%d %B %Y') }}</p>
         <p><strong>Location:</strong> {{ event.location }}</p>
         <p><strong>Price per ticket:</strong> £{{ event.ticket_price }}</p>
 
