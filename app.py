@@ -867,7 +867,6 @@ END:VCALENDAR
     })
 
 
-# Update the send_confirmation_email_to_attendee function
 def send_confirmation_email_to_attendee(attendee, billing_details):
     try:
         # Fetch event and organizer (user) details
@@ -895,7 +894,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         # iOS/ICS Calendar file link
         ics_file_url = url_for('download_ics', event_id=event.id, _external=True)
 
-        # Prepare the email body
+        # Prepare the email body with cleaner links
         body = f"""
         Dear {attendee.full_name},
 
@@ -918,16 +917,16 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         -------------------------
         Add to Calendar:
         -------------------------
-        - [Add to Google Calendar]({google_calendar_url})
-        - [Add to iOS / Other Calendar]({ics_file_url})
+        - <a href="{google_calendar_url}">Click here to add to Google Calendar</a>
+        - <a href="{ics_file_url}">Click here to add to Apple/iOS or other Calendar</a>
 
         -------------------------
         Organiser Details:
         -------------------------
         Business: {organizer.business_name}
-        Contact: {organizer.email} (Please contact the organiser directly for any event-related inquiries)
-        Website: {organizer.website_url or 'No website provided'}
-        Terms: {organizer.terms or 'No terms provided'}
+        Contact: <a href="mailto:{organizer.email}">{organizer.email}</a> (Please contact the organiser directly for any event-related inquiries)
+        Website: <a href="{organizer.website_url or '#'}">{organizer.website_url or 'No website provided'}</a>
+        Terms: <a href="{organizer.terms or '#'}">{organizer.terms or 'No terms provided'}</a>
 
         -------------------------
         Powered by Ticket Rush
@@ -943,7 +942,8 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         msg = Message(
             subject=subject,
             recipients=[attendee.email],
-            body=body
+            body=body,
+            html=body  # Render the email as HTML to support links
         )
         mail.send(msg)
         print(f"Confirmation email sent to attendee {attendee.email}.")
