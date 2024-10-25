@@ -699,7 +699,7 @@ def purchase(event_id):
     if not event:
         return "Event not found", 404
 
-    user = User.query.get(event.user_id)
+    user = User.query.get(event.user_id)  # Get the event organizer
     if not user:
         return "Event organizer not found", 404
 
@@ -720,8 +720,6 @@ def purchase(event_id):
     for question in custom_questions:
         if question not in all_questions:
             all_questions.append(question)
-
-
 
     if request.method == 'POST':
         # Generate a unique session ID for this purchase
@@ -784,7 +782,7 @@ def purchase(event_id):
 
         # Calculate the platform's total fee (Platform Fee + Transaction Fee)
         platform_fee_pence = 30 * number_of_tickets  # 30p per ticket
-        transaction_fee_pence = 20               # 20p per transaction
+        transaction_fee_pence = 20  # 20p per transaction
         application_fee_pence = platform_fee_pence + transaction_fee_pence  # Total application fee
 
         # Logging for debugging
@@ -851,13 +849,16 @@ def purchase(event_id):
         platform_terms_link = 'https://your-platform-domain.com/terms-and-conditions'
         organizer_terms_link = user.terms or '#'
 
+        # Pass the user to the template here
         return render_template(
             'purchase.html',
             event=event,
             questions=all_questions,
             organizer_terms_link=organizer_terms_link,
-            platform_terms_link=platform_terms_link
+            platform_terms_link=platform_terms_link,
+            user=user  # Ensure the user is passed to the template
         )
+
 
 
 
