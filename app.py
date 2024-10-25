@@ -491,9 +491,6 @@ def embed_events(unique_id):
             event_date = datetime.strptime(event.date, '%Y-%m-%d')
             formatted_date = event_date.strftime('%A %-d %B %Y')
 
-            # Calculate days remaining
-            days_remaining = (event_date - datetime.now()).days
-
             # Use color-coding for sold out or available tickets
             ticket_status_color = '#28a745' if tickets_available > 0 else '#ff0000'
             ticket_status_text = f'Tickets Available: {tickets_available}' if tickets_available > 0 else 'Sold Out'
@@ -504,10 +501,6 @@ def embed_events(unique_id):
             # Design for each event with explicit labels for each field
             events_html += f'''
             <li style="border: 1px solid #ddd; padding: 20px; border-radius: 10px; background-color: #fff; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); width: 48%; position: relative; transition: all 0.3s ease;">
-                <!-- Floating Badge for Days Remaining -->
-                <span style="background-color: #ff0000; color: white; padding: 5px 15px; border-radius: 50px; position: absolute; top: 10px; right: 10px; font-family: 'Roboto', sans-serif; font-size: 14px;">
-                    {days_remaining} days left
-                </span>
                 <div style="padding: 15px;">
                     <strong style="font-family: 'Roboto', sans-serif; font-size: 22px; color: #333; display: block; margin-bottom: 10px;">Event: {event.name}</strong>
                     <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666; display: block; margin-bottom: 5px;">
@@ -546,6 +539,7 @@ def embed_events(unique_id):
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 '''
 
