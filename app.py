@@ -469,6 +469,9 @@ def embed_events(unique_id):
     current_date = datetime.now().date()
     future_events = [event for event in user_events if datetime.strptime(event.date, '%Y-%m-%d').date() >= current_date]
 
+    # Sort events by date, with the next upcoming event first
+    future_events = sorted(future_events, key=lambda event: datetime.strptime(event.date, '%Y-%m-%d'))
+
     # If no future events, show a message
     if not future_events:
         events_html = '<p style="font-family: \'Roboto\', sans-serif; color: #444; font-size: 16px;">No upcoming events available.</p>'
@@ -495,9 +498,16 @@ def embed_events(unique_id):
             ticket_status_color = '#28a745' if tickets_available > 0 else '#ff0000'
             ticket_status_text = f'Tickets Available: {tickets_available}' if tickets_available > 0 else 'Sold Out'
 
+            # Optional: Truncate the event description for cleaner layout (limit to 100 characters)
+            truncated_description = (event.description[:100] + '...') if len(event.description) > 100 else event.description
+
             # Design for each event
             events_html += f'''
             <li style="border: 1px solid #ddd; margin-bottom: 20px; padding: 20px; border-radius: 8px; background-color: #fff; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); width: 48%; position: relative;">
+                <!-- Floating Badge for Days Remaining -->
+                <span style="background-color: #ff0000; color: white; padding: 5px 10px; border-radius: 50px; position: absolute; top: 10px; right: 10px; font-family: 'Roboto', sans-serif; font-size: 12px;">
+                    {days_remaining} days left
+                </span>
                 <div style="padding: 15px;">
                     <strong style="font-family: 'Roboto', sans-serif; font-size: 20px; color: #333;">{event.name}</strong><br>
                     <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">
@@ -506,19 +516,18 @@ def embed_events(unique_id):
                     <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">
                         <i class="fa fa-map-marker" aria-hidden="true" style="margin-right: 5px;"></i>{event.location}
                     </span><br>
-                    <p style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #444;">{event.description}</p>
+                    <p style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #444;">{truncated_description}</p>
                     <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">
                         <i class="fa fa-clock-o" aria-hidden="true" style="margin-right: 5px;"></i>{event.start_time} - {event.end_time}
                     </span><br>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666;">Days Remaining: {days_remaining} days</span><br>
                     <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: {ticket_status_color}; font-weight: bold;">{ticket_status_text}</span><br>
             '''
             # Show the 'Buy Ticket' button if tickets are available
             if tickets_available > 0:
                 events_html += f'''
-                    <button style="padding: 10px 20px; background-color: #ff0000; color: #fff; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; transition: background-color 0.3s ease;" 
-                    onmouseover="this.style.backgroundColor='#d40000';" 
-                    onmouseout="this.style.backgroundColor='#ff0000';"
+                    <button style="padding: 10px 20px; background-color: #ff0000; color: #fff; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; transition: background-color 0.3s ease, transform 0.3s ease;" 
+                    onmouseover="this.style.backgroundColor='#d40000'; this.style.transform='scale(1.05)';"
+                    onmouseout="this.style.backgroundColor='#ff0000'; this.style.transform='scale(1.0)';"
                     onclick="window.location.href='https://flask-app-2gp0.onrender.com/purchase/{event.id}'">Buy Ticket</button>
                 '''
             events_html += '</div></li><br>'
