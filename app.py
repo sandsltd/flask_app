@@ -906,7 +906,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
                 <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
             </div>
 
-            <h2 style="color: #ff0000;">Dear {attendee.full_name},</h2>
+            <h2 style="color: #ff0000;">Hello {attendee.full_name},</h2>
 
             <p>Thank you for purchasing tickets for the event <strong>'{event.name}'</strong>. Below are your details:</p>
 
@@ -986,17 +986,31 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
 
 def send_confirmation_email_to_organizer(organizer, attendees, billing_details, event):
     try:
-        # Collect attendee details to include in the email to the organizer
-        attendee_info = "<br>".join([
-            f"Name: {attendee.full_name}, Email: {attendee.email}, Phone: {attendee.phone_number}, Quantity: {attendee.tickets_purchased}"
-            for attendee in attendees
-        ])
+        # Collect attendee details, including custom/default questions and answers
+        attendee_info = ""
+        for attendee in attendees:
+            # Load custom questions and answers
+            answers = json.loads(attendee.ticket_answers) if attendee.ticket_answers else {}
+            question_answer_pairs = "".join([f"<strong>{question}:</strong> {answer}<br>" for question, answer in answers.items()])
+
+            # Add attendee details to the email
+            attendee_info += f"""
+            <p>
+                <strong>Name:</strong> {attendee.full_name}<br>
+                <strong>Email:</strong> {attendee.email}<br>
+                <strong>Phone:</strong> {attendee.phone_number}<br>
+                <strong>Ticket Quantity:</strong> {attendee.tickets_purchased}<br>
+                <strong>Total Amount Paid:</strong> £{attendee.ticket_price_at_purchase * attendee.tickets_purchased:.2f}<br>
+                {question_answer_pairs}
+            </p>
+            <hr style="border: 1px solid #ff0000;">
+            """
 
         # Prepare the subject line
         subject = f"New Ticket Purchase for Your Event '{event.name}'"
 
         # Placeholder for the dashboard link
-        dashboard_link = "#"
+        dashboard_link = "#"  # Replace with actual dashboard link
 
         # Prepare the email body with the same inline CSS and logo as the attendee email
         body = f"""
@@ -1007,7 +1021,7 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
                 <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
             </div>
 
-            <h2 style="color: #ff0000;">Dear {organizer.first_name},</h2>
+            <h2 style="color: #ff0000;">Hello {organizer.first_name},</h2>
 
             <p>You've received new ticket purchases for your event <strong>'{event.name}'</strong>. Here are the details:</p>
 
@@ -1022,7 +1036,7 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
             </p>
 
             <h3 style="color: #ff0000;">Attendee Details:</h3>
-            <p>{attendee_info}</p>
+            {attendee_info}
 
             <h3 style="color: #ff0000;">Billing Information:</h3>
             <p>
@@ -1047,12 +1061,24 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
 
             <hr style="border: 1px solid #ff0000;">
             
-            <p style="color: #ff0000;"><strong>Powered by Ticket Rush</strong></p>
-
-            <p>Best regards,<br>Ticket Rush Team</p>
+            <p style="color: #ff0000;"><strong>Powered by TicketRush</strong></p>
         </body>
         </html>
         """
+
+        # Create and send the email using Flask-Mail
+        msg = Message(
+            subject=subject,
+            recipients=[organizer.email],
+            body=body,
+            html=body  # Render the email as HTML to support links and styling
+        )
+        mail.send(msg)
+        print(f"Confirmation email sent to organizer {organizer.email}.")
+
+    except Exception as e:
+        print(f"Failed to send confirmation email to organizer {organizer.email}. Error: {str(e)}")
+
 
         # Create and send the email using Flask-Mail
         msg = Message(
