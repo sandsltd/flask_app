@@ -698,6 +698,10 @@ def purchase(event_id):
     event = Event.query.get(event_id)
     if not event:
         return "Event not found", 404
+    
+        # If event.date is a string, convert it to a datetime object
+    if isinstance(event.date, str):
+        event.date = datetime.strptime(event.date, '%Y-%m-%d')
 
     user = User.query.get(event.user_id)  # Get the event organizer
     if not user:
