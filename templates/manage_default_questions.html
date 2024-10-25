@@ -2,196 +2,34 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Default Questions - TicketRush</title>
-    <style>
-        /* Global Styles */
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f7f7f7;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-
-        /* Header Section */
-        .header {
-            background-color: #ff0000;  /* TicketRush red background */
-            padding: 20px;
-            text-align: center;
-            color: white;
-            position: relative;
-        }
-
-        .header img {
-            max-width: 120px;
-            display: block;
-            margin: 0 auto;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            margin-top: 10px;
-            margin-bottom: 5px;
-            color: white; /* White text */
-        }
-
-        .header p {
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-
-        /* Container for the form */
-        .content-wrapper {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            max-width: 1200px;
-            margin: 50px auto;
-            padding: 0 20px;
-        }
-
-        .form-container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 600px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 24px;
-            color: white;
-        }
-
-        label {
-            display: block;
-            margin: 10px 0 5px;
-            font-weight: bold;
-        }
-
-        input[type="text"],
-        input[type="url"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        /* Shared Styles for Both Buttons */
-        .btn-common {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            width: 100%;
-            font-size: 16px;
-            text-align: center;
-            display: block;
-        }
-
-        /* Submit Button Specific Styles */
-        .submit-btn {
-            background-color: #555;  /* Grey for submit button */
-            color: white;
-            margin-top: 20px;
-        }
-
-        .submit-btn:hover {
-            background-color: #333;  /* Darker grey on hover */
-        }
-
-        /* Footer Styling */
-        footer {
-            background-color: #ff0000;  /* TicketRush red background */
-            color: white;
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-            position: relative;
-            bottom: 0;
-            width: 100%;
-        }
-
-        /* Friendly Instructions */
-        .instructions {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 20px;
-            text-align: left;
-        }
-
-        /* Error Message Styling */
-        .error-message {
-            color: red;
-            font-size: 16px;
-        }
-    </style>
+    <title>Manage Default Questions</title>
 </head>
 <body>
+    <h1>Manage Default Questions</h1>
 
-    <!-- Header Section -->
-    <header class="header">
-        <img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T.png" alt="TicketRush Logo">
-        <h1>Manage Account Settings</h1>
-        <p>Keep your default questions and terms and conditions up to date for smoother event setup!</p>
-    </header>
+    <form action="/manage-default-questions" method="POST">
+        <!-- Existing default questions fields -->
+        {% for question in questions %}
+        <label for="question{{ loop.index }}">Question {{ loop.index }}:</label>
+        <input type="text" id="question{{ loop.index }}" name="questions[]" value="{{ question.question }}"><br>
+        {% endfor %}
 
-    <!-- Content Wrapper Section -->
-    <div class="content-wrapper">
-        <div class="form-container">
-            <h1 class="welcome-message">Default Questions</h1>
-            <p class="instructions">
-                Change your account settings here! You can set default questions that will automatically appear on every event you create, saving you time from having to enter the same questions every time. You can still add event-specific questions when you create an event.
-            </p>
-            <p class="instructions">
-                You can also update the link to your Terms and Conditions below. This link will be shown to your customers when they book an event and will also be emailed to them upon successful booking.
-            </p>
-            <!-- Form for Managing Default Questions -->
-            <form action="/manage-default-questions" method="POST">
-                <!-- Existing default questions fields -->
-                {% for question in questions %}
-                <label for="question{{ loop.index }}">Question {{ loop.index }}:</label>
-                <input type="text" id="question{{ loop.index }}" name="questions[]" value="{{ question.question }}">
-                {% endfor %}
+        {% for i in range(10 - questions|length) %}
+        <label for="new_question{{ i + questions|length + 1 }}">Question {{ i + questions|length + 1 }}:</label>
+        <input type="text" id="new_question{{ i + questions|length + 1 }}" name="questions[]"><br>
+        {% endfor %}
 
-                <!-- Fields for new questions if needed -->
-                {% for i in range(10 - questions|length) %}
-                <label for="new_question{{ i + questions|length + 1 }}">Question {{ i + questions|length + 1 }}:</label>
-                <input type="text" id="new_question{{ i + questions|length + 1 }}" name="questions[]">
-                {% endfor %}
+        <!-- New Terms and Conditions link field -->
+        <label for="terms_link">Your Terms and Conditions URL:</label>
+        <input type="url" id="terms_link" name="terms_link" value="{{ user.terms }}"><br><br>
 
-                <!-- New Terms and Conditions link field -->
-                <label for="terms_link">Your Terms and Conditions URL:</label>
-                <input type="url" id="terms_link" name="terms_link" value="{{ user.terms }}">
+        <input type="submit" value="Save Changes">
+    </form>
 
-                <input type="submit" value="Save Changes" class="btn-common submit-btn">
-            </form>
+    <a href="/dashboard">Back to Dashboard</a>
 
-            <!-- Back to Dashboard Link -->
-            <div>
-                <a href="/dashboard">Exit Without Saving</a>
-            </div>
-
-            <!-- Flash and Error Messages -->
-            {% if error %}
-            <p class="error-message">{{ error }}</p>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Footer Section -->
-    <footer>
-        <p>TicketRush Is A Trading Name Of Saunders Simmons Ltd</p>
-        <p>Registered Address: 15 Oxford Road, Yeovil, Somerset, BA21 5HR</p>
-        <p>Company Number: 15839557</p>
-    </footer>
-
+    {% if error %}
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
 </body>
 </html>

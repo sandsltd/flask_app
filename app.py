@@ -188,9 +188,9 @@ def load_user(user_id):
 # Routes for login, logout, registration
 @app.route('/')
 def home():
-    return redirect(url_for('login'))
+    return "Hello, World!"
 
-from datetime import datetime, timedelta 
+from datetime import datetime, timedelta
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -532,7 +532,7 @@ def embed_events(unique_id):
         <span style="font-family: 'Roboto', sans-serif; color: #444; font-size: 14px;">Powered by </span>
         <a href="https://www.ticketrush.io" target="_blank" style="text-decoration: none;">
             <span style="color: #ff0000; font-size: 14px; font-weight: bold;">TicketRush</span>
-            <img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T.png" alt="TicketRush Logo" style="width: 80px; vertical-align: middle; margin-left: 10px;">
+            <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush Logo" style="width: 80px; vertical-align: middle; margin-left: 10px;">
         </a>
     </div>
     '''
@@ -698,12 +698,8 @@ def purchase(event_id):
     event = Event.query.get(event_id)
     if not event:
         return "Event not found", 404
-    
-        # If event.date is a string, convert it to a datetime object
-    if isinstance(event.date, str):
-        event.date = datetime.strptime(event.date, '%Y-%m-%d')
 
-    user = User.query.get(event.user_id)  # Get the event organizer
+    user = User.query.get(event.user_id)
     if not user:
         return "Event organizer not found", 404
 
@@ -724,6 +720,8 @@ def purchase(event_id):
     for question in custom_questions:
         if question not in all_questions:
             all_questions.append(question)
+
+
 
     if request.method == 'POST':
         # Generate a unique session ID for this purchase
@@ -786,7 +784,7 @@ def purchase(event_id):
 
         # Calculate the platform's total fee (Platform Fee + Transaction Fee)
         platform_fee_pence = 30 * number_of_tickets  # 30p per ticket
-        transaction_fee_pence = 20  # 20p per transaction
+        transaction_fee_pence = 20               # 20p per transaction
         application_fee_pence = platform_fee_pence + transaction_fee_pence  # Total application fee
 
         # Logging for debugging
@@ -853,16 +851,13 @@ def purchase(event_id):
         platform_terms_link = 'https://your-platform-domain.com/terms-and-conditions'
         organizer_terms_link = user.terms or '#'
 
-        # Pass the user to the template here
         return render_template(
             'purchase.html',
             event=event,
             questions=all_questions,
             organizer_terms_link=organizer_terms_link,
-            platform_terms_link=platform_terms_link,
-            user=user  # Ensure the user is passed to the template
+            platform_terms_link=platform_terms_link
         )
-
 
 
 
@@ -965,7 +960,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         <body style="background-color: #ffffff; color: #000000; font-family: Arial, sans-serif; padding: 20px;">
             <!-- Include Logo -->
             <div style="text-align: center; margin-bottom: 20px;">
-                <img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T.png" alt="Ticket Rush Logo" style="max-width: 200px;">
+                <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
             </div>
 
             <h2 style="color: #ff0000;">Hello {attendee.full_name},</h2>
@@ -1080,7 +1075,7 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
         <body style="background-color: #ffffff; color: #000000; font-family: Arial, sans-serif; padding: 20px;">
             <!-- Include Logo -->
             <div style="text-align: center; margin-bottom: 20px;">
-                <img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T.png" alt="Ticket Rush Logo" style="max-width: 200px;">
+                <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
             </div>
 
             <h2 style="color: #ff0000;">Hello {organizer.first_name},</h2>

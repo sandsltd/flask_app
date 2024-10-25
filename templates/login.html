@@ -3,88 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - TicketRush</title>
+    <title>Login</title>
     <style>
-        /* Global Styles */
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f7f7f7;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-
-        /* Header Section */
-        .header {
-            background-color: #ff0000;  /* TicketRush red background */
-            padding: 20px;
-            text-align: center;
-            color: white;
-            position: relative;
-        }
-
-        .header img {
-            max-width: 120px;
-            display: block;
-            margin: 0 auto;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            margin-top: 10px;
-            margin-bottom: 5px;
-            color: white;
-        }
-
-        .header p {
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-
-        /* Container for the form */
-        .content-wrapper {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            max-width: 1200px;
-            margin: 50px auto;
-            padding: 0 20px;
-        }
-
-        .form-container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 500px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        h1 {
-            color: #333;
-            font-size: 24px;
-        }
-
-        label {
-            display: block;
-            margin: 10px 0 5px;
-            font-weight: bold;
-        }
-
-        input[type="text"],
-        input[type="email"],
-        input[type="password"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        /* Flash messages styling */
         .message-danger {
             color: red;
         }
@@ -94,102 +14,31 @@
         .message-success {
             color: green;
         }
-
-        /* Shared Styles for Both Buttons */
-        .btn-common {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            width: 100%;
-            font-size: 16px;
-            text-align: center;
-            display: block;
-        }
-
-        /* Login Button Specific Styles */
-        .login-btn {
-            background-color: #555;  /* Grey for Login button */
-            color: white;
-            margin-top: 20px;
-        }
-
-        .login-btn:hover {
-            background-color: #333;  /* Darker grey on hover */
-        }
-
-        /* Footer Styling */
-        footer {
-            background-color: #ff0000;  /* TicketRush red background */
-            color: white;
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-            position: relative;
-            bottom: 0;
-            width: 100%;
-        }
-
-        /* Welcome message */
-        .welcome-message {
-            font-size: 28px;
-            color: #ff0000;  /* TicketRush red */
-            margin-bottom: 10px;
-        }
-
-        /* Stripe Info */
-        .stripe-info {
-            font-size: 14px;
-            color: #555;
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
+    <h1>Login</h1>
 
-    <!-- Header Section -->
-    <header class="header">
-        <img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T.png" alt="TicketRush Logo">
-        <h1>Welcome Back to TicketRush!</h1>
-        <p>Your trusted platform for hassle-free event ticketing.</p>
-    </header>
+    <!-- Flash message block -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="flashes">
+                {% for category, message in messages %}
+                    <li class="message-{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
 
-    <!-- Content Wrapper Section -->
-    <div class="content-wrapper">
-        <div class="form-container">
-            <h1 class="welcome-message">Login to your account</h1>
+    <!-- Login form -->
+    <form action="/login" method="POST">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required><br>
 
-            <!-- Flash message block -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <ul class="flashes">
-                        {% for category, message in messages %}
-                            <li class="message-{{ category }}">{{ message }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            {% endwith %}
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required><br>
 
-            <!-- Login form -->
-            <form action="/login" method="POST">
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" required>
-
-                <label for="password">Password:</label>
-                <input type="password" id="password" name="password" required>
-
-                <input type="submit" value="Login" class="btn-common login-btn">
-            </form>
-        </div>
-    </div>
-
-    <!-- Footer Section -->
-    <footer>
-        <p>TicketRush Is A Trading Name Of Saunders Simmons Ltd</p>
-        <p>Registered Address: 15 Oxford Road, Yeovil, Somerset, BA21 5HR</p>
-        <p>Company Number: 15839557</p>
-    </footer>
-
+        <input type="submit" value="Login">
+    </form>
 </body>
 </html>

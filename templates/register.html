@@ -3,378 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - TicketRush</title>
-    <style>
-        /* Global Styles */
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f7f7f7;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-
-        /* Header Styling */
-        .header {
-            background-color: #ff0000;  /* Red background */
-            padding: 20px;
-            text-align: center;
-            color: white;  /* White text */
-            position: relative;
-        }
-
-        .header img {
-            max-width: 120px;
-            display: block;
-            margin: 0 auto 10px;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 14px;
-        }
-
-        /* Back to TicketRush.io Button in the header */
-        .back-to-website {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background-color: white;
-            color: #ff0000;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .back-to-website:hover {
-            background-color: #e6e6e6;
-        }
-
-        .header a {
-            color: black;
-            text-decoration: none;
-        }
-
-        /* Layout Container */
-        .content-wrapper {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 20px;
-        }
-
-        .form-info-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            width: 100%;
-        }
-
-        /* Form Container */
-        .form-container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 800px;
-            margin-bottom: 20px;
-        }
-
-        h1 {
-            color: #333;
-            font-size: 24px;
-        }
-
-        p {
-            font-size: 16px;
-            color: #333;
-        }
-
-        label {
-            display: block;
-            margin: 10px 0 5px;
-            font-weight: bold;
-        }
-
-        input[type="text"],
-        input[type="email"],
-        input[type="password"],
-        input[type="tel"],
-        input[type="url"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        button {
-            background-color: #ff0000;  /* Red button */
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        button:hover {
-            background-color: #d40000;
-        }
-
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        /* Additional Button Styling */
-        .login-btn {
-            display: block;
-            margin-top: 20px;
-            text-align: center;
-            background-color: #555;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            text-decoration: none;
-        }
-
-        .login-btn:hover {
-            background-color: #333;
-        }
-
-        /* Stripe Explanation */
-        .stripe-info {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #555;
-        }
-
-        /* Terms Checkbox */
-        .terms {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #333;
-        }
-
-        /* Info Section */
-        .info {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            flex-basis: 45%;
-            max-width: 400px;
-        }
-
-        .info h2 {
-            font-size: 22px;
-            margin-bottom: 10px;
-            color: #ff0000;
-        }
-
-        .info ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .info ul li {
-            font-size: 16px;
-            margin: 10px 0;
-        }
-
-        .info ul li:before {
-            content: '\2713'; /* Checkmark */
-            color: #ff0000;
-            margin-right: 10px;
-        }
-
-        .info p {
-            font-size: 14px;
-            color: #333;
-        }
-
-        /* Footer Styling */
-        footer {
-            background-color: #ff0000;  /* Red background */
-            color: white;  /* White text */
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-        }
-
-        footer a {
-            color: black;
-            text-decoration: underline;
-        }
-
-        /* Media Queries for Responsive Design */
-        @media (min-width: 768px) {
-            .form-info-container {
-                flex-direction: row;
-            }
-
-            .form-container {
-                flex-basis: 50%;
-                margin-right: 20px;
-            }
-
-            .info {
-                margin-left: 20px;
-            }
-        }
-
-        @media only screen and (max-width: 767px) {
-            .form-info-container {
-                flex-direction: column;
-                align-items: center;
-            }
-
-            .info {
-                margin-top: 20px;
-                max-width: 100%;
-            }
-        }
-    </style>
-
-    <script>
-        // Disable the Register button until terms are agreed
-        function toggleRegisterButton() {
-            var termsCheckbox = document.getElementById('terms');
-            var registerButton = document.getElementById('registerButton');
-            registerButton.disabled = !termsCheckbox.checked;
-        }
-    </script>
+    <title>Register</title>
 </head>
 <body>
+    <h1>Register</h1>
+    <form action="/register" method="POST">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required><br>
 
-    <!-- Header Section -->
-    <header class="header">
-        <!-- Back to TicketRush.io Button -->
-        <button class="back-to-website" onclick="window.location.href='https://ticketrush.io'">Back to TicketRush.io</button>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required><br>
 
-        <img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T.png" alt="TicketRush Logo">
-        <h1>Register with TicketRush</h1>
-        <p>Take control of your event ticketing with our easy-to-use platform.</p>
-    </header>
+        <label for="first_name">First Name:</label>
+        <input type="text" id="first_name" name="first_name" required><br>
 
-    <!-- Content Wrapper Section -->
-    <div class="content-wrapper">
-        <div class="form-info-container">
-            <!-- Form Section -->
-            <div class="form-container">
-                <h1>Register</h1>
-                <form action="/register" method="POST">
-                    <label for="email">Email:</label>
-                    <input type="email" id="email" name="email" required>
+        <label for="last_name">Last Name:</label>
+        <input type="text" id="last_name" name="last_name" required><br>
 
-                    <label for="password">Password:</label>
-                    <input type="password" id="password" name="password" required>
+        <label for="phone_number">Phone Number:</label>
+        <input type="text" id="phone_number" name="phone_number" required><br>
 
-                    <label for="first_name">First Name:</label>
-                    <input type="text" id="first_name" name="first_name" required>
+        <label for="business_name">Business Name:</label>
+        <input type="text" id="business_name" name="business_name" required><br>
 
-                    <label for="last_name">Last Name:</label>
-                    <input type="text" id="last_name" name="last_name" required>
+        <label for="website_url">Website URL (optional):</label>
+        <input type="url" id="website_url" name="website_url"><br>
 
-                    <label for="phone_number">Phone Number:</label>
-                    <input type="text" id="phone_number" name="phone_number" required>
+        <label for="vat_number">VAT Number (optional):</label>
+        <input type="text" id="vat_number" name="vat_number"><br>
 
-                    <label for="business_name">Business Name:</label>
-                    <input type="text" id="business_name" name="business_name" required>
+        <label for="house_name_or_number">House Name/Number:</label>
+        <input type="text" id="house_name_or_number" name="house_name_or_number" required><br>
 
-                    <label for="website_url">Website URL (optional):</label>
-                    <input type="url" id="website_url" name="website_url">
+        <label for="street">Street:</label>
+        <input type="text" id="street" name="street" required><br>
 
-                    <label for="vat_number">VAT Number (optional):</label>
-                    <input type="text" id="vat_number" name="vat_number">
+        <label for="locality">Locality (optional):</label>
+        <input type="text" id="locality" name="locality"><br>
 
-                    <label for="house_name_or_number">House Name/Number:</label>
-                    <input type="text" id="house_name_or_number" name="house_name_or_number" required>
+        <label for="town">Town:</label>
+        <input type="text" id="town" name="town" required><br>
 
-                    <label for="street">Street:</label>
-                    <input type="text" id="street" name="street" required>
+        <label for="postcode">Postcode:</label>
+        <input type="text" id="postcode" name="postcode" required><br>
 
-                    <label for="locality">Locality (optional):</label>
-                    <input type="text" id="locality" name="locality">
-
-                    <label for="town">Town:</label>
-                    <input type="text" id="town" name="town" required>
-
-                    <label for="postcode">Postcode:</label>
-                    <input type="text" id="postcode" name="postcode" required>
-
-                <!-- Stripe Explanation Section -->
-                <div class="stripe-info">
-                    <p><strong>Next step:</strong> After registering, you'll be prompted to create a Stripe account (or connect an existing one). This is necessary to accept payments on our platform. Even if you already have a Stripe account, you'll need to go through this process to ensure everything is integrated with TicketRush.</p>
-                </div>
-
-                    <!-- Terms of Service Checkbox -->
-                    <div class="terms">
-                        <input type="checkbox" id="terms" onclick="toggleRegisterButton()">
-                        <label for="terms">
-                            I agree to <a href="https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Terms-of-Service-25th-October-2024.pdf" target="_blank">TicketRush's terms of service</a>.
-                        </label>
-                    </div>
-
-                    <button type="submit" id="registerButton" disabled>Register</button>
-                </form>
-
-
-
-                <!-- Already Registered Button -->
-                <a href="/login" class="login-btn">Already registered? Click here to login</a>
-
-                <!-- Error Message -->
-                {% if error %}
-                    <p style="color:red;">{{ error }}</p>
-                {% endif %}
-
- 
-            </div>
-
-            <!-- Info Section -->
-            <div class="info">
-                <h2>Why use TicketRush?</h2>
-                <ul>
-                    <li>Quick & Easy Setup - Start selling tickets in minutes.</li>
-                    <li>Secure Stripe Payments - Trusted and reliable payment processing.</li>
-                    <li>Fast Payouts - Receive funds directly to your account.</li>
-                    <li>Comprehensive Dashboard - Manage ticket sales with ease.</li>
-                    <li>Customisable Data Collection - Collect up to 10 bespoke customer questions.</li>
-                    <li>No Monthly Fee - Pay only when you sell a ticket.</li>
-                    <li>Easy Integration - Use a shortcode to add TicketRush to your website.</li>
-                </ul>
-
-                <h2>Fair Pricing</h2>
-                <p>No monthly fee! Your customers cover the costs:</p>
-                <ul>
-                    <li>Stripe fee: 1.4% + 20p per transaction</li>
-                    <li>TicketRush fee: 30p per ticket</li>
-                    <li>All fees are inclusive of VAT.</li>
-                </ul>
-                <p><strong>Sign up today and make your event a success!</strong></p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer Section -->
-    <footer>
-        <p>TicketRush Is A Trading Name Of Saunders Simmons Ltd</p>
-        <p>Registered Address: 15 Oxford Road, Yeovil, Somerset, BA21 5HR</p>
-        <p>Company Number: 15839557</p>
-    </footer>
-
+        <input type="submit" value="Register">
+    </form>
+    {% if error %}
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
 </body>
 </html>
