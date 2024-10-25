@@ -721,8 +721,6 @@ def purchase(event_id):
         if question not in all_questions:
             all_questions.append(question)
 
-
-
     if request.method == 'POST':
         # Generate a unique session ID for this purchase
         session_id = str(uuid4())
@@ -851,6 +849,7 @@ def purchase(event_id):
         platform_terms_link = 'https://your-platform-domain.com/terms-and-conditions'
         organizer_terms_link = user.terms or '#'
 
+        # Render the enhanced purchase form template with styling
         return render_template(
             'purchase.html',
             event=event,
