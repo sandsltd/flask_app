@@ -16,3 +16,4 @@ def delete_pending_users():
 if __name__ == '__main__':
     with app.app_context():
         delete_pending_users()
+#
