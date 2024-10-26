@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TicketRush{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css"> <!-- Link to your CSS file -->
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav>
+            <div class="logo">
+                <a href="/"><img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T.png" alt="TicketRush Logo"></a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="https://ticketrush.io">Home</a></li>
+                <li><a href="https://ticketrush.io/tutorials/">Tutorials</a></li>
+                <li><a href="https://ticketrush.io/got-a-question/">Got a Question?</a></li>
+                <li><a href="bookings.ticketrush.io/register">Sign Up Today!</a></li>
+            </ul>
+            <div class="support">
+                <a href="https://saunderssimmons.freshdesk.com/support/tickets/new" class="support-btn">Client Support</a>
+            </div>
+            <div class="auth-buttons">
+                {% if current_user.is_authenticated %}
+                    <a href="/dashboard" class="btn">Dashboard</a>
+                    <a href="/logout" class="btn">Logout</a>
+                {% else %}
+                    <a href="bookings.ticketrush.io/login" class="btn">Login</a>
+                    <a href="bookings.ticketrush.io/register" class="btn">Sign Up</a>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>TicketRush is a trading name of Saunders Simmons Ltd</p>
+        <p>Registered Address: 15 Oxford Road, Yeovil, BA21 5HR</p>
+    </footer>
+</body>
+</html>
+
+<style>
+
+    /* General styles */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+/* Header styles */
+header {
+    background-color: #ff3333;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header .logo img {
+    max-height: 80px;
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+}
+
+.nav-links li {
+    display: inline-block;
+}
+
+.nav-links li a {
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.support {
+    margin-left: auto;
+    margin-right: 20px;
+}
+
+.support-btn {
+    background-color: transparent;
+    border: 2px solid white;
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    font-size: 16px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.support-btn:hover {
+    background-color: white;
+    color: #ff3333;
+}
+
+.auth-buttons .btn {
+    color: white;
+    text-decoration: none;
+    background-color: transparent;
+    border: 1px solid white;
+    padding: 10px 20px;
+    font-size: 16px;
+    margin-left: 10px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.auth-buttons .btn:hover {
+    background-color: white;
+    color: #ff3333;
+}
+
+/* Footer styles */
+footer {
+    background-color: #ff3333;
+    padding: 20px;
+    text-align: center;
+    color: white;
+    font-size: 14px;
+}
+
+footer p {
+    margin: 0;
+}
+
+</style>
