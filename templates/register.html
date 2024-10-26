@@ -1,9 +1,6 @@
 {% extends "partials/base.html" %}
 
-{% block title %}Register{% endblock %}
-
 {% block content %}
-
     <h1>Register</h1>
     <form action="/register" method="POST">
         <label for="email">Email:</label>
@@ -49,8 +46,7 @@
     </form>
 
     {% if error %}
-    <p style="color:red;">{{ error }}</p>
-
-{% endif %}
-
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
 {% endblock %}
+ 
