@@ -1,181 +1,189 @@
-{% extends "partials/base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - TicketRush</title>
 
-{% block content %}
-<div class="register-container">
-    <div class="register-info">
-        <h2>Join Us at TicketRush</h2>
-        <p>Get your events online with ease and start selling tickets today.</p>
-        <p>No hidden fees. No stress. Just results.</p>
+    <style>
+        /* Add your custom styles here */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: white;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .register-container {
+            display: flex;
+            flex-direction: column; /* Stack sections vertically */
+            align-items: center;
+            margin: 50px auto;
+            max-width: 600px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .register-info {
+            width: 100%;
+            padding: 20px;
+            background-color: #f8f8f8;
+            border-radius: 10px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .register-info h2 {
+            color: #ff0000;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        .register-info p {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .register-form {
+            width: 100%;
+            padding: 20px;
+            background-color: white;
+        }
+
+        .register-form h1 {
+            color: #ff0000; /* Red for your brand */
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f5f5f5;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: #ff0000; /* Red for your brand */
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .submit-btn:hover {
+            background-color: #cc0000; /* Darker red for hover */
+        }
+
+        .error-msg {
+            color: red;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="register-container">
+        <div class="register-info">
+            <h2>Join Us at TicketRush</h2>
+            <p>Get your events online with ease and start selling tickets today.</p>
+            <p>No hidden fees. No stress. Just results.</p>
+        </div>
+
+        <div class="register-form">
+            <h1>Create Your Account</h1>
+            <form action="/register" method="POST">
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="first_name">First Name:</label>
+                    <input type="text" id="first_name" name="first_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="last_name">Last Name:</label>
+                    <input type="text" id="last_name" name="last_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone_number">Phone Number:</label>
+                    <input type="text" id="phone_number" name="phone_number" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="business_name">Business Name:</label>
+                    <input type="text" id="business_name" name="business_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="website_url">Website URL (optional):</label>
+                    <input type="url" id="website_url" name="website_url">
+                </div>
+
+                <div class="form-group">
+                    <label for="vat_number">VAT Number (optional):</label>
+                    <input type="text" id="vat_number" name="vat_number">
+                </div>
+
+                <div class="form-group">
+                    <label for="house_name_or_number">House Name/Number:</label>
+                    <input type="text" id="house_name_or_number" name="house_name_or_number" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="street">Street:</label>
+                    <input type="text" id="street" name="street" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="locality">Locality (optional):</label>
+                    <input type="text" id="locality" name="locality">
+                </div>
+
+                <div class="form-group">
+                    <label for="town">Town:</label>
+                    <input type="text" id="town" name="town" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="postcode">Postcode:</label>
+                    <input type="text" id="postcode" name="postcode" required>
+                </div>
+
+                <input type="submit" value="Register" class="submit-btn">
+            </form>
+
+            {% if error %}
+                <p class="error-msg">{{ error }}</p>
+            {% endif %}
+        </div>
     </div>
 
-    <div class="register-form">
-        <h1>Create Your Account</h1>
-        <form action="/register" method="POST">
-            <div class="form-group">
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-
-            <div class="form-group">
-                <label for="password">Password:</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-
-            <div class="form-group">
-                <label for="first_name">First Name:</label>
-                <input type="text" id="first_name" name="first_name" required>
-            </div>
-
-            <div class="form-group">
-                <label for="last_name">Last Name:</label>
-                <input type="text" id="last_name" name="last_name" required>
-            </div>
-
-            <div class="form-group">
-                <label for="phone_number">Phone Number:</label>
-                <input type="text" id="phone_number" name="phone_number" required>
-            </div>
-
-            <div class="form-group">
-                <label for="business_name">Business Name:</label>
-                <input type="text" id="business_name" name="business_name" required>
-            </div>
-
-            <div class="form-group">
-                <label for="website_url">Website URL (optional):</label>
-                <input type="url" id="website_url" name="website_url">
-            </div>
-
-            <div class="form-group">
-                <label for="vat_number">VAT Number (optional):</label>
-                <input type="text" id="vat_number" name="vat_number">
-            </div>
-
-            <div class="form-group">
-                <label for="house_name_or_number">House Name/Number:</label>
-                <input type="text" id="house_name_or_number" name="house_name_or_number" required>
-            </div>
-
-            <div class="form-group">
-                <label for="street">Street:</label>
-                <input type="text" id="street" name="street" required>
-            </div>
-
-            <div class="form-group">
-                <label for="locality">Locality (optional):</label>
-                <input type="text" id="locality" name="locality">
-            </div>
-
-            <div class="form-group">
-                <label for="town">Town:</label>
-                <input type="text" id="town" name="town" required>
-            </div>
-
-            <div class="form-group">
-                <label for="postcode">Postcode:</label>
-                <input type="text" id="postcode" name="postcode" required>
-            </div>
-
-            <input type="submit" value="Register" class="submit-btn">
-        </form>
-
-        {% if error %}
-            <p class="error-msg">{{ error }}</p>
-        {% endif %}
-    </div>
-</div>
-{% endblock %}
-
-
-<style>
-
-
-body {
-    font-family: 'Arial', sans-serif;
-    background-color: white;
-    color: #333;
-}
-
-.register-container {
-    display: flex;
-    flex-direction: column; /* Stack sections vertically */
-    align-items: center;
-    margin: 50px auto;
-    max-width: 600px; /* Reduce max width to fit form in one column */
-    padding: 20px;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.register-info {
-    width: 100%;
-    padding: 20px;
-    background-color: #f8f8f8;
-    border-radius: 10px;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
-    text-align: center; /* Center text for better visual hierarchy */
-    margin-bottom: 20px;
-}
-
-.register-info h2 {
-    color: #ff0000; /* Red for your brand */
-    margin-bottom: 20px;
-    font-size: 2rem;
-}
-
-.register-info p {
-    margin-bottom: 10px;
-    color: #333;
-}
-
-.register-form {
-    width: 100%; /* Full width to fit form nicely */
-    padding: 20px;
-    background-color: white;
-}
-
-.register-form h1 {
-    color: #ff0000; /* Red for your brand */
-    margin-bottom: 20px;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    color: #333;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #f5f5f5;
-}
-
-.submit-btn {
-    width: 100%;
-    padding: 15px;
-    background-color: #ff0000; /* Red for your brand */
-    color: white;
-    font-weight: bold;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.submit-btn:hover {
-    background-color: #cc0000; /* Darker red for hover */
-}
-
-.error-msg {
-    color: red;
-    margin-top: 15px;
-}
-
-</style>
+</body>
+</html>
