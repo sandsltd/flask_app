@@ -24,25 +24,10 @@ import math
 from flask_mail import Mail, Message
 import urllib.parse
 from flask import Response
-from itsdangerous import URLSafeTimedSerializer
+
+
 
 app = Flask(__name__)
-
-serializer = URLSafeTimedSerializer(app.secret_key)
-
-def generate_reset_token(email):
-    return serializer.dumps(email, salt='password-reset-salt')
-
-def verify_reset_token(token, expiration=3600):
-    try:
-        email = serializer.loads(token, salt='password-reset-salt', max_age=expiration)
-    except:
-        return None
-    return email
-
-
-
-
 
 
 # Enable CORS for all routes and origins
@@ -90,9 +75,6 @@ class User(db.Model, UserMixin):
     onboarding_status = db.Column(db.String(20), default="pending")  # Onboarding status
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # Add created_at timestamp
 
-    # Password reset fields (Optional)
-    reset_token = db.Column(db.String(100), nullable=True)
-    reset_token_expiration = db.Column(db.DateTime, nullable=True)
 
     # Address fields
     house_name_or_number = db.Column(db.String(255), nullable=False)
@@ -101,17 +83,16 @@ class User(db.Model, UserMixin):
     town = db.Column(db.String(100), nullable=False)
     postcode = db.Column(db.String(20), nullable=False)
 
-    terms = db.Column(db.String(255), nullable=True)
+    terms = db.Column(db.String(255), nullable=True)  # Changed from False to True
 
-    # Flat rate with default value
-    flat_rate = db.Column(db.Float, nullable=True, default=0.01)
+    # Default flat_rate set to 0.01
+    flat_rate = db.Column(db.Float, nullable=True, default=0.01)  # Flat rate with default value
 
     # Optional promotional fields
     promo_rate = db.Column(db.Float, nullable=True)  # Promotional rate
     promo_rate_date_end = db.Column(db.Date, nullable=True)
 
     events = db.relationship('Event', backref='user', lazy=True)
-
 
 
 
@@ -1523,61 +1504,4 @@ def stripe_onboarding_refresh():
     flash('Please complete the onboarding process.')
     return redirect(url_for('register'))
 
-
-@app.route('/forgot-password', methods=['GET', 'POST'])
-def forgot_password():
-    if request.method == 'POST':
-        email = request.form['email']
-        user = User.query.filter_by(email=email).first()
-
-        if user:
-            # Generate reset token
-            token = generate_reset_token(user.email)
-            reset_url = url_for('reset_password', token=token, _external=True)
-
-            # Optionally save the token and expiration in the database
-            user.reset_token = token
-            user.reset_token_expiration = datetime.utcnow() + timedelta(hours=1)  # 1 hour expiry
-            db.session.commit()
-
-            # Send email
-            msg = Message('Password Reset Request', recipients=[user.email])
-            msg.body = f'Please click the link to reset your password: {reset_url}'
-            mail.send(msg)
-
-            flash('A password reset link has been sent to your email.', 'success')
-            return redirect(url_for('login'))
-
-        flash('No account found with that email.', 'danger')
-    return render_template('forgot_password.html')
-
-
-@app.route('/reset-password/<token>', methods=['GET', 'POST'])
-def reset_password(token):
-    # Verify token
-    email = verify_reset_token(token)
-    if not email:
-        flash('Invalid or expired token.', 'danger')
-        return redirect(url_for('forgot_password'))
-
-    user = User.query.filter_by(email=email).first()
-
-    if request.method == 'POST':
-        password = request.form['password']
-        confirm_password = request.form['confirm_password']
-
-        if password != confirm_password:
-            flash('Passwords do not match.', 'danger')
-            return redirect(url_for('reset_password', token=token))
-
-        # Hash and save the new password
-        user.password = generate_password_hash(password)
-        user.reset_token = None  # Clear reset token
-        user.reset_token_expiration = None  # Clear expiration
-        db.session.commit()
-
-        flash('Your password has been reset successfully.', 'success')
-        return redirect(url_for('login'))
-
-    return render_template('reset_password.html')
-
+##
