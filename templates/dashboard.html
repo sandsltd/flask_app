@@ -1,63 +1,130 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-</head>
-<body>
+{% extends "partials/base-logged-in.html" %}
+
+{% block content %}
+<div class="dashboard-container">
     <h1>Dashboard</h1>
-    <a href="/create_event">Create New Event</a>
+    <a href="/create_event.html" class="button">Create New Event</a>
 
     <!-- Summary Section -->
-    <h2>Dashboard Summary</h2>
-    <p><strong>Total Tickets Sold:</strong> {{ total_tickets_sold }}</p>
-    <p><strong>Total Revenue Generated:</strong> £{{ total_revenue }}</p>
+    <section class="dashboard-summary">
+        <h2>Dashboard Summary</h2>
+        <p><strong>Total Tickets Sold:</strong> {{ total_tickets_sold }}</p>
+        <p><strong>Total Revenue Generated:</strong> £{{ total_revenue }}</p>
+    </section>
 
-    <form method="GET" action="{{ url_for('dashboard') }}">
-        <select name="filter">
+    <!-- Filter Events Section -->
+    <form method="GET" action="{{ url_for('dashboard') }}" class="filter-form">
+        <select name="filter" class="filter-select">
             <option value="all">All Events</option>
             <option value="upcoming">Upcoming Events</option>
             <option value="past">Past Events</option>
         </select>
-        <button type="submit">Filter</button>
+        <button type="submit" class="filter-button">Filter</button>
     </form>
-    
+
     <!-- Events Section -->
-    <h2>Your Events:</h2>
-    <ul>
-        {% for event_data in events %}
-            <li>
-                <strong>{{ event_data.name }}</strong> - {{ event_data.date }}
-                <br>
-                <strong>Location:</strong> {{ event_data.location }}
-                <br>
-                <strong>Tickets Sold:</strong> {{ event_data.tickets_sold }} / {{ event_data.ticket_quantity }}
-                <br>
-                <strong>Tickets Remaining:</strong> {{ event_data.tickets_remaining }}
-                <br>
-                <strong>Total Revenue:</strong> £{{ event_data.total_revenue }}
-                <br>
-                <strong>Status:</strong> {{ event_data.status }}
-                <br>
-                <a href="{{ url_for('view_attendees', event_id=event_data.id) }}">View Attendees</a> | 
-                <a href="{{ url_for('edit_event', event_id=event_data.id) }}">Edit</a> | 
-                <a href="{{ url_for('delete_event', event_id=event_data.id) }}" onclick="return confirm('Are you sure you want to delete this event?');">Delete</a>
-            </li>
-        {% else %}
-            <li>No events yet.</li>
-        {% endfor %}
-    </ul>
+    <section class="events-list">
+        <h2>Your Events</h2>
+        <ul>
+            {% for event_data in events %}
+                <li class="event-item">
+                    <strong>{{ event_data.name }}</strong> - {{ event_data.date }}<br>
+                    <strong>Location:</strong> {{ event_data.location }}<br>
+                    <strong>Tickets Sold:</strong> {{ event_data.tickets_sold }} / {{ event_data.ticket_quantity }}<br>
+                    <strong>Tickets Remaining:</strong> {{ event_data.tickets_remaining }}<br>
+                    <strong>Total Revenue:</strong> £{{ event_data.total_revenue }}<br>
+                    <strong>Status:</strong> {{ event_data.status }}<br>
+                    <a href="{{ url_for('view_attendees', event_id=event_data.id) }}">View Attendees</a> | 
+                    <a href="{{ url_for('edit_event', event_id=event_data.id) }}">Edit</a> | 
+                    <a href="{{ url_for('delete_event', event_id=event_data.id) }}" onclick="return confirm('Are you sure you want to delete this event?');">Delete</a>
+                </li>
+            {% else %}
+                <li>No events yet.</li>
+            {% endfor %}
+        </ul>
+    </section>
 
     <!-- Embed Code Section -->
-    <h3>Your Embed Code:</h3>
-    <pre>
-        &lt;script src="https://flask-app-2gp0.onrender.com/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
-    </pre>
-    <p>Copy this code and paste it into your website to display your events.</p>
+    <section class="embed-code">
+        <h3>Your Embed Code:</h3>
+        <pre>&lt;script src="https://flask-app-2gp0.onrender.com/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;</pre>
+        <p>Copy this code and paste it into your website to display your events.</p>
+    </section>
 
-    <a href="/manage-default-questions">Manage Default Questions</a>
-    <br>
-    <a href="/logout">Logout</a>
-</body>
-</html>
+    <a href="/manage_default_questions" class="button">Manage Default Questions</a>
+</div>
+{% endblock %}
+
+<style>
+    .dashboard-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1, h2 {
+        color: #ff0000; /* Use your brand's red */
+    }
+
+    .button {
+        display: inline-block;
+        margin-top: 10px;
+        padding: 10px 20px;
+        background-color: #ff0000; /* Red button */
+        color: #fff;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+        transition: background-color 0.3s ease;
+    }
+
+    .button:hover {
+        background-color: #cc0000; /* Darker red */
+    }
+
+    .filter-form {
+        margin: 20px 0;
+    }
+
+    .filter-select {
+        padding: 10px;
+        font-size: 16px;
+        margin-right: 10px;
+    }
+
+    .filter-button {
+        padding: 10px 20px;
+        background-color: #ff0000;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .filter-button:hover {
+        background-color: #cc0000;
+    }
+
+    .events-list ul {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    .event-item {
+        background-color: #f5f5f5;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .embed-code pre {
+        background-color: #f5f5f5;
+        padding: 10px;
+        border-radius: 5px;
+        overflow-x: auto;
+    }
+</style>
