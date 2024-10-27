@@ -82,6 +82,11 @@
         {% if error %}
             <p class="error-msg">{{ error }}</p>
         {% endif %}
+        
+        <!-- Already registered? Login link -->
+        <p class="login-link">
+            Already registered? <a href="/login">Click here to login</a>.
+        </p>
     </div>
 </div>
 
@@ -168,6 +173,23 @@
     .error-msg {
         color: red;
         margin-top: 15px;
+    }
+
+    /* Style for the login link */
+    .login-link {
+        margin-top: 15px;
+        text-align: center;
+        color: #333;
+    }
+
+    .login-link a {
+        color: #ff0000;
+        text-decoration: none;
+        font-weight: bold;
+    }
+
+    .login-link a:hover {
+        text-decoration: underline;
     }
 </style>
 
