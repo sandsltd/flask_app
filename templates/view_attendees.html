@@ -1,75 +1,70 @@
 {% extends "partials/base-logged-in.html" %}
 
 {% block content %}
-<div class="centered-container">
-    <div class="attendees-container">
-        <h1>Attendees for Event: {{ event.name }}</h1>
-        <h2>Date: {{ event.date }}</h2>
-        <h3>Location: {{ event.location }}</h3>
+<div class="attendees-container">
+    <h1>Attendees for Event: {{ event.name }}</h1>
+    <h2>Date: {{ event.date }}</h2>
+    <h3>Location: {{ event.location }}</h3>
 
-        <hr>
+    <hr>
 
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <a href="{{ url_for('export_attendees', event_id=event.id) }}" class="button">Export Attendees</a>
-            <a href="{{ url_for('add_attendee', event_id=event.id) }}" class="button">Add New Attendee</a>
-        </div>
-
-        <!-- Attendees List -->
-        {% if attendees %}
-            <h2>Attendees List</h2>
-            <ul class="attendees-list">
-                {% for attendee in attendees %}
-                    <li class="attendee-item">
-                        <h3>{{ attendee.full_name }}</h3>
-
-                        <!-- Organiser Information (Billing Details) -->
-                        <h4>Organiser Information:</h4>
-                        <p><strong>Full Name:</strong> {{ attendee.full_name }}</p>
-                        <p><strong>Email:</strong> {{ attendee.email }}</p>
-                        <p><strong>Phone Number:</strong> {{ attendee.phone_number }}</p>
-
-                        {% if attendee.billing_details.address %}
-                            <p><strong>Address:</strong> 
-                                {{ attendee.billing_details.address.line1 }},
-                                {% if attendee.billing_details.address.line2 %}{{ attendee.billing_details.address.line2 }}, {% endif %}
-                                {{ attendee.billing_details.address.city }},
-                                {{ attendee.billing_details.address.postal_code }}
-                            </p>
-                        {% else %}
-                            <p><strong>Address:</strong> Not provided</p>
-                        {% endif %}
-                        
-                        <!-- Ticket Questions and Answers -->
-                        <h4>Ticket Questions and Answers:</h4>
-                        <ul>
-                            {% for question, answer in attendee.ticket_answers.items() %}
-                                <li><strong>{{ question }}:</strong> {{ answer }}</li>
-                            {% endfor %}
-                        </ul>
-
-                        <!-- Edit and Delete Buttons -->
-                        <div class="action-buttons">
-                            <a href="{{ url_for('edit_attendee', attendee_id=attendee.id) }}" class="button small">Edit</a>
-                            <form action="{{ url_for('delete_attendee', attendee_id=attendee.id) }}" method="POST" style="display:inline;">
-                                <button type="submit" class="button small delete">Delete</button>
-                            </form>
-                        </div>
-                        
-                        <hr>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No attendees for this event yet.</p>
-        {% endif %}
+    <div class="action-buttons">
+        <a href="{{ url_for('export_attendees', event_id=event.id) }}" class="button">Export Attendees</a>
+        <a href="{{ url_for('add_attendee', event_id=event.id) }}" class="button">Add New Attendee</a>
     </div>
+
+    {% if attendees %}
+        <h2>Attendees List</h2>
+        <ul class="attendees-list">
+            {% for attendee in attendees %}
+                <li class="attendee-item">
+                    <h3>{{ attendee.full_name }}</h3>
+
+                    <!-- Organiser Information (Billing Details) -->
+                    <h4>Organiser Information:</h4>
+                    <p><strong>Full Name:</strong> {{ attendee.full_name }}</p>
+                    <p><strong>Email:</strong> {{ attendee.email }}</p>
+                    <p><strong>Phone Number:</strong> {{ attendee.phone_number }}</p>
+
+                    {% if attendee.billing_details.address %}
+                        <p><strong>Address:</strong> 
+                            {{ attendee.billing_details.address.line1 }},
+                            {% if attendee.billing_details.address.line2 %}{{ attendee.billing_details.address.line2 }}, {% endif %}
+                            {{ attendee.billing_details.address.city }},
+                            {{ attendee.billing_details.address.postal_code }}
+                        </p>
+                    {% else %}
+                        <p><strong>Address:</strong> Not provided</p>
+                    {% endif %}
+                    
+                    <!-- Ticket Questions and Answers -->
+                    <h4>Ticket Questions and Answers:</h4>
+                    <ul>
+                        {% for question, answer in attendee.ticket_answers.items() %}
+                            <li><strong>{{ question }}:</strong> {{ answer }}</li>
+                        {% endfor %}
+                    </ul>
+
+                    <!-- Edit and Delete Buttons -->
+                    <div class="action-buttons">
+                        <a href="{{ url_for('edit_attendee', attendee_id=attendee.id) }}" class="button small">Edit</a>
+                        <form action="{{ url_for('delete_attendee', attendee_id=attendee.id) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="button small delete">Delete</button>
+                        </form>
+                    </div>
+                    
+                    <hr>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No attendees for this event yet.</p>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_styles %}
 <style>
-    /* Container Styling */
     .attendees-container {
         max-width: 800px;
         margin: 0 auto;
@@ -79,9 +74,8 @@
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
 
-    /* Heading Colors */
     h1, h2, h3, h4 {
-        color: #ff0000;
+        color: #ff0000; /* Use your brand's red */
     }
 
     hr {
@@ -89,7 +83,6 @@
         margin: 20px 0;
     }
 
-    /* Action Button Styling */
     .action-buttons {
         margin: 20px 0;
         display: flex;
@@ -110,13 +103,11 @@
         background-color: #cc0000;
     }
 
-    /* Smaller Button Sizes */
     .button.small {
         padding: 5px 15px;
         font-size: 14px;
     }
 
-    /* Delete Button Styling */
     .button.delete {
         background-color: #e74c3c;
     }
@@ -125,7 +116,6 @@
         background-color: #c0392b;
     }
 
-    /* Attendees List Styling */
     .attendees-list {
         list-style-type: none;
         padding: 0;
