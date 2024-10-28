@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- (Previous head content remains unchanged) -->
     <title>View Attendees</title>
     <style>
         /* Reset Styles */
@@ -215,6 +214,7 @@
         <table class="attendees-table" id="attendeesTable">
             <thead>
                 <tr>
+                    <th>Ticket ID</th>
                     <th>Full Name</th>
                     <th>Email</th>
                     <th>Phone Number</th>
@@ -225,7 +225,9 @@
             </thead>
             <tbody>
                 {% for attendee in attendees %}
+                    {% set ticket_id = (attendee.id + 1000) * (event.id + 100) %}
                     <tr>
+                        <td data-label="Ticket ID">{{ ticket_id }}</td>
                         <td data-label="Full Name">{{ attendee.full_name }}</td>
                         <td data-label="Email">{{ attendee.email }}</td>
                         <td data-label="Phone Number">{{ attendee.phone_number }}</td>
@@ -270,14 +272,16 @@
 
         // Loop through table rows
         for (let i = 1; i < rows.length; i++) { // Start from 1 to skip header row
-            const fullNameCell = rows[i].getElementsByTagName('td')[0];
-            const emailCell = rows[i].getElementsByTagName('td')[1];
+            const ticketIdCell = rows[i].getElementsByTagName('td')[0];
+            const fullNameCell = rows[i].getElementsByTagName('td')[1];
+            const emailCell = rows[i].getElementsByTagName('td')[2];
 
-            if (fullNameCell && emailCell) {
+            if (ticketIdCell && fullNameCell && emailCell) {
+                const ticketId = ticketIdCell.textContent.toLowerCase();
                 const fullName = fullNameCell.textContent.toLowerCase();
                 const email = emailCell.textContent.toLowerCase();
 
-                if (fullName.includes(searchValue) || email.includes(searchValue)) {
+                if (ticketId.includes(searchValue) || fullName.includes(searchValue) || email.includes(searchValue)) {
                     rows[i].style.display = '';
                 } else {
                     rows[i].style.display = 'none';
