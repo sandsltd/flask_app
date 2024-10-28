@@ -1504,3 +1504,9 @@ def stripe_onboarding_refresh():
     return redirect(url_for('register'))
 
 ##
+
+@app.template_filter('datetimeformat')
+def datetimeformat(value):
+    if value:
+        return datetime.strptime(value, '%Y-%m-%d').strftime('%d-%m-%Y')
+    return ""
