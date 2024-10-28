@@ -39,6 +39,30 @@
             margin-bottom: 20px;
         }
 
+        /* Button Styles */
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            padding: 10px 15px;
+            background-color: #ff0000;
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #cc0000;
+        }
+
         /* Events List */
         ul {
             list-style-type: none;
@@ -99,35 +123,48 @@
             border-radius: 5px;
             overflow-x: auto;
             border: 1px solid #ddd;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
-        .links {
-            margin-top: 15px;
-        }
-
-        .links a {
-            color: #ff0000;
+        .copy-button {
+            background-color: #007bff;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
             font-weight: bold;
-            text-decoration: none;
-            margin-right: 15px;
+            transition: background-color 0.3s ease;
         }
 
-        .links a:hover {
-            text-decoration: underline;
+        .copy-button:hover {
+            background-color: #0056b3;
         }
     </style>
+    <script>
+        function copyEmbedCode() {
+            const embedCode = document.getElementById("embed-code").textContent;
+            navigator.clipboard.writeText(embedCode)
+                .then(() => alert("Embed code copied to clipboard!"))
+                .catch(err => console.error("Failed to copy embed code: ", err));
+        }
+    </script>
 </head>
 <body>
     <div class="dashboard-container">
         <h1>Dashboard</h1>
-        <a href="/create_event" class="btn-create">Create New Event</a>
 
         <!-- Summary Section -->
         <div class="summary-section">
             <h2>Dashboard Summary</h2>
             <p><strong>Total Tickets Sold:</strong> {{ total_tickets_sold }}</p>
             <p><strong>Total Revenue Generated:</strong> £{{ total_revenue }}</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <a href="/create_event" class="button">Create New Event</a>
+            <a href="/manage-default-questions" class="button">Manage Default Questions</a>
         </div>
 
         <!-- Filter Form -->
@@ -146,7 +183,7 @@
         <ul>
             {% for event_data in events %}
                 <li class="event-item">
-                    <strong>{{ event_data.name }}</strong> - {{ event_data.date }}
+                    <strong>{{ event_data.name }}</strong> - {{ event_data.date | datetimeformat }}
                     <br>
                     <strong>Location:</strong> {{ event_data.location }}
                     <br>
@@ -170,16 +207,16 @@
         <!-- Embed Code Section -->
         <div class="embed-section">
             <h3>Your Embed Code</h3>
-            <pre>
+            <pre id="embed-code">
                 &lt;script src="https://flask-app-2gp0.onrender.com/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
             </pre>
+            <button onclick="copyEmbedCode()" class="copy-button">Copy to Clipboard</button>
             <p>Copy this code and paste it into your website to display your events.</p>
         </div>
 
-        <!-- Links Section -->
+        <!-- Logout Link -->
         <div class="links">
-            <a href="/manage-default-questions">Manage Default Questions</a>
-            <a href="/logout">Logout</a>
+            <a href="/logout" class="button">Logout</a>
         </div>
     </div>
 </body>
