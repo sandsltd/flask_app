@@ -1,94 +1,175 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>view_attendees</title>
-<style>
-    .attendees-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: #fff;
-        border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    }
+    <title>View Attendees</title>
+    <style>
+        /* Reset Styles */
+        body, h1, h2, h3, h4, p, ul, li, table, th, td {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    h1, h2, h3, h4 {
-        color: #ff0000; /* Use your brand's red */
-    }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            color: #333;
+        }
 
-    hr {
-        border: 1px solid #f5f5f5;
-        margin: 20px 0;
-    }
+        .attendees-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
 
-    .action-buttons {
-        margin: 20px 0;
-        display: flex;
-        gap: 15px;
-    }
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
 
-    .button {
-        padding: 10px 20px;
-        background-color: #ff0000;
-        color: white;
-        border-radius: 5px;
-        text-decoration: none;
-        font-weight: bold;
-        transition: background-color 0.3s ease;
-    }
+        h2, h3 {
+            color: #555;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
 
-    .button:hover {
-        background-color: #cc0000;
-    }
+        hr {
+            border: none;
+            height: 1px;
+            background-color: #e0e0e0;
+            margin: 20px 0;
+        }
 
-    .button.small {
-        padding: 5px 15px;
-        font-size: 14px;
-    }
+        .action-buttons {
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+        }
 
-    .button.delete {
-        background-color: #e74c3c;
-    }
+        .button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
 
-    .button.delete:hover {
-        background-color: #c0392b;
-    }
+        .button:hover {
+            background-color: #0056b3;
+        }
 
-    .attendees-list {
-        list-style-type: none;
-        padding: 0;
-    }
+        .button.small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
 
-    .attendee-item {
-        background-color: #f9f9f9;
-        padding: 15px;
-        margin-bottom: 15px;
-        border-radius: 5px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
+        .button.delete {
+            background-color: #dc3545;
+        }
 
-    .attendee-item h3 {
-        margin-top: 0;
-    }
+        .button.delete:hover {
+            background-color: #c82333;
+        }
 
-    .attendee-item ul {
-        padding-left: 20px;
-    }
+        /* Table Styling */
+        .attendees-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
 
-    .attendee-item ul li {
-        list-style-type: disc;
-    }
-</style>
+        .attendees-table th, .attendees-table td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        .attendees-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .attendees-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .attendees-table tr:hover {
+            background-color: #e9ecef;
+        }
+
+        /* Responsive Table */
+        @media screen and (max-width: 768px) {
+            .attendees-table, .attendees-table thead, .attendees-table tbody, .attendees-table th, .attendees-table td, .attendees-table tr {
+                display: block;
+            }
+
+            .attendees-table tr {
+                margin-bottom: 15px;
+            }
+
+            .attendees-table th {
+                background-color: transparent;
+                position: relative;
+                padding: 10px 5px;
+            }
+
+            .attendees-table td {
+                padding: 10px 5px;
+                text-align: right;
+                position: relative;
+            }
+
+            .attendees-table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 0;
+                width: 50%;
+                padding-left: 15px;
+                font-weight: bold;
+                text-align: left;
+            }
+
+            .action-cell {
+                justify-content: flex-end;
+            }
+        }
+
+        /* Edit/Delete Button Styling */
+        .action-cell {
+            display: flex;
+            gap: 10px;
+        }
+
+        .ticket-answers {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .ticket-answers li {
+            margin-bottom: 5px;
+        }
+    </style>
 </head>
 
 {% extends "partials/base-logged-in.html" %}
 
 {% block content %}
-
-
 <div class="attendees-container">
     <h1>Attendees for Event: {{ event.name }}</h1>
     <h2>Date: {{ event.date }}</h2>
@@ -102,49 +183,50 @@
     </div>
 
     {% if attendees %}
-        <h2>Attendees List</h2>
-        <ul class="attendees-list">
-            {% for attendee in attendees %}
-                <li class="attendee-item">
-                    <h3>{{ attendee.full_name }}</h3>
-
-                    <!-- Organiser Information (Billing Details) -->
-                    <h4>Organiser Information:</h4>
-                    <p><strong>Full Name:</strong> {{ attendee.full_name }}</p>
-                    <p><strong>Email:</strong> {{ attendee.email }}</p>
-                    <p><strong>Phone Number:</strong> {{ attendee.phone_number }}</p>
-
-                    {% if attendee.billing_details.address %}
-                        <p><strong>Address:</strong> 
-                            {{ attendee.billing_details.address.line1 }},
-                            {% if attendee.billing_details.address.line2 %}{{ attendee.billing_details.address.line2 }}, {% endif %}
-                            {{ attendee.billing_details.address.city }},
-                            {{ attendee.billing_details.address.postal_code }}
-                        </p>
-                    {% else %}
-                        <p><strong>Address:</strong> Not provided</p>
-                    {% endif %}
-                    
-                    <!-- Ticket Questions and Answers -->
-                    <h4>Ticket Questions and Answers:</h4>
-                    <ul>
-                        {% for question, answer in attendee.ticket_answers.items() %}
-                            <li><strong>{{ question }}:</strong> {{ answer }}</li>
-                        {% endfor %}
-                    </ul>
-
-                    <!-- Edit and Delete Buttons -->
-                    <div class="action-buttons">
-                        <a href="{{ url_for('edit_attendee', attendee_id=attendee.id) }}" class="button small">Edit</a>
-                        <form action="{{ url_for('delete_attendee', attendee_id=attendee.id) }}" method="POST" style="display:inline;">
-                            <button type="submit" class="button small delete">Delete</button>
-                        </form>
-                    </div>
-                    
-                    <hr>
-                </li>
-            {% endfor %}
-        </ul>
+        <table class="attendees-table">
+            <thead>
+                <tr>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Phone Number</th>
+                    <th>Address</th>
+                    <th>Ticket Questions & Answers</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attendee in attendees %}
+                    <tr>
+                        <td data-label="Full Name">{{ attendee.full_name }}</td>
+                        <td data-label="Email">{{ attendee.email }}</td>
+                        <td data-label="Phone Number">{{ attendee.phone_number }}</td>
+                        <td data-label="Address">
+                            {% if attendee.billing_details.address %}
+                                {{ attendee.billing_details.address.line1 }},
+                                {% if attendee.billing_details.address.line2 %}{{ attendee.billing_details.address.line2 }}, {% endif %}
+                                {{ attendee.billing_details.address.city }},
+                                {{ attendee.billing_details.address.postal_code }}
+                            {% else %}
+                                Not provided
+                            {% endif %}
+                        </td>
+                        <td data-label="Ticket Questions & Answers">
+                            <ul class="ticket-answers">
+                                {% for question, answer in attendee.ticket_answers.items() %}
+                                    <li><strong>{{ question }}:</strong> {{ answer }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td data-label="Actions" class="action-cell">
+                            <a href="{{ url_for('edit_attendee', attendee_id=attendee.id) }}" class="button small">Edit</a>
+                            <form action="{{ url_for('delete_attendee', attendee_id=attendee.id) }}" method="POST" style="display:inline;">
+                                <button type="submit" class="button small delete">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     {% else %}
         <p>No attendees for this event yet.</p>
     {% endif %}
