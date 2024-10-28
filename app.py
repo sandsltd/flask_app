@@ -185,10 +185,9 @@ def generate_unique_id():
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Routes for login, logout, registration
 @app.route('/')
 def home():
-    return "Hello, World!"
+    return redirect(url_for('login'))
 
 from datetime import datetime, timedelta
 
