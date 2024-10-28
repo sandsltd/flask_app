@@ -149,75 +149,70 @@
                 .catch(err => console.error("Failed to copy embed code: ", err));
         }
     </script>
-</head>
-<body>
-    <div class="dashboard-container">
-        <h1>Dashboard</h1>
+{% extends "partials/base-logged-in.html" %}
 
-        <!-- Summary Section -->
-        <div class="summary-section">
-            <h2>Dashboard Summary</h2>
-            <p><strong>Total Tickets Sold:</strong> {{ total_tickets_sold }}</p>
-            <p><strong>Total Revenue Generated:</strong> £{{ total_revenue }}</p>
-        </div>
+{% block content %}
+<div class="dashboard-container">
+    <h1>Dashboard</h1>
 
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <a href="/create_event" class="button">Create New Event</a>
-            <a href="/manage-default-questions" class="button">Manage Default Questions</a>
-        </div>
-
-        <!-- Filter Form -->
-        <form method="GET" action="{{ url_for('dashboard') }}">
-            <label for="filter">Filter:</label>
-            <select name="filter" id="filter">
-                <option value="all">All Events</option>
-                <option value="upcoming">Upcoming Events</option>
-                <option value="past">Past Events</option>
-            </select>
-            <button type="submit">Apply</button>
-        </form>
-
-        <!-- Events Section -->
-        <h2>Your Events</h2>
-        <ul>
-            {% for event_data in events %}
-                <li class="event-item">
-                    <strong>{{ event_data.name }}</strong> - {{ event_data.date | datetimeformat }}
-                    <br>
-                    <strong>Location:</strong> {{ event_data.location }}
-                    <br>
-                    <strong>Tickets Sold:</strong> {{ event_data.tickets_sold }} / {{ event_data.ticket_quantity }}
-                    <br>
-                    <strong>Tickets Remaining:</strong> {{ event_data.tickets_remaining }}
-                    <br>
-                    <strong>Total Revenue:</strong> £{{ event_data.total_revenue }}
-                    <br>
-                    <strong>Status:</strong> {{ event_data.status }}
-                    <br>
-                    <a href="{{ url_for('view_attendees', event_id=event_data.id) }}">View Attendees</a> | 
-                    <a href="{{ url_for('edit_event', event_id=event_data.id) }}">Edit</a> | 
-                    <a href="{{ url_for('delete_event', event_id=event_data.id) }}" onclick="return confirm('Are you sure you want to delete this event?');">Delete</a>
-                </li>
-            {% else %}
-                <li>No events yet.</li>
-            {% endfor %}
-        </ul>
-
-        <!-- Embed Code Section -->
-        <div class="embed-section">
-            <h3>Your Embed Code</h3>
-            <pre id="embed-code">
-                &lt;script src="https://flask-app-2gp0.onrender.com/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
-            </pre>
-            <button onclick="copyEmbedCode()" class="copy-button">Copy to Clipboard</button>
-            <p>Copy this code and paste it into your website to display your events.</p>
-        </div>
-
-        <!-- Logout Link -->
-        <div class="links">
-            <a href="/logout" class="button">Logout</a>
-        </div>
+    <!-- Summary Section -->
+    <div class="summary-section">
+        <h2>Dashboard Summary</h2>
+        <p><strong>Total Tickets Sold:</strong> {{ total_tickets_sold }}</p>
+        <p><strong>Total Revenue Generated:</strong> £{{ total_revenue }}</p>
     </div>
-</body>
-</html>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <a href="/create_event" class="button">Create New Event</a>
+        <a href="/manage-default-questions" class="button">Manage Default Questions</a>
+    </div>
+
+    <!-- Filter Form -->
+    <form method="GET" action="{{ url_for('dashboard') }}">
+        <label for="filter">Filter:</label>
+        <select name="filter" id="filter">
+            <option value="all">All Events</option>
+            <option value="upcoming">Upcoming Events</option>
+            <option value="past">Past Events</option>
+        </select>
+        <button type="submit">Apply</button>
+    </form>
+
+    <!-- Events Section -->
+    <h2>Your Events</h2>
+    <ul>
+        {% for event_data in events %}
+            <li class="event-item">
+                <strong>{{ event_data.name }}</strong> - {{ event_data.date | datetimeformat }}
+                <br>
+                <strong>Location:</strong> {{ event_data.location }}
+                <br>
+                <strong>Tickets Sold:</strong> {{ event_data.tickets_sold }} / {{ event_data.ticket_quantity }}
+                <br>
+                <strong>Tickets Remaining:</strong> {{ event_data.tickets_remaining }}
+                <br>
+                <strong>Total Revenue:</strong> £{{ event_data.total_revenue }}
+                <br>
+                <strong>Status:</strong> {{ event_data.status }}
+                <br>
+                <a href="{{ url_for('view_attendees', event_id=event_data.id) }}">View Attendees</a> | 
+                <a href="{{ url_for('edit_event', event_id=event_data.id) }}">Edit</a> | 
+                <a href="{{ url_for('delete_event', event_id=event_data.id) }}" onclick="return confirm('Are you sure you want to delete this event?');">Delete</a>
+            </li>
+        {% else %}
+            <li>No events yet.</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Embed Code Section -->
+    <div class="embed-section">
+        <h3>Your Embed Code</h3>
+        <pre id="embed-code">
+            &lt;script src="https://flask-app-2gp0.onrender.com/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
+        </pre>
+        <button onclick="copyEmbedCode()" class="copy-button">Copy to Clipboard</button>
+        <p>Copy this code and paste it into your website to display your events.</p>
+    </div>
+</div>
+{% endblock %}
