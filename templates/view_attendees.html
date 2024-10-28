@@ -6,7 +6,7 @@
     <title>View Attendees</title>
     <style>
         /* Reset Styles */
-        body, h1, h2, h3, h4, p, ul, li, table, th, td {
+        body, h1, h2, h3, h4, p, ul, li, table, th, td, input, button {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -49,7 +49,9 @@
         .action-buttons {
             margin: 20px 0;
             display: flex;
+            flex-wrap: wrap;
             gap: 15px;
+            align-items: center;
         }
 
         .button {
@@ -80,6 +82,29 @@
 
         .button.delete:hover {
             background-color: #c82333;
+        }
+
+        /* Search Box Styling */
+        .search-box {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 40px 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .search-box .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            font-size: 20px;
         }
 
         /* Table Styling */
@@ -180,10 +205,14 @@
     <div class="action-buttons">
         <a href="{{ url_for('export_attendees', event_id=event.id) }}" class="button">Export Attendees</a>
         <a href="{{ url_for('add_attendee', event_id=event.id) }}" class="button">Add New Attendee</a>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search attendees...">
+            <span class="search-icon">&#128269;</span>
+        </div>
     </div>
 
     {% if attendees %}
-        <table class="attendees-table">
+        <table class="attendees-table" id="attendeesTable">
             <thead>
                 <tr>
                     <th>Full Name</th>
@@ -231,4 +260,30 @@
         <p>No attendees for this event yet.</p>
     {% endif %}
 </div>
+
+<script>
+    // Search Functionality
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        const searchValue = this.value.toLowerCase();
+        const table = document.getElementById('attendeesTable');
+        const rows = table.getElementsByTagName('tr');
+
+        // Loop through table rows
+        for (let i = 1; i < rows.length; i++) { // Start from 1 to skip header row
+            const fullNameCell = rows[i].getElementsByTagName('td')[0];
+            const emailCell = rows[i].getElementsByTagName('td')[1];
+
+            if (fullNameCell && emailCell) {
+                const fullName = fullNameCell.textContent.toLowerCase();
+                const email = emailCell.textContent.toLowerCase();
+
+                if (fullName.includes(searchValue) || email.includes(searchValue)) {
+                    rows[i].style.display = '';
+                } else {
+                    rows[i].style.display = 'none';
+                }
+            }
+        }
+    });
+</script>
 {% endblock %}
