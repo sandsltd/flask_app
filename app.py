@@ -508,8 +508,8 @@ def embed_events(unique_id):
     #ticketrush-embed .event-card {
         border: 1px solid #444;
         border-radius: 10px;
-        background-color: #2c2c2c; /* Dark gray background */
-        color: #ffffff; /* White text */
+        background-color: #ffffff; 
+        color: #000000; /* White text */
         overflow: hidden;
         margin-bottom: 20px;
         transition: transform 0.2s, box-shadow 0.2s;
