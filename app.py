@@ -724,16 +724,18 @@ def calculate_total_charge_and_booking_fee(n_tickets, ticket_price_gbp):
 
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
 def purchase(event_id):
+    # Fetch the event
     event = Event.query.get(event_id)
     if not event:
         return "Event not found", 404
 
-    user = User.query.get(event.user_id)
-    if not user:
+    # Fetch the organizer (user who created the event)
+    organizer = User.query.get(event.user_id)
+    if not organizer:
         return "Event organizer not found", 404
 
     # Fetch default and custom questions
-    default_questions = DefaultQuestion.query.filter_by(user_id=user.id).order_by(DefaultQuestion.id).all()
+    default_questions = DefaultQuestion.query.filter_by(user_id=organizer.id).order_by(DefaultQuestion.id).all()
     default_question_texts = [dq.question for dq in default_questions]
 
     custom_questions = []
@@ -749,8 +751,6 @@ def purchase(event_id):
     for question in custom_questions:
         if question not in all_questions:
             all_questions.append(question)
-
-
 
     if request.method == 'POST':
         # Generate a unique session ID for this purchase
@@ -813,7 +813,7 @@ def purchase(event_id):
 
         # Calculate the platform's total fee (Platform Fee + Transaction Fee)
         platform_fee_pence = 30 * number_of_tickets  # 30p per ticket
-        transaction_fee_pence = 20               # 20p per transaction
+        transaction_fee_pence = 20                   # 20p per transaction
         application_fee_pence = platform_fee_pence + transaction_fee_pence  # Total application fee
 
         # Logging for debugging
@@ -846,6 +846,7 @@ def purchase(event_id):
                             'currency': 'gbp',
                             'product_data': {
                                 'name': 'Booking Fee',
+                                'description': 'Includes platform and transaction fees',
                             },
                             'unit_amount': booking_fee_pence,  # Combined Booking Fee in pence
                         },
@@ -861,7 +862,7 @@ def purchase(event_id):
                 payment_intent_data={
                     'application_fee_amount': application_fee_pence,  # Platform fee: 30p per ticket + 20p per transaction
                     'transfer_data': {
-                        'destination': user.stripe_connect_id,  # User's connected Stripe account
+                        'destination': organizer.stripe_connect_id,  # Organizer's connected Stripe account
                     },
                 },
                 billing_address_collection='required',
@@ -878,15 +879,17 @@ def purchase(event_id):
     else:
         # GET request: render the purchase page
         platform_terms_link = 'https://your-platform-domain.com/terms-and-conditions'
-        organizer_terms_link = user.terms or '#'
+        organizer_terms_link = organizer.terms if organizer.terms != 'none' else None
 
         return render_template(
             'purchase.html',
             event=event,
+            organizer=organizer,
             questions=all_questions,
             organizer_terms_link=organizer_terms_link,
             platform_terms_link=platform_terms_link
         )
+
 
 
 
