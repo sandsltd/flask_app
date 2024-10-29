@@ -636,6 +636,10 @@ from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 import re
 
+from flask import render_template, request, redirect, url_for, flash
+from flask_login import login_required, current_user
+import re
+
 @app.route('/manage-default-questions', methods=['GET', 'POST'])
 @login_required
 def manage_default_questions():
@@ -678,7 +682,7 @@ def manage_default_questions():
 
         # Process terms link
         if terms_link.lower() == 'none' or not terms_link:
-            user.terms = None
+            user.terms = 'none'
         else:
             # Add https:// if missing
             if not re.match(r'^https?://', terms_link):
@@ -691,12 +695,13 @@ def manage_default_questions():
 
         # Update existing questions
         for i, question_text in enumerate(questions):
+            question_text = question_text.strip()
             if i < len(existing_questions):
-                existing_questions[i].question = question_text.strip()
+                existing_questions[i].question = question_text
             else:
                 # Add new questions if any
-                if question_text.strip():
-                    new_question = DefaultQuestion(user_id=user.id, question=question_text.strip())
+                if question_text:
+                    new_question = DefaultQuestion(user_id=user.id, question=question_text)
                     db.session.add(new_question)
 
         # Remove extra questions if fewer are submitted
@@ -707,13 +712,15 @@ def manage_default_questions():
         # Commit changes to the database
         db.session.commit()
 
-        flash('Settings updated successfully.')
-        return redirect(url_for('manage_default_questions'))
+        # Flash success message and redirect to dashboard
+        flash('Account settings successfully updated.')
+        return redirect(url_for('dashboard'))
 
     # GET request
     # Render the settings page
     questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
     return render_template('manage_default_questions.html', user=user, questions=questions)
+
 
 
 
