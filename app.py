@@ -620,10 +620,6 @@ def create_checkout_session(event_id):
 
 '''
 
-# Success and cancel routes
-@app.route('/success')
-def success():
-    return "Payment successful! Thank you for purchasing a ticket."
 
 @app.route('/cancel')
 def cancel():
