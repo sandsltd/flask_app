@@ -24,7 +24,7 @@ import math
 from flask_mail import Mail, Message
 import urllib.parse
 from flask import Response
-
+from flask import escape
 
 
 app = Flask(__name__)
@@ -478,7 +478,7 @@ def embed_events(unique_id):
     # Begin constructing the HTML
     events_html = '''
     <style>
-    
+
     /* Embedded Events Styles */
     #ticketrush-embed * {
         box-sizing: border-box;
