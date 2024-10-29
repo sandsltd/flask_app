@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Booking Confirmation - {{ event.name }}</title>
+    <!-- Include any CSS files or inline styles -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
+        }
+        h1 {
+            color: #ff0000;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        .event-details, .organizer-details, .ticketrush-promo {
+            margin-bottom: 30px;
+        }
+        .event-details h2, .organizer-details h2, .ticketrush-promo h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .event-details p, .organizer-details p, .ticketrush-promo p {
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        .event-image {
+            width: 100%;
+            height: auto;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #ff0000;
+            color: #fff;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover {
+            background-color: #cc0000;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 14px;
+            color: #777;
+        }
+        .footer a {
+            color: #ff0000;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Booking Confirmed!</h1>
+
+        <!-- Event Details -->
+        <div class="event-details">
+            <h2>Event Details</h2>
+            {% if event.event_image %}
+                <img src="{{ event.event_image }}" alt="Event Image" class="event-image">
+            {% endif %}
+            <p><strong>Event:</strong> {{ event.name }}</p>
+            <p><strong>Date:</strong> {{ event.date }}</p>
+            <p><strong>Time:</strong> {{ event.start_time }} - {{ event.end_time }}</p>
+            <p><strong>Location:</strong> {{ event.location }}</p>
+            <p><strong>Description:</strong> {{ event.description }}</p>
+            <p><strong>Tickets Booked:</strong> {{ total_tickets }}</p>
+        </div>
+
+        <!-- Organizer Details -->
+        <div class="organizer-details">
+            <h2>Organizer Details</h2>
+            <p><strong>Organizer:</strong> {{ organizer.business_name }}</p>
+            <p><strong>Website:</strong> <a href="{{ organizer.website_url }}" target="_blank">{{ organizer.website_url }}</a></p>
+            <p><strong>Contact:</strong> <a href="mailto:{{ organizer.email }}">{{ organizer.email }}</a></p>
+        </div>
+
+        <!-- TicketRush Promotion -->
+        <div class="ticketrush-promo">
+            <h2>Looking to Organize and Sell Your Events?</h2>
+            <p>Join TicketRush and start selling your event tickets with ease. Our platform provides seamless ticketing solutions for event organizers of all sizes.</p>
+            <a href="https://www.ticketrush.io" target="_blank" class="button">Learn More About TicketRush</a>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Thank you for using <a href="https://www.ticketrush.io" target="_blank">TicketRush</a>.</p>
+        </div>
+    </div>
+</body>
+</html>

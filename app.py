@@ -642,7 +642,7 @@ def embed_events(unique_id):
             # Show the 'Buy Ticket' button if tickets are available
             if tickets_available > 0:
                 events_html += f'''
-                <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Buy Ticket</a>
+                <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Book Ticket</a>
                 '''
             events_html += '''
                 </div>
@@ -987,7 +987,8 @@ def purchase(event_id):
             send_confirmation_email_to_organizer(organizer, attendees, billing_details, event)
 
             flash('Your free ticket(s) have been booked successfully!')
-            return redirect(url_for('success'))
+            return redirect(url_for('success', session_id=session_id))
+
 
         else:
             # Proceed with Stripe payment
@@ -1037,7 +1038,7 @@ def purchase(event_id):
                         }
                     ],
                     mode='payment',
-                    success_url=url_for('success', _external=True),
+                    success_url=url_for('success', session_id=session_id, _external=True),
                     cancel_url=url_for('cancel', _external=True),
                     metadata={
                         'session_id': session_id  # Pass session ID to Stripe
@@ -1753,4 +1754,33 @@ def datetimeformat(value):
 
 @app.route('/success')
 def success():
-    return "Thank you! Your ticket has been successfully booked."
+    # Retrieve the attendee based on session or other identifier
+    # Since we don't have a user session, we'll need to find a way to identify the attendee
+    # One common method is to pass the session_id as a query parameter during the redirect
+    
+    session_id = request.args.get('session_id')
+    if not session_id:
+        return "Invalid session. Unable to retrieve booking details.", 400
+
+    # Fetch the attendee(s) associated with this session_id
+    attendees = Attendee.query.filter_by(session_id=session_id, payment_status='succeeded').all()
+    if not attendees:
+        return "No booking found for this session.", 404
+
+    # Assuming all attendees are for the same event
+    event = Event.query.get(attendees[0].event_id)
+    organizer = User.query.get(event.user_id)
+
+    # Calculate total tickets purchased
+    total_tickets = len(attendees)
+
+    # Prepare data to pass to the template
+    context = {
+        'event': event,
+        'organizer': organizer,
+        'attendee': attendees[0],  # Assuming the buyer's details are the same
+        'total_tickets': total_tickets
+    }
+
+    return render_template('success.html', **context)
+
