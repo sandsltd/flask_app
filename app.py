@@ -1171,13 +1171,28 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         # iOS/ICS Calendar file link
         ics_file_url = url_for('download_ics', event_id=event.id, _external=True)
 
+        # Prepare the organizer details section
+        organizer_details = f"""
+        <p>
+            <strong>Business:</strong> {organizer.business_name}<br>
+            <strong>Website:</strong> <a href="{organizer.website_url or '#'}" style="color: #ff0000;">{organizer.website_url or 'No website provided'}</a><br>
+        """
+
+        # Include the terms link only if organizer.terms is set and not 'none'
+        if organizer.terms and organizer.terms.lower() != 'none':
+            organizer_details += f"""
+            <strong>Organiser's Terms (Please Read):</strong> <a href="{organizer.terms}" style="color: #ff0000;">{organizer.terms}</a>
+            """
+
+        organizer_details += "</p>"
+
         # Prepare the email body with inline CSS and logo
         body = f"""
         <html>
         <body style="background-color: #ffffff; color: #000000; font-family: Arial, sans-serif; padding: 20px;">
             <!-- Include Logo -->
             <div style="text-align: center; margin-bottom: 20px;">
-                <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
+                <img src="http://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
             </div>
 
             <h2 style="color: #ff0000;">Hello {attendee.full_name},</h2>
@@ -1215,11 +1230,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
             <hr style="border: 1px solid #ff0000;">
             
             <h3 style="color: #ff0000;">Organiser Details:</h3>
-            <p>
-                <strong>Business:</strong> {organizer.business_name}<br>
-                <strong>Website:</strong> <a href="{organizer.website_url or '#'}" style="color: #ff0000;">{organizer.website_url or 'No website provided'}</a><br>
-                <strong>Organisers Terms (Please Read):</strong> <a href="{organizer.terms or '#'}" style="color: #ff0000;">{organizer.terms or 'No terms provided'}</a>
-            </p>
+            {organizer_details}
 
             <hr style="border: 1px solid #ff0000;">
 
@@ -1292,7 +1303,7 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
         <body style="background-color: #ffffff; color: #000000; font-family: Arial, sans-serif; padding: 20px;">
             <!-- Include Logo -->
             <div style="text-align: center; margin-bottom: 20px;">
-                <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
+                <img src="http://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
             </div>
 
             <h2 style="color: #ff0000;">Hello {organizer.first_name},</h2>
@@ -1311,11 +1322,6 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
 
             <h3 style="color: #ff0000;">Attendee Details:</h3>
             {attendee_info}
-
-            <h3 style="color: #ff0000;">Billing Information:</h3>
-            <p>
-                <strong>Billing Address:</strong> {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}
-            </p>
 
             <hr style="border: 1px solid #ff0000;">
             
