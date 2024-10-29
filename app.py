@@ -506,21 +506,19 @@ def embed_events(unique_id):
         box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.1);
     }
 
-    #ticketrush-embed .event-image {
-        width: 100%;
-        height: 200px;
-        object-fit: cover;
-        background-color: #f0f0f0;
+    /* Adjusted Event Title */
+    #ticketrush-embed .event-title {
+        font-size: 26px;
+        color: #fff;
+        margin: 0;
+        padding: 20px;
+        background-color: #ff0000;
+        text-align: center;
+        font-weight: bold;
     }
 
     #ticketrush-embed .event-content {
         padding: 20px;
-    }
-
-    #ticketrush-embed .event-title {
-        font-size: 24px;
-        color: #333;
-        margin: 0 0 10px;
     }
 
     #ticketrush-embed .event-date,
@@ -616,15 +614,11 @@ def embed_events(unique_id):
             event_location = escape(event.location)
             truncated_description = escape(truncated_description)
 
-            # Use event image if available; otherwise, use a placeholder
-            event_image_url = event.event_image if event.event_image else 'https://ticketrush.io/wp-content/uploads/2024/10/ticket.png'
-
             # Build the event card HTML
             events_html += f'''
             <div class="event-card">
-                <img src="{event_image_url}" alt="Event Image" class="event-image">
+                <h2 class="event-title">{event_name}</h2>
                 <div class="event-content">
-                    <h2 class="event-title">{event_name}</h2>
                     <p class="event-date"><strong>Date:</strong> {formatted_date}</p>
                     <p class="event-location"><strong>Location:</strong> {event_location}</p>
                     <p class="event-price"><strong>Price:</strong> {ticket_price}</p>
@@ -639,7 +633,7 @@ def embed_events(unique_id):
 
             events_html += '</p>'
 
-            # Show the 'Buy Ticket' button if tickets are available
+            # Show the 'Book Ticket' button if tickets are available
             if tickets_available > 0:
                 events_html += f'''
                 <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Book Ticket</a>
@@ -652,7 +646,7 @@ def embed_events(unique_id):
         events_html += '</div>'
 
     # Add the "Powered by TicketRush" footer with logo and link
-    events_html += f'''
+    events_html += '''
     <div class="powered-by">
         Powered by <a href="https://www.ticketrush.io" target="_blank">TicketRush</a>
     </div>
