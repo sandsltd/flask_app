@@ -1393,15 +1393,32 @@ def add_attendee(event_id):
 
         # Collect the ticket answers
         ticket_answers = {}
-        for question in all_questions:
-            answer_key = f'answer_{question}'
+        for idx, question in enumerate(all_questions):
+            answer_key = f'answer_{idx + 1}'
             ticket_answers[question] = request.form.get(answer_key, '')
 
+        # Collect billing details
+        billing_details = {
+            'name': request.form.get('billing_name', ''),
+            'email': request.form.get('billing_email', ''),
+            'phone': request.form.get('billing_phone', ''),
+            'address': {
+                'line1': request.form.get('billing_address_line1', ''),
+                'line2': request.form.get('billing_address_line2', ''),
+                'city': request.form.get('billing_city', ''),
+                'state': request.form.get('billing_state', ''),
+                'postal_code': request.form.get('billing_postal_code', ''),
+                'country': request.form.get('billing_country', ''),
+            }
+        }
+
         # Loop to create an `Attendee` entry for each ticket
+        attendees = []
         for _ in range(number_of_tickets):
             attendee = Attendee(
                 event_id=event_id,
                 ticket_answers=json.dumps(ticket_answers),
+                billing_details=json.dumps(billing_details) if any(billing_details.values()) else None,
                 payment_status='succeeded',  # Since this is manually added, assume payment success
                 full_name=full_name,
                 email=email,
@@ -1411,15 +1428,23 @@ def add_attendee(event_id):
                 created_at=datetime.utcnow()
             )
             db.session.add(attendee)
+            attendees.append(attendee)
 
         # Update the event's ticket quantity
         event.ticket_quantity -= number_of_tickets
         db.session.commit()
 
+        # Send confirmation emails
+        organizer = User.query.get(event.user_id)
+        for attendee in attendees:
+            send_confirmation_email_to_attendee(attendee, billing_details)
+        send_confirmation_email_to_organizer(organizer, attendees, billing_details, event)
+
         flash('New attendee added successfully!')
         return redirect(url_for('view_attendees', event_id=event_id))
 
     return render_template('add_attendee.html', event=event, questions=all_questions)
+
 
 @app.route('/export_attendees/<int:event_id>')
 @login_required
