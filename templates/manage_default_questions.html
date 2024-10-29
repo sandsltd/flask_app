@@ -1,77 +1,178 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Account Settings</title>
-</head>
-<body>
-    <h1>Account Settings</h1>
+{% extends "partials/base.html" %}
 
-    <form action="/manage-default-questions" method="POST">
-        <!-- Core Account Information -->
-        <h2>Your Information</h2>
+{% block content %}
+<div class="settings-container">
+    <div class="settings-form">
+        <h1>Account Settings</h1>
+        <form action="/manage-default-questions" method="POST">
+            <!-- Core Account Information -->
+            <h2>Your Information</h2>
 
-        <label for="first_name">First Name:</label>
-        <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}"><br>
+            <div class="form-group">
+                <label for="first_name">First Name:</label>
+                <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+            </div>
 
-        <label for="last_name">Last Name:</label>
-        <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}"><br>
+            <div class="form-group">
+                <label for="last_name">Last Name:</label>
+                <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+            </div>
 
-        <label for="phone_number">Phone Number:</label>
-        <input type="text" id="phone_number" name="phone_number" value="{{ user.phone_number }}"><br>
+            <div class="form-group">
+                <label for="phone_number">Phone Number:</label>
+                <input type="text" id="phone_number" name="phone_number" value="{{ user.phone_number }}" required>
+            </div>
 
-        <label for="business_name">Business Name:</label>
-        <input type="text" id="business_name" name="business_name" value="{{ user.business_name }}"><br>
+            <div class="form-group">
+                <label for="business_name">Business Name:</label>
+                <input type="text" id="business_name" name="business_name" value="{{ user.business_name }}" required>
+            </div>
 
-        <label for="website_url">Website URL:</label>
-        <input type="url" id="website_url" name="website_url" value="{{ user.website_url }}"><br>
+            <div class="form-group">
+                <label for="website_url">Website URL:</label>
+                <input type="url" id="website_url" name="website_url" value="{{ user.website_url }}">
+            </div>
 
-        <label for="vat_number">VAT Number:</label>
-        <input type="text" id="vat_number" name="vat_number" value="{{ user.vat_number }}"><br>
+            <div class="form-group">
+                <label for="vat_number">VAT Number:</label>
+                <input type="text" id="vat_number" name="vat_number" value="{{ user.vat_number }}">
+            </div>
 
-        <label for="house_name_or_number">House Name or Number:</label>
-        <input type="text" id="house_name_or_number" name="house_name_or_number" value="{{ user.house_name_or_number }}"><br>
+            <div class="form-group">
+                <label for="house_name_or_number">House Name or Number:</label>
+                <input type="text" id="house_name_or_number" name="house_name_or_number" value="{{ user.house_name_or_number }}" required>
+            </div>
 
-        <label for="street">Street:</label>
-        <input type="text" id="street" name="street" value="{{ user.street }}"><br>
+            <div class="form-group">
+                <label for="street">Street:</label>
+                <input type="text" id="street" name="street" value="{{ user.street }}" required>
+            </div>
 
-        <label for="locality">Locality:</label>
-        <input type="text" id="locality" name="locality" value="{{ user.locality }}"><br>
+            <div class="form-group">
+                <label for="locality">Locality:</label>
+                <input type="text" id="locality" name="locality" value="{{ user.locality }}">
+            </div>
 
-        <label for="town">Town:</label>
-        <input type="text" id="town" name="town" value="{{ user.town }}"><br>
+            <div class="form-group">
+                <label for="town">Town:</label>
+                <input type="text" id="town" name="town" value="{{ user.town }}" required>
+            </div>
 
-        <label for="postcode">Postcode:</label>
-        <input type="text" id="postcode" name="postcode" value="{{ user.postcode }}"><br>
+            <div class="form-group">
+                <label for="postcode">Postcode:</label>
+                <input type="text" id="postcode" name="postcode" value="{{ user.postcode }}" required>
+            </div>
 
-        <!-- Terms and Conditions Link with Additional Information -->
-        <h2>Your Terms and Conditions</h2>
-        <p>
-            This link will be shown to your attendees when they are purchasing a ticket. They will need to agree to these to proceed with their purchase. If you do not have a link to terms and conditions, please enter "<strong>none</strong>" into this box.
-        </p>
-        <label for="terms_link">Your Terms and Conditions URL:</label>
-        <input type="url" id="terms_link" name="terms_link" value="{{ user.terms }}"><br><br>
+            <!-- Terms and Conditions Link with Additional Information -->
+            <h2>Your Terms and Conditions</h2>
+            <p>
+                This link will be shown to your attendees when they are purchasing a ticket. They will need to agree to these to proceed with their purchase. If you do not have a link to terms and conditions, please enter "<strong>none</strong>" into this box.
+            </p>
+            <div class="form-group">
+                <label for="terms_link">Your Terms and Conditions URL:</label>
+                <input type="url" id="terms_link" name="terms_link" value="{{ user.terms }}">
+            </div>
 
-        <!-- Manage Default Questions -->
-        <h2>Manage Default Questions</h2>
-        {% for question in questions %}
-            <label for="question{{ loop.index }}">Question {{ loop.index }}:</label>
-            <input type="text" id="question{{ loop.index }}" name="questions[]" value="{{ question.question }}"><br>
-        {% endfor %}
+            <!-- Manage Default Questions -->
+            <h2>Manage Default Questions</h2>
+            {% for question in questions %}
+                <div class="form-group">
+                    <label for="question{{ loop.index }}">Question {{ loop.index }}:</label>
+                    <input type="text" id="question{{ loop.index }}" name="questions[]" value="{{ question.question }}">
+                </div>
+            {% endfor %}
 
-        {% for i in range(10 - questions|length) %}
-            <label for="new_question{{ i + questions|length + 1 }}">Question {{ i + questions|length + 1 }}:</label>
-            <input type="text" id="new_question{{ i + questions|length + 1 }}" name="questions[]"><br>
-        {% endfor %}
+            {% for i in range(10 - questions|length) %}
+                <div class="form-group">
+                    <label for="new_question{{ i + questions|length + 1 }}">Question {{ i + questions|length + 1 }}:</label>
+                    <input type="text" id="new_question{{ i + questions|length + 1 }}" name="questions[]">
+                </div>
+            {% endfor %}
 
-        <br>
-        <input type="submit" value="Save Changes">
-    </form>
+            <input type="submit" value="Save Changes" class="submit-btn">
+        </form>
 
-    <a href="/dashboard">Back to Dashboard</a>
+        {% if error %}
+            <p class="error-msg">{{ error }}</p>
+        {% endif %}
+    </div>
+</div>
 
-    {% if error %}
-        <p style="color:red;">{{ error }}</p>
-    {% endif %}
-</body>
-</html>
+<style>
+    /* Scoped styles for the settings page */
+
+    .settings-container {
+        display: flex;
+        flex-direction: column; /* Stack sections vertically */
+        align-items: center;
+        margin: 50px auto;
+        max-width: 800px;
+        padding: 20px;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .settings-form {
+        width: 100%;
+        padding: 20px;
+        background-color: white;
+    }
+
+    .settings-form h1 {
+        color: #ff0000; /* Red for your brand */
+        margin-bottom: 20px;
+    }
+
+    .settings-form h2 {
+        color: #ff0000;
+        margin-top: 30px;
+        margin-bottom: 15px;
+    }
+
+    .settings-form p {
+        margin-bottom: 15px;
+        color: #333;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f5f5f5;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 15px;
+        background-color: #ff0000; /* Red for your brand */
+        color: white;
+        font-weight: bold;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+
+    .submit-btn:hover {
+        background-color: #cc0000; /* Darker red for hover */
+    }
+
+    .error-msg {
+        color: red;
+        margin-top: 15px;
+    }
+</style>
+
+{% endblock %}
