@@ -24,7 +24,7 @@ import math
 from flask_mail import Mail, Message
 import urllib.parse
 from flask import Response
-from flask import escape
+from markupsafe import escape
 
 
 app = Flask(__name__)
