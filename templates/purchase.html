@@ -1,99 +1,227 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Purchase Tickets</title>
-</head>
-<body>
-    <h1>Purchase Tickets for {{ event.name }}</h1>
-    <p>{{ event.description }}</p>
-    <p>Date: {{ event.date }}</p>
-    <p>Location: {{ event.location }}</p>
-    <p>Price per ticket: £{{ event.ticket_price }}</p>
-    <form method="POST">
-        <label for="number_of_tickets">Number of Tickets:</label>
-        <input
-            type="number"
-            id="number_of_tickets"
-            name="number_of_tickets"
-            min="1"
-            max="{{ event.ticket_quantity }}"
-            required
-            onchange="updateQuestionForms()"
-        >
-        <div id="question_forms">
-            <!-- Question forms will be dynamically added here -->
-        </div>
+{% extends "partials/base.html" %}
+
+{% block content %}
+<div class="purchase-container">
+    <div class="purchase-form">
+        <h1>Purchase Tickets for {{ event.name }}</h1>
+        <p>{{ event.description }}</p>
+        <p><strong>Date:</strong> {{ event.date }}</p>
+        <p><strong>Location:</strong> {{ event.location }}</p>
+        <p><strong>Price per ticket:</strong> £{{ event.ticket_price }}</p>
 
         <form method="POST">
-            <!-- Full Name -->
-            <label for="full_name">Full Name:</label>
-            <input type="text" id="full_name" name="full_name" required><br><br>
-        
-            <!-- Email -->
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required><br><br>
-        
-            <!-- Telephone Number -->
-            <label for="phone_number">Telephone Number:</label>
-            <input type="tel" id="phone_number" name="phone_number" required><br><br>
+            <!-- Number of Tickets -->
+            <div class="form-group">
+                <label for="number_of_tickets">Number of Tickets:</label>
+                <input
+                    type="number"
+                    id="number_of_tickets"
+                    name="number_of_tickets"
+                    min="1"
+                    max="{{ event.ticket_quantity }}"
+                    value="1"
+                    required
+                >
+            </div>
 
+            <!-- Buyer Information -->
+            <h2>Your Information</h2>
 
-        <!-- Terms and Conditions Checkboxes -->
-        <h3>Terms and Conditions</h3>
-        <div>
-            <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
-            <label for="accept_organizer_terms">
-                I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organizer's Terms and Conditions</a>.
-            </label>
-        </div>
-        <div>
-            <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
-            <label for="accept_platform_terms">
-                I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>.
-            </label>
-        </div>
+            <div class="form-group">
+                <label for="full_name">Full Name:</label>
+                <input type="text" id="full_name" name="full_name" required>
+            </div>
 
-        <button type="submit">Proceed to Payment</button>
-    </form>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
 
-    <!-- Include your JavaScript code after the form -->
-    <script type="application/json" id="questions-data">
-        {{ questions | tojson }}
-    </script>
+            <div class="form-group">
+                <label for="phone_number">Telephone Number:</label>
+                <input type="tel" id="phone_number" name="phone_number" required>
+            </div>
 
-    <script>
-        // Parse the questions data from the script tag
-        var questionsDataElement = document.getElementById('questions-data');
-        var questions = JSON.parse(questionsDataElement.textContent);
+            <!-- Ticket Questions -->
+            <h2>Attendee Information</h2>
+            <div id="question_forms">
+                <!-- Question forms will be dynamically added here -->
+            </div>
 
-        function updateQuestionForms() {
-            var numberOfTickets = document.getElementById('number_of_tickets').value;
-            var formsContainer = document.getElementById('question_forms');
-            formsContainer.innerHTML = '';
+            <!-- Terms and Conditions Checkboxes -->
+            <h2>Terms and Conditions</h2>
+            <div class="form-group checkbox-group">
+                <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
+                <label for="accept_organizer_terms">
+                    I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organizer's Terms and Conditions</a>.
+                </label>
+            </div>
+            <div class="form-group checkbox-group">
+                <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
+                <label for="accept_platform_terms">
+                    I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>.
+                </label>
+            </div>
 
-            for (var i = 0; i < numberOfTickets; i++) {
-                var ticketDiv = document.createElement('div');
-                ticketDiv.innerHTML = '<h3>Ticket ' + (i + 1) + '</h3>';
+            <input type="submit" value="Proceed to Payment" class="submit-btn">
+        </form>
 
-                for (var j = 0; j < questions.length; j++) {
-                    var label = document.createElement('label');
-                    label.innerHTML = questions[j];
+        {% if error %}
+            <p class="error-msg">{{ error }}</p>
+        {% endif %}
+    </div>
+</div>
 
-                    var input = document.createElement('input');
-                    input.type = 'text';
-                    input.name = 'ticket_' + i + '_question_' + j;
-                    input.required = true;
+<!-- Include your JavaScript code after the form -->
+<script type="application/json" id="questions-data">
+    {{ questions | tojson }}
+</script>
 
-                    var br = document.createElement('br');
+<script>
+    // Parse the questions data from the script tag
+    var questionsDataElement = document.getElementById('questions-data');
+    var questions = JSON.parse(questionsDataElement.textContent);
 
-                    ticketDiv.appendChild(label);
-                    ticketDiv.appendChild(input);
-                    ticketDiv.appendChild(br);
-                }
+    function updateQuestionForms() {
+        var numberOfTickets = document.getElementById('number_of_tickets').value;
+        var formsContainer = document.getElementById('question_forms');
+        formsContainer.innerHTML = '';
 
-                formsContainer.appendChild(ticketDiv);
+        for (var i = 0; i < numberOfTickets; i++) {
+            var ticketDiv = document.createElement('div');
+            ticketDiv.classList.add('attendee-group');
+
+            var attendeeHeader = document.createElement('h3');
+            attendeeHeader.textContent = 'Attendee ' + (i + 1);
+            ticketDiv.appendChild(attendeeHeader);
+
+            for (var j = 0; j < questions.length; j++) {
+                var formGroup = document.createElement('div');
+                formGroup.classList.add('form-group');
+
+                var label = document.createElement('label');
+                label.setAttribute('for', 'ticket_' + i + '_question_' + j);
+                label.textContent = questions[j];
+
+                var input = document.createElement('input');
+                input.type = 'text';
+                input.name = 'ticket_' + i + '_question_' + j;
+                input.required = true;
+
+                formGroup.appendChild(label);
+                formGroup.appendChild(input);
+                ticketDiv.appendChild(formGroup);
             }
+
+            formsContainer.appendChild(ticketDiv);
         }
-    </script>
-</body>
-</html>
+    }
+
+    document.addEventListener('DOMContentLoaded', updateQuestionForms);
+    document.getElementById('number_of_tickets').addEventListener('change', updateQuestionForms);
+    document.getElementById('number_of_tickets').addEventListener('input', updateQuestionForms);
+</script>
+
+<style>
+    /* Scoped styles for the purchase page */
+
+    .purchase-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 50px auto;
+        max-width: 800px;
+        padding: 20px;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .purchase-form {
+        width: 100%;
+        padding: 20px;
+        background-color: white;
+    }
+
+    .purchase-form h1 {
+        color: #ff0000; /* Red for your brand */
+        margin-bottom: 20px;
+    }
+
+    .purchase-form h2 {
+        color: #ff0000;
+        margin-top: 30px;
+        margin-bottom: 15px;
+    }
+
+    .purchase-form p {
+        margin-bottom: 15px;
+        color: #333;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="tel"],
+    .form-group input[type="number"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f5f5f5;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        margin-right: 10px;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 15px;
+        background-color: #ff0000; /* Red for your brand */
+        color: white;
+        font-weight: bold;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+
+    .submit-btn:hover {
+        background-color: #cc0000; /* Darker red for hover */
+    }
+
+    .error-msg {
+        color: red;
+        margin-top: 15px;
+    }
+
+    .attendee-group {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+    }
+
+    .attendee-group h3 {
+        color: #ff0000;
+        margin-bottom: 10px;
+    }
+</style>
+
+{% endblock %}
