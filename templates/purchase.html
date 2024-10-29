@@ -5,9 +5,26 @@
     <div class="purchase-form">
         <h1>Purchase Tickets for {{ event.name }}</h1>
         <p>{{ event.description }}</p>
-        <p><strong>Date:</strong> {{ event.date }}</p>
-        <p><strong>Location:</strong> {{ event.location }}</p>
-        <p><strong>Price per ticket:</strong> £{{ event.ticket_price }}</p>
+
+        <!-- Event Details -->
+        <div class="event-details">
+            <p><strong>Date:</strong> {{ event.date }}</p>
+            <p><strong>Time:</strong> {{ event.start_time }} - {{ event.end_time }}</p>
+            <p><strong>Location:</strong> {{ event.location }}</p>
+            <p><strong>Price per ticket:</strong> £{{ event.ticket_price }}</p>
+            <p><strong>Tickets Available:</strong> {{ event.ticket_quantity }}</p>
+        </div>
+
+        <!-- Organizer Details -->
+        <div class="organizer-details">
+            <h2>Organized By</h2>
+            <p><strong>Business Name:</strong> {{ organizer.business_name }}</p>
+            <p><strong>Organizer Name:</strong> {{ organizer.first_name }} {{ organizer.last_name }}</p>
+            <p><strong>Contact Email:</strong> <a href="mailto:{{ organizer.email }}">{{ organizer.email }}</a></p>
+            {% if organizer.website_url %}
+                <p><strong>Website:</strong> <a href="{{ organizer.website_url }}" target="_blank">{{ organizer.website_url }}</a></p>
+            {% endif %}
+        </div>
 
         <form method="POST">
             <!-- Number of Tickets -->
@@ -24,6 +41,12 @@
                 >
             </div>
 
+            <!-- Total Price -->
+            <div class="form-group">
+                <label>Total Price:</label>
+                <p id="total_price">£{{ event.ticket_price }}</p>
+            </div>
+
             <!-- Buyer Information -->
             <h2>Your Information</h2>
 
@@ -33,7 +56,7 @@
             </div>
 
             <div class="form-group">
-                <label for="email">Email:</label>
+                <label for="email">Email Address:</label>
                 <input type="email" id="email" name="email" required>
             </div>
 
@@ -42,7 +65,7 @@
                 <input type="tel" id="phone_number" name="phone_number" required>
             </div>
 
-            <!-- Ticket Questions -->
+            <!-- Attendee Information -->
             <h2>Attendee Information</h2>
             <div id="question_forms">
                 <!-- Question forms will be dynamically added here -->
@@ -86,6 +109,12 @@
         var numberOfTickets = document.getElementById('number_of_tickets').value;
         var formsContainer = document.getElementById('question_forms');
         formsContainer.innerHTML = '';
+
+        // Update total price
+        var totalPriceElement = document.getElementById('total_price');
+        var ticketPrice = parseFloat("{{ event.ticket_price }}");  // Corrected line
+        var totalPrice = (numberOfTickets * ticketPrice).toFixed(2);
+        totalPriceElement.textContent = '£' + totalPrice;
 
         for (var i = 0; i < numberOfTickets; i++) {
             var ticketDiv = document.createElement('div');
