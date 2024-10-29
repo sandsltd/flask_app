@@ -70,7 +70,7 @@
             </p>
             <div class="form-group">
                 <label for="terms_link">Your Terms and Conditions URL:</label>
-                <input type="url" id="terms_link" name="terms_link" value="{{ user.terms }}">
+                <input type="text" id="terms_link" name="terms_link" value="{{ user.terms }}">
             </div>
 
             <!-- Manage Default Questions -->
@@ -97,6 +97,24 @@
         {% endif %}
     </div>
 </div>
+
+<!-- JavaScript for Confirmation Prompts -->
+<script>
+    document.getElementById('settings-form').addEventListener('submit', function(event) {
+        var termsLinkInput = document.getElementById('terms_link').value.trim();
+        var proceed = true;
+
+        if (termsLinkInput.toLowerCase() === 'none' || termsLinkInput === '') {
+            proceed = confirm("You have not provided a link to your terms and conditions.\n\nAre you sure you want to proceed without setting your terms and conditions?\n\nThis means attendees will not see any terms when purchasing tickets.");
+        } else if (!/^https?:\/\//i.test(termsLinkInput)) {
+            proceed = confirm("You have entered a terms and conditions link that does not start with 'http://' or 'https://'.\n\nAre you sure you want to set this as your terms and conditions link?\n\nThis will be shown to attendees when they purchase tickets.");
+        }
+
+        if (!proceed) {
+            event.preventDefault();
+        }
+    });
+</script>
 
 <style>
     /* Scoped styles for the settings page */
