@@ -1469,9 +1469,28 @@ def view_attendees(event_id):
         else:
             attendee.billing_details = {}
 
-    return render_template('view_attendees.html', event=event, attendees=attendees, questions=all_questions)
+    # Calculate tickets sold
+    tickets_sold = sum([attendee.tickets_purchased for attendee in attendees])
 
-#
+    # Total ticket quantity for the event
+    total_quantity = event.ticket_quantity
+
+    # Tickets available
+    tickets_available = total_quantity - tickets_sold
+
+    # Format the event date as dd-mm-yyyy
+    event_date = datetime.strptime(event.date, '%Y-%m-%d').strftime('%d-%m-%Y')
+
+    return render_template(
+        'view_attendees.html',
+        event=event,
+        attendees=attendees,
+        questions=all_questions,
+        tickets_sold=tickets_sold,
+        tickets_available=tickets_available,
+        total_quantity=total_quantity,
+        event_date=event_date
+    )
 
 
 @app.route('/delete_event/<int:event_id>', methods=['POST'])

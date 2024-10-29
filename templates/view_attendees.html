@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- (Previous head content remains unchanged) -->
+    <meta charset="UTF-8">
     <title>View Attendees</title>
     <style>
         /* Reset Styles */
@@ -45,6 +45,17 @@
             margin: 20px 0;
         }
 
+        .ticket-info {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .ticket-info p {
+            margin-bottom: 5px;
+        }
+
         .action-buttons {
             margin: 20px 0;
             display: flex;
@@ -55,7 +66,7 @@
 
         .button {
             padding: 10px 20px;
-            background-color: #007BFF;
+            background-color: #f00;
             color: white;
             border-radius: 4px;
             text-decoration: none;
@@ -67,7 +78,7 @@
         }
 
         .button:hover {
-            background-color: #0056b3;
+            background-color: #990c0c;
         }
 
         .button.small {
@@ -196,14 +207,21 @@
 {% block content %}
 <div class="attendees-container">
     <h1>Attendees for Event: {{ event.name }}</h1>
-    <h2>Date: {{ event.date }}</h2>
+    <h2>Date: {{ event_date }}</h2>
     <h3>Location: {{ event.location }}</h3>
+
+    <!-- Ticket Information -->
+    <div class="ticket-info">
+        <p><strong>Total Tickets:</strong> {{ total_quantity }}</p>
+        <p><strong>Tickets Sold:</strong> {{ tickets_sold }}</p>
+        <p><strong>Tickets Available:</strong> {{ tickets_available }}</p>
+    </div>
 
     <hr>
 
     <div class="action-buttons">
-        <a href="{{ url_for('export_attendees', event_id=event.id) }}" class="button">Export Attendees</a>
         <a href="{{ url_for('add_attendee', event_id=event.id) }}" class="button">Add New Attendee</a>
+        <a href="{{ url_for('export_attendees', event_id=event.id) }}" class="button">Export Attendees</a>
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="Search attendees...">
             <span class="search-icon">&#128269;</span>
