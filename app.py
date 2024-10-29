@@ -545,7 +545,7 @@ def embed_events(unique_id):
     #ticketrush-embed .event-button {
         display: inline-block;
         padding: 12px 24px;
-        background-color: #007BFF;
+        background-color: #808080;
         color: #ffffff;
         text-decoration: none;
         border-radius: 5px;
