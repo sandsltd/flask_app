@@ -464,6 +464,8 @@ from markupsafe import escape
 
 from markupsafe import escape
 
+from markupsafe import escape
+
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
     user = User.query.filter_by(unique_id=unique_id).first()
@@ -497,36 +499,35 @@ def embed_events(unique_id):
 
     #ticketrush-embed .section-title {
         font-size: 28px;
-        color: #333;
+        color: #ffffff;
         text-align: center;
         margin-bottom: 30px;
         font-weight: bold;
     }
 
     #ticketrush-embed .event-card {
-        border: 1px solid #ddd;
+        border: 1px solid #444;
         border-radius: 10px;
-        background-color: #fff;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
+        background-color: #2c2c2c; /* Dark gray background */
+        color: #ffffff; /* White text */
         overflow: hidden;
         margin-bottom: 20px;
-        transition: transform 0.2s;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
 
     #ticketrush-embed .event-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.1);
+        box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.3);
     }
 
-    /* Adjusted Event Title */
     #ticketrush-embed .event-title {
         font-size: 24px;
-        color: #000000; /* Changed text color to black */
+        color: #ffffff;
         margin: 0;
         padding: 20px;
-        background-color: #808080; /* Updated background color */
         text-align: center;
         font-weight: bold;
+        background-color: #1a1a1a; /* Slightly darker header */
     }
 
     #ticketrush-embed .event-content {
@@ -537,21 +538,21 @@ def embed_events(unique_id):
     #ticketrush-embed .event-location,
     #ticketrush-embed .event-price {
         font-size: 16px;
-        color: #666;
+        color: #cccccc;
         margin: 5px 0;
     }
 
     #ticketrush-embed .event-description {
         font-size: 14px;
-        color: #444;
+        color: #dddddd;
         margin: 15px 0;
     }
 
     #ticketrush-embed .event-button {
         display: inline-block;
         padding: 10px 20px;
-        background-color: #555555;
-        color: #fff;
+        background-color: #ff9900; /* Accent color for button */
+        color: #ffffff;
         text-decoration: none;
         border-radius: 5px;
         transition: background-color 0.3s ease;
@@ -559,11 +560,11 @@ def embed_events(unique_id):
     }
 
     #ticketrush-embed .event-button:hover {
-        background-color: #333333;
+        background-color: #e68a00;
     }
 
     #ticketrush-embed .sold-out {
-        color: #ff0000;
+        color: #ff4d4d;
         font-weight: bold;
     }
 
@@ -575,11 +576,11 @@ def embed_events(unique_id):
         text-align: center;
         margin-top: 30px;
         font-size: 14px;
-        color: #777;
+        color: #888888;
     }
 
     #ticketrush-embed .powered-by a {
-        color: #333333;
+        color: #888888;
         text-decoration: none;
         font-weight: bold;
     }
@@ -600,7 +601,7 @@ def embed_events(unique_id):
     '''
 
     if not future_events:
-        events_html += '<p style="text-align: center; font-size: 16px; color: #444;">No upcoming events available.</p>'
+        events_html += '<p style="text-align: center; font-size: 16px; color: #ffffff;">No upcoming events available.</p>'
     else:
         events_html += '<h2 class="section-title">Book Tickets</h2>'
         events_html += '<div class="event-list">'
@@ -668,7 +669,6 @@ def embed_events(unique_id):
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
-
 
 
 
