@@ -457,6 +457,8 @@ def reset_db():
     except Exception as e:
         return f"An error occurred during reset: {str(e)}"
 
+from flask import escape
+
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
     user = User.query.filter_by(unique_id=unique_id).first()
@@ -473,13 +475,123 @@ def embed_events(unique_id):
     # Sort events by date, with the next upcoming event first
     future_events = sorted(future_events, key=lambda event: datetime.strptime(event.date, '%Y-%m-%d'))
 
-    # If no future events, show a message
+    # Begin constructing the HTML
+    events_html = '''
+    <style>
+    
+    /* Embedded Events Styles */
+    #ticketrush-embed * {
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+    }
+
+    #ticketrush-embed {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    #ticketrush-embed .event-card {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        background-color: #fff;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        margin-bottom: 20px;
+        transition: transform 0.2s;
+    }
+
+    #ticketrush-embed .event-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    #ticketrush-embed .event-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background-color: #f0f0f0;
+    }
+
+    #ticketrush-embed .event-content {
+        padding: 20px;
+    }
+
+    #ticketrush-embed .event-title {
+        font-size: 24px;
+        color: #333;
+        margin: 0 0 10px;
+    }
+
+    #ticketrush-embed .event-date,
+    #ticketrush-embed .event-location,
+    #ticketrush-embed .event-price {
+        font-size: 16px;
+        color: #666;
+        margin: 5px 0;
+    }
+
+    #ticketrush-embed .event-description {
+        font-size: 14px;
+        color: #444;
+        margin: 15px 0;
+    }
+
+    #ticketrush-embed .event-button {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #ff0000;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+        font-weight: bold;
+    }
+
+    #ticketrush-embed .event-button:hover {
+        background-color: #cc0000;
+    }
+
+    #ticketrush-embed .sold-out {
+        color: #ff0000;
+        font-weight: bold;
+    }
+
+    #ticketrush-embed .ticket-status {
+        margin: 10px 0;
+    }
+
+    #ticketrush-embed .powered-by {
+        text-align: center;
+        margin-top: 30px;
+        font-size: 14px;
+        color: #777;
+    }
+
+    #ticketrush-embed .powered-by a {
+        color: #ff0000;
+        text-decoration: none;
+        font-weight: bold;
+    }
+
+    @media (min-width: 768px) {
+        #ticketrush-embed .event-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        #ticketrush-embed .event-card {
+            width: calc(50% - 10px);
+        }
+    }
+    </style>
+    <div id="ticketrush-embed">
+    '''
+
     if not future_events:
-        events_html = '<p style="font-family: \'Roboto\', sans-serif; color: #444; font-size: 16px; text-align: center;">No upcoming events available.</p>'
+        events_html += '<p style="text-align: center; font-size: 16px; color: #444;">No upcoming events available.</p>'
     else:
-        events_html = '''
-        <ul style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px;">
-        '''
+        events_html += '<div class="event-list">'
         for event in future_events:
             # Calculate tickets sold
             succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
@@ -492,54 +604,63 @@ def embed_events(unique_id):
             event_date = datetime.strptime(event.date, '%Y-%m-%d')
             formatted_date = event_date.strftime('%A %-d %B %Y')
 
-            # Use color-coding for sold out or available tickets
-            ticket_status_color = '#28a745' if tickets_available > 0 else '#ff0000'
-            ticket_status_text = f'Tickets Available: {tickets_available}' if tickets_available > 0 else 'Sold Out'
+            # Format the ticket price
+            ticket_price = "Free" if event.ticket_price == 0 else f"£{event.ticket_price:.2f}"
 
-            # Optional: Truncate the event description for cleaner layout (limit to 100 characters)
-            truncated_description = (event.description[:100] + '...') if len(event.description) > 100 else event.description
+            # Optional: Truncate the event description for cleaner layout (limit to 150 characters)
+            truncated_description = (event.description[:150] + '...') if len(event.description) > 150 else event.description
 
-            # Design for each event with explicit labels for each field
+            # Escape any special characters to prevent XSS
+            event_name = escape(event.name)
+            event_location = escape(event.location)
+            truncated_description = escape(truncated_description)
+
+            # Use event image if available; otherwise, use a placeholder
+            event_image_url = event.event_image if event.event_image else 'https://via.placeholder.com/600x400?text=Event+Image'
+
+            # Build the event card HTML
             events_html += f'''
-            <li style="border: 1px solid #ddd; padding: 20px; border-radius: 10px; background-color: #fff; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); width: 48%; position: relative; transition: all 0.3s ease;">
-                <div style="padding: 15px;">
-                    <strong style="font-family: 'Roboto', sans-serif; font-size: 22px; color: #333; display: block; margin-bottom: 10px;">Event: {event.name}</strong>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666; display: block; margin-bottom: 5px;">
-                        <i class="fa fa-calendar" aria-hidden="true" style="margin-right: 5px;"></i><strong>Date:</strong> {formatted_date}
-                    </span>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666; display: block; margin-bottom: 5px;">
-                        <i class="fa fa-map-marker" aria-hidden="true" style="margin-right: 5px;"></i><strong>Location:</strong> {event.location}
-                    </span>
-                    <p style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #444; margin-bottom: 10px;"><strong>Description:</strong> {truncated_description}</p>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 14px; color: #666; display: block; margin-bottom: 10px;">
-                        <i class="fa fa-clock-o" aria-hidden="true" style="margin-right: 5px;"></i><strong>Time:</strong> {event.start_time} - {event.end_time}
-                    </span>
-                    <span style="font-family: 'Roboto', sans-serif; font-size: 16px; color: {ticket_status_color}; font-weight: bold; display: block; margin-bottom: 10px;">{ticket_status_text}</span>
+            <div class="event-card">
+                <img src="{event_image_url}" alt="Event Image" class="event-image">
+                <div class="event-content">
+                    <h2 class="event-title">{event_name}</h2>
+                    <p class="event-date"><strong>Date:</strong> {formatted_date}</p>
+                    <p class="event-location"><strong>Location:</strong> {event_location}</p>
+                    <p class="event-price"><strong>Price:</strong> {ticket_price}</p>
+                    <p class="event-description">{truncated_description}</p>
+                    <p class="ticket-status">
             '''
+
+            if tickets_available > 0:
+                events_html += f'<span style="color: #28a745; font-weight: bold;">Tickets Available: {tickets_available}</span>'
+            else:
+                events_html += f'<span class="sold-out">Sold Out</span>'
+
+            events_html += '</p>'
+
             # Show the 'Buy Ticket' button if tickets are available
             if tickets_available > 0:
                 events_html += f'''
-                    <button style="padding: 10px 20px; background-color: #ff0000; color: #fff; border: none; border-radius: 5px; cursor: pointer; transition: all 0.3s ease; margin-top: 10px; font-family: 'Roboto', sans-serif; font-size: 14px;" 
-                    onmouseover="this.style.backgroundColor='#d40000'; this.style.transform='scale(1.05)';"
-                    onmouseout="this.style.backgroundColor='#ff0000'; this.style.transform='scale(1.0)';"
-                    onclick="window.location.href='https://flask-app-2gp0.onrender.com/purchase/{event.id}'">Buy Ticket</button>
+                <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Buy Ticket</a>
                 '''
-            events_html += '</div></li>'
-        events_html += '</ul>'
+            events_html += '''
+                </div>
+            </div>
+            '''
+
+        events_html += '</div>'
 
     # Add the "Powered by TicketRush" footer with logo and link
     events_html += f'''
-    <div style="text-align: center; margin-top: 30px;">
-        <span style="font-family: 'Roboto', sans-serif; color: #444; font-size: 14px;">Powered by </span>
-        <a href="https://www.ticketrush.io" target="_blank" style="text-decoration: none;">
-            <span style="color: #ff0000; font-size: 14px; font-weight: bold;">TicketRush</span>
-            <img src="http://abc11922.sg-host.com/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush Logo" style="width: 80px; vertical-align: middle; margin-left: 10px;">
-        </a>
+    <div class="powered-by">
+        Powered by <a href="https://www.ticketrush.io" target="_blank">TicketRush</a>
+    </div>
     </div>
     '''
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 '''
