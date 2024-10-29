@@ -636,8 +636,38 @@ if __name__ == "__main__":
 @login_required
 def manage_default_questions():
     if request.method == 'POST':
+        # Get account information fields from the form
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        phone_number = request.form.get('phone_number')
+        business_name = request.form.get('business_name')
+        website_url = request.form.get('website_url')
+        vat_number = request.form.get('vat_number')
+        house_name_or_number = request.form.get('house_name_or_number')
+        street = request.form.get('street')
+        locality = request.form.get('locality')
+        town = request.form.get('town')
+        postcode = request.form.get('postcode')
+
+        # Update the user's core account information
+        current_user.first_name = first_name
+        current_user.last_name = last_name
+        current_user.phone_number = phone_number
+        current_user.business_name = business_name
+        current_user.website_url = website_url
+        current_user.vat_number = vat_number
+        current_user.house_name_or_number = house_name_or_number
+        current_user.street = street
+        current_user.locality = locality
+        current_user.town = town
+        current_user.postcode = postcode
+
+        # Get default questions and terms link
         questions = request.form.getlist('questions[]')  # Get all questions from the form
         terms_link = request.form.get('terms_link')  # Get the terms and conditions link
+
+        # Update the user's terms and conditions link
+        current_user.terms = terms_link
 
         # First, delete existing default questions for this user
         DefaultQuestion.query.filter_by(user_id=current_user.id).delete()
@@ -648,15 +678,13 @@ def manage_default_questions():
                 new_question = DefaultQuestion(user_id=current_user.id, question=question)
                 db.session.add(new_question)
         
-        # Update the user's terms and conditions link
-        current_user.terms = terms_link
-
         db.session.commit()
-        flash('Default questions and Terms and Conditions updated successfully!')
+        flash('Account information, default questions, and Terms and Conditions updated successfully!')
 
     # Retrieve current default questions for the user
     default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
     return render_template('manage_default_questions.html', questions=default_questions, user=current_user)
+
 
 
 # Define the /purchase/<int:event_id> route

@@ -2,27 +2,69 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Manage Default Questions</title>
+    <title>Account Settings</title>
 </head>
 <body>
-    <h1>Manage Default Questions</h1>
+    <h1>Account Settings</h1>
 
     <form action="/manage-default-questions" method="POST">
-        <!-- Existing default questions fields -->
-        {% for question in questions %}
-        <label for="question{{ loop.index }}">Question {{ loop.index }}:</label>
-        <input type="text" id="question{{ loop.index }}" name="questions[]" value="{{ question.question }}"><br>
-        {% endfor %}
+        <!-- Core Account Information -->
+        <h2>Your Information</h2>
 
-        {% for i in range(10 - questions|length) %}
-        <label for="new_question{{ i + questions|length + 1 }}">Question {{ i + questions|length + 1 }}:</label>
-        <input type="text" id="new_question{{ i + questions|length + 1 }}" name="questions[]"><br>
-        {% endfor %}
+        <label for="first_name">First Name:</label>
+        <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}"><br>
 
-        <!-- New Terms and Conditions link field -->
+        <label for="last_name">Last Name:</label>
+        <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}"><br>
+
+        <label for="phone_number">Phone Number:</label>
+        <input type="text" id="phone_number" name="phone_number" value="{{ user.phone_number }}"><br>
+
+        <label for="business_name">Business Name:</label>
+        <input type="text" id="business_name" name="business_name" value="{{ user.business_name }}"><br>
+
+        <label for="website_url">Website URL:</label>
+        <input type="url" id="website_url" name="website_url" value="{{ user.website_url }}"><br>
+
+        <label for="vat_number">VAT Number:</label>
+        <input type="text" id="vat_number" name="vat_number" value="{{ user.vat_number }}"><br>
+
+        <label for="house_name_or_number">House Name or Number:</label>
+        <input type="text" id="house_name_or_number" name="house_name_or_number" value="{{ user.house_name_or_number }}"><br>
+
+        <label for="street">Street:</label>
+        <input type="text" id="street" name="street" value="{{ user.street }}"><br>
+
+        <label for="locality">Locality:</label>
+        <input type="text" id="locality" name="locality" value="{{ user.locality }}"><br>
+
+        <label for="town">Town:</label>
+        <input type="text" id="town" name="town" value="{{ user.town }}"><br>
+
+        <label for="postcode">Postcode:</label>
+        <input type="text" id="postcode" name="postcode" value="{{ user.postcode }}"><br>
+
+        <!-- Terms and Conditions Link with Additional Information -->
+        <h2>Your Terms and Conditions</h2>
+        <p>
+            This link will be shown to your attendees when they are purchasing a ticket. They will need to agree to these to proceed with their purchase. If you do not have a link to terms and conditions, please enter "<strong>none</strong>" into this box.
+        </p>
         <label for="terms_link">Your Terms and Conditions URL:</label>
         <input type="url" id="terms_link" name="terms_link" value="{{ user.terms }}"><br><br>
 
+        <!-- Manage Default Questions -->
+        <h2>Manage Default Questions</h2>
+        {% for question in questions %}
+            <label for="question{{ loop.index }}">Question {{ loop.index }}:</label>
+            <input type="text" id="question{{ loop.index }}" name="questions[]" value="{{ question.question }}"><br>
+        {% endfor %}
+
+        {% for i in range(10 - questions|length) %}
+            <label for="new_question{{ i + questions|length + 1 }}">Question {{ i + questions|length + 1 }}:</label>
+            <input type="text" id="new_question{{ i + questions|length + 1 }}" name="questions[]"><br>
+        {% endfor %}
+
+        <br>
         <input type="submit" value="Save Changes">
     </form>
 
