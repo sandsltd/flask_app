@@ -632,58 +632,88 @@ def cancel():
 if __name__ == "__main__":
     app.run(debug=True)
 
+from flask import render_template, request, redirect, url_for, flash
+from flask_login import login_required, current_user
+import re
+
 @app.route('/manage-default-questions', methods=['GET', 'POST'])
 @login_required
 def manage_default_questions():
+    user = User.query.get(current_user.id)
+
     if request.method == 'POST':
-        # Get account information fields from the form
-        first_name = request.form.get('first_name')
-        last_name = request.form.get('last_name')
-        phone_number = request.form.get('phone_number')
-        business_name = request.form.get('business_name')
-        website_url = request.form.get('website_url')
-        vat_number = request.form.get('vat_number')
-        house_name_or_number = request.form.get('house_name_or_number')
-        street = request.form.get('street')
-        locality = request.form.get('locality')
-        town = request.form.get('town')
-        postcode = request.form.get('postcode')
+        # Collect form data
+        first_name = request.form.get('first_name').strip()
+        last_name = request.form.get('last_name').strip()
+        phone_number = request.form.get('phone_number').strip()
+        business_name = request.form.get('business_name').strip()
+        website_url = request.form.get('website_url', '').strip()
+        vat_number = request.form.get('vat_number', '').strip()
+        house_name_or_number = request.form.get('house_name_or_number').strip()
+        street = request.form.get('street').strip()
+        locality = request.form.get('locality', '').strip()
+        town = request.form.get('town').strip()
+        postcode = request.form.get('postcode').strip()
+        terms_link = request.form.get('terms_link', '').strip()
 
-        # Update the user's core account information
-        current_user.first_name = first_name
-        current_user.last_name = last_name
-        current_user.phone_number = phone_number
-        current_user.business_name = business_name
-        current_user.website_url = website_url
-        current_user.vat_number = vat_number
-        current_user.house_name_or_number = house_name_or_number
-        current_user.street = street
-        current_user.locality = locality
-        current_user.town = town
-        current_user.postcode = postcode
+        # Update user information
+        user.first_name = first_name
+        user.last_name = last_name
+        user.phone_number = phone_number
+        user.business_name = business_name
+        user.vat_number = vat_number
+        user.house_name_or_number = house_name_or_number
+        user.street = street
+        user.locality = locality
+        user.town = town
+        user.postcode = postcode
 
-        # Get default questions and terms link
-        questions = request.form.getlist('questions[]')  # Get all questions from the form
-        terms_link = request.form.get('terms_link')  # Get the terms and conditions link
+        # Process website URL
+        if website_url:
+            if not re.match(r'^https?://', website_url):
+                website_url = 'https://' + website_url
+            user.website_url = website_url
+        else:
+            user.website_url = None
 
-        # Update the user's terms and conditions link
-        current_user.terms = terms_link
+        # Process terms link
+        if terms_link.lower() == 'none' or not terms_link:
+            user.terms = None
+        else:
+            # Add https:// if missing
+            if not re.match(r'^https?://', terms_link):
+                terms_link = 'https://' + terms_link
+            user.terms = terms_link
 
-        # First, delete existing default questions for this user
-        DefaultQuestion.query.filter_by(user_id=current_user.id).delete()
+        # Process default questions
+        questions = request.form.getlist('questions[]')
+        existing_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
 
-        # Then, add the new questions
-        for question in questions:
-            if question.strip():  # Avoid adding empty questions
-                new_question = DefaultQuestion(user_id=current_user.id, question=question)
-                db.session.add(new_question)
-        
+        # Update existing questions
+        for i, question_text in enumerate(questions):
+            if i < len(existing_questions):
+                existing_questions[i].question = question_text.strip()
+            else:
+                # Add new questions if any
+                if question_text.strip():
+                    new_question = DefaultQuestion(user_id=user.id, question=question_text.strip())
+                    db.session.add(new_question)
+
+        # Remove extra questions if fewer are submitted
+        if len(questions) < len(existing_questions):
+            for q in existing_questions[len(questions):]:
+                db.session.delete(q)
+
+        # Commit changes to the database
         db.session.commit()
-        flash('Account information, default questions, and Terms and Conditions updated successfully!')
 
-    # Retrieve current default questions for the user
-    default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
-    return render_template('manage_default_questions.html', questions=default_questions, user=current_user)
+        flash('Settings updated successfully.')
+        return redirect(url_for('manage_default_questions'))
+
+    # GET request
+    # Render the settings page
+    questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
+    return render_template('manage_default_questions.html', user=user, questions=questions)
 
 
 
