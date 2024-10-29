@@ -1,4 +1,4 @@
-{% extends "partials/base.html" %}
+{% extends "partials/base-logged-in.html" %}
 
 {% block content %}
 <div class="add-attendee-container">
@@ -20,7 +20,7 @@
 
             <div class="form-group">
                 <label for="phone_number">Phone Number:</label>
-                <input type="text" id="phone_number" name="phone_number" required>
+                <input type="text" id="phone_number" name="phone_number">
             </div>
 
             <div class="form-group">
@@ -29,30 +29,32 @@
             </div>
 
             <!-- Custom and Default Questions -->
-            <h2>Ticket Questions</h2>
-            {% for question in questions %}
-                <div class="form-group">
-                    <label for="answer_{{ loop.index }}">{{ question }}:</label>
-                    <input type="text" id="answer_{{ loop.index }}" name="answer_{{ loop.index }}" required>
-                </div>
-            {% endfor %}
+            {% if questions %}
+                <h2>Ticket Questions</h2>
+                {% for question in questions %}
+                    <div class="form-group">
+                        <label for="answer_{{ loop.index }}">{{ question }}:</label>
+                        <input type="text" id="answer_{{ loop.index }}" name="answer_{{ loop.index }}" required>
+                    </div>
+                {% endfor %}
+            {% endif %}
 
-            <!-- Optional Billing Details -->
-            <h2>Billing Details (Optional)</h2>
-            <p>If you wish to include billing details for this attendee, please fill out the information below.</p>
+            <!-- Billing Details -->
+            <h2>Billing Details</h2>
+            <p>Please provide the billing details for this attendee.</p>
 
             <div class="form-group">
-                <label for="billing_name">Billing Name:</label>
+                <label for="billing_name">Name:</label>
                 <input type="text" id="billing_name" name="billing_name">
             </div>
 
             <div class="form-group">
-                <label for="billing_email">Billing Email:</label>
+                <label for="billing_email">Email:</label>
                 <input type="email" id="billing_email" name="billing_email">
             </div>
 
             <div class="form-group">
-                <label for="billing_phone">Billing Phone:</label>
+                <label for="billing_phone">Phone:</label>
                 <input type="text" id="billing_phone" name="billing_phone">
             </div>
 
@@ -82,16 +84,22 @@
             </div>
 
             <div class="form-group">
-                <label for="billing_country">Country:</label>
-                <input type="text" id="billing_country" name="billing_country">
+                <label for="billing_country">Country (2-letter code):</label>
+                <input type="text" id="billing_country" name="billing_country" maxlength="2">
             </div>
 
             <input type="submit" value="Add Attendee" class="submit-btn">
         </form>
 
-        {% if error %}
-            <p class="error-msg">{{ error }}</p>
-        {% endif %}
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flashes">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
     </div>
 </div>
 
@@ -117,12 +125,12 @@
     }
 
     .add-attendee-form h1 {
-        color: #ff0000; /* Red for your brand */
+        color: #333;
         margin-bottom: 20px;
     }
 
     .add-attendee-form h2 {
-        color: #ff0000;
+        color: #333;
         margin-top: 30px;
         margin-bottom: 15px;
     }
@@ -153,7 +161,7 @@
     .submit-btn {
         width: 100%;
         padding: 15px;
-        background-color: #ff0000; /* Red for your brand */
+        background-color: #007BFF;
         color: white;
         font-weight: bold;
         border: none;
@@ -163,12 +171,18 @@
     }
 
     .submit-btn:hover {
-        background-color: #cc0000; /* Darker red for hover */
+        background-color: #0056b3;
     }
 
-    .error-msg {
-        color: red;
+    .flashes {
+        list-style-type: none;
+        padding: 0;
         margin-top: 15px;
+    }
+
+    .flashes li {
+        color: red;
+        margin-bottom: 5px;
     }
 </style>
 
