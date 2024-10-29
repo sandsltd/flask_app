@@ -458,7 +458,7 @@ def reset_db():
     except Exception as e:
         return f"An error occurred during reset: {str(e)}"
 
-from flask import escape
+
 
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
