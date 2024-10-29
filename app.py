@@ -466,6 +466,8 @@ from markupsafe import escape
 
 from markupsafe import escape
 
+from markupsafe import escape
+
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
     user = User.query.filter_by(unique_id=unique_id).first()
@@ -485,7 +487,6 @@ def embed_events(unique_id):
     # Begin constructing the HTML
     events_html = '''
     <style>
-
     /* Embedded Events Styles */
     #ticketrush-embed * {
         box-sizing: border-box;
@@ -493,88 +494,82 @@ def embed_events(unique_id):
     }
 
     #ticketrush-embed {
-        max-width: 100%;
+        max-width: 800px;
         margin: 0 auto;
+        padding: 20px;
     }
 
     #ticketrush-embed .section-title {
         font-size: 28px;
-        color: #ffffff;
+        color: #333333;
         text-align: center;
-        margin-bottom: 30px;
+        margin-bottom: 40px;
         font-weight: bold;
     }
 
     #ticketrush-embed .event-card {
-        border: 1px solid #444;
-        border-radius: 10px;
-        background-color: #ffffff; 
-        color: #000000; /* White text */
-        overflow: hidden;
-        margin-bottom: 20px;
-        transition: transform 0.2s, box-shadow 0.2s;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background-color: #ffffff;
+        margin-bottom: 30px;
+        transition: box-shadow 0.2s ease;
     }
 
     #ticketrush-embed .event-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.3);
-    }
-
-    #ticketrush-embed .event-title {
-        font-size: 24px;
-        color: #ffffff;
-        margin: 0;
-        padding: 20px;
-        text-align: center;
-        font-weight: bold;
-        background-color: #1a1a1a; /* Slightly darker header */
+        box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
     }
 
     #ticketrush-embed .event-content {
         padding: 20px;
     }
 
-    #ticketrush-embed .event-date,
-    #ticketrush-embed .event-location,
-    #ticketrush-embed .event-price {
+    #ticketrush-embed .event-title {
+        font-size: 22px;
+        color: #333333;
+        margin-bottom: 15px;
+        font-weight: bold;
+    }
+
+    #ticketrush-embed .event-details {
         font-size: 16px;
-        color: #cccccc;
-        margin: 5px 0;
+        color: #555555;
+        margin-bottom: 15px;
     }
 
     #ticketrush-embed .event-description {
         font-size: 14px;
-        color: #dddddd;
-        margin: 15px 0;
+        color: #666666;
+        margin-bottom: 20px;
     }
 
     #ticketrush-embed .event-button {
         display: inline-block;
-        padding: 10px 20px;
-        background-color: #ff9900; /* Accent color for button */
+        padding: 12px 24px;
+        background-color: #007BFF;
         color: #ffffff;
         text-decoration: none;
         border-radius: 5px;
         transition: background-color 0.3s ease;
-        font-weight: bold;
+        font-size: 16px;
     }
 
     #ticketrush-embed .event-button:hover {
-        background-color: #e68a00;
+        background-color: #0056b3;
     }
 
     #ticketrush-embed .sold-out {
-        color: #ff4d4d;
+        color: #FF0000;
         font-weight: bold;
+        font-size: 16px;
     }
 
     #ticketrush-embed .ticket-status {
-        margin: 10px 0;
+        margin-bottom: 20px;
     }
 
     #ticketrush-embed .powered-by {
         text-align: center;
-        margin-top: 30px;
+        margin-top: 50px;
         font-size: 14px;
         color: #888888;
     }
@@ -589,11 +584,11 @@ def embed_events(unique_id):
         #ticketrush-embed .event-list {
             display: flex;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 30px;
         }
 
         #ticketrush-embed .event-card {
-            width: calc(50% - 10px);
+            width: calc(50% - 15px);
         }
     }
     </style>
@@ -601,9 +596,9 @@ def embed_events(unique_id):
     '''
 
     if not future_events:
-        events_html += '<p style="text-align: center; font-size: 16px; color: #ffffff;">No upcoming events available.</p>'
+        events_html += '<p style="text-align: center; font-size: 18px; color: #555555;">No upcoming events available.</p>'
     else:
-        events_html += '<h2 class="section-title">Book Tickets</h2>'
+        events_html += '<h2 class="section-title">Upcoming Events</h2>'
         events_html += '<div class="event-list">'
         for event in future_events:
             # Calculate tickets sold
@@ -615,7 +610,7 @@ def embed_events(unique_id):
 
             # Format the event date to 'Monday 12th October 2024'
             event_date = datetime.strptime(event.date, '%Y-%m-%d')
-            formatted_date = event_date.strftime('%A %-d %B %Y')
+            formatted_date = event_date.strftime('%A %d %B %Y')
 
             # Format the ticket price
             ticket_price = "Free" if event.ticket_price == 0 else f"£{event.ticket_price:.2f}"
@@ -631,27 +626,30 @@ def embed_events(unique_id):
             # Build the event card HTML
             events_html += f'''
             <div class="event-card">
-                <h2 class="event-title">{event_name}</h2>
                 <div class="event-content">
-                    <p class="event-date"><strong>Date:</strong> {formatted_date}</p>
-                    <p class="event-location"><strong>Location:</strong> {event_location}</p>
-                    <p class="event-price"><strong>Price:</strong> {ticket_price}</p>
+                    <h3 class="event-title">{event_name}</h3>
+                    <p class="event-details">
+                        <strong>Date:</strong> {formatted_date}<br>
+                        <strong>Time:</strong> {event.start_time} - {event.end_time}<br>
+                        <strong>Location:</strong> {event_location}<br>
+                        <strong>Price:</strong> {ticket_price}
+                    </p>
                     <p class="event-description">{truncated_description}</p>
-                    <p class="ticket-status">
             '''
 
-            if tickets_available > 0:
-                events_html += f'<span style="color: #28a745; font-weight: bold;">Tickets Available: {tickets_available}</span>'
-            else:
-                events_html += f'<span class="sold-out">Sold Out</span>'
-
-            events_html += '</p>'
-
-            # Show the 'Book Tickets' button if tickets are available
+            # Show ticket status
             if tickets_available > 0:
                 events_html += f'''
-                <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Book Tickets</a>
+                    <p class="ticket-status">
+                        <span style="color: #28a745; font-weight: bold;">Tickets Available: {tickets_available}</span>
+                    </p>
+                    <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Book Tickets</a>
                 '''
+            else:
+                events_html += '''
+                    <p class="ticket-status sold-out">Sold Out</p>
+                '''
+
             events_html += '''
                 </div>
             </div>
@@ -659,7 +657,7 @@ def embed_events(unique_id):
 
         events_html += '</div>'
 
-    # Add the "Powered by TicketRush" footer with logo and link
+    # Add the "Powered by TicketRush" footer with link
     events_html += '''
     <div class="powered-by">
         Powered by <a href="https://www.ticketrush.io" target="_blank">TicketRush</a>
