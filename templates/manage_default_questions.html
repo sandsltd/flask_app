@@ -100,19 +100,27 @@
 
 <!-- JavaScript for Confirmation Prompts -->
 <script>
-    document.getElementById('settings-form').addEventListener('submit', function(event) {
-        var termsLinkInput = document.getElementById('terms_link').value.trim();
-        var proceed = true;
+    document.addEventListener('DOMContentLoaded', function() {
+        var form = document.getElementById('settings-form');
+        form.addEventListener('submit', function(event) {
+            var termsLinkInputElement = document.getElementById('terms_link');
+            var termsLinkInput = termsLinkInputElement.value.trim();
+            var proceed = true;
 
-        if (termsLinkInput.toLowerCase() === 'none' || termsLinkInput === '') {
-            proceed = confirm("You have not provided a link to your terms and conditions.\n\nAre you sure you want to proceed without setting your terms and conditions?\n\nThis means attendees will not see any terms when purchasing tickets.");
-        } else if (!/^https?:\/\//i.test(termsLinkInput)) {
-            proceed = confirm("You have entered a terms and conditions link that does not start with 'http://' or 'https://'.\n\nAre you sure you want to set this as your terms and conditions link?\n\nThis will be shown to attendees when they purchase tickets.");
-        }
+            if (termsLinkInput.toLowerCase() === 'none' || termsLinkInput === '') {
+                proceed = confirm("You have not provided a link to your Terms and Conditions.\n\nAttendees will not see any terms when purchasing tickets.\n\nAre you sure you want to proceed without setting your Terms and Conditions?");
+                if (proceed && termsLinkInput === '') {
+                    // If the user confirmed and the input was empty, set it to 'none'
+                    termsLinkInputElement.value = 'none';
+                }
+            } else if (!/^https?:\/\//i.test(termsLinkInput)) {
+                proceed = confirm("Your Terms and Conditions link does not start with 'http://' or 'https://'.\n\nWe will automatically add 'https://' to your link.\n\nThis link will be shown to attendees when they purchase tickets.\n\nAre you sure you want to set this as your Terms and Conditions link?");
+            }
 
-        if (!proceed) {
-            event.preventDefault();
-        }
+            if (!proceed) {
+                event.preventDefault();
+            }
+        });
     });
 </script>
 
