@@ -3,8 +3,16 @@
 {% block content %}
 <div class="add-attendee-container">
     <div class="add-attendee-form">
-        <h1>Add New Attendee for Event: {{ event.name }}</h1>
+        <h1>Add Attendees for Event: {{ event.name }}</h1>
         <form action="{{ url_for('add_attendee', event_id=event.id) }}" method="POST">
+            
+            <!-- Number of Tickets -->
+            <div class="form-group">
+                <label for="number_of_tickets">Number of Tickets:</label>
+                <input type="number" id="number_of_tickets" name="number_of_tickets" value="1" min="1" max="1" required readonly>
+            </div>
+
+
             <!-- Attendee Information -->
             <h2>Attendee Information</h2>
 
@@ -74,7 +82,7 @@
             </div>
 
             <div class="form-group">
-                <label for="billing_state">State:</label>
+                <label for="billing_state">County:</label>
                 <input type="text" id="billing_state" name="billing_state">
             </div>
 
@@ -84,8 +92,8 @@
             </div>
 
             <div class="form-group">
-                <label for="billing_country">Country (2-letter code):</label>
-                <input type="text" id="billing_country" name="billing_country" maxlength="2">
+                <label for="billing_country">Country:</label>
+                <input type="text" id="billing_country" name="billing_country">
             </div>
 
             <input type="submit" value="Add Attendee" class="submit-btn">
