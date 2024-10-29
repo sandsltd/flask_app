@@ -617,7 +617,7 @@ def embed_events(unique_id):
             truncated_description = escape(truncated_description)
 
             # Use event image if available; otherwise, use a placeholder
-            event_image_url = event.event_image if event.event_image else 'https://via.placeholder.com/600x400?text=Event+Image'
+            event_image_url = event.event_image if event.event_image else 'https://ticketrush.io/wp-content/uploads/2024/10/ticket.png'
 
             # Build the event card HTML
             events_html += f'''
