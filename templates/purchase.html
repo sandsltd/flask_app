@@ -17,9 +17,9 @@
 
         <!-- Organizer Details -->
         <div class="organizer-details">
-            <h2>Organized By</h2>
+            <h2>Organised By</h2>
             <p><strong>Business Name:</strong> {{ organizer.business_name }}</p>
-            <p><strong>Organizer Name:</strong> {{ organizer.first_name }} {{ organizer.last_name }}</p>
+            <p><strong>Organiser Name:</strong> {{ organizer.first_name }} {{ organizer.last_name }}</p>
             <p><strong>Contact Email:</strong> <a href="mailto:{{ organizer.email }}">{{ organizer.email }}</a></p>
             {% if organizer.website_url %}
                 <p><strong>Website:</strong> <a href="{{ organizer.website_url }}" target="_blank">{{ organizer.website_url }}</a></p>
@@ -77,14 +77,14 @@
             <div class="form-group checkbox-group">
                 <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
                 <label for="accept_organizer_terms">
-                    I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organizer's Terms and Conditions</a>.
+                    I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organiser's Terms and Conditions</a>.
                 </label>
             </div>
             {% endif %}
             <div class="form-group checkbox-group">
                 <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
                 <label for="accept_platform_terms">
-                    I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>.
+                    I accept the <a href="https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Terms-of-Service-25th-October-2024.pdf" target="_blank">platform's Terms and Conditions</a>.
                 </label>
             </div>
 
