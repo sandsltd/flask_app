@@ -460,6 +460,8 @@ def reset_db():
 
 
 
+from markupsafe import escape
+
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
     user = User.query.filter_by(unique_id=unique_id).first()
@@ -491,6 +493,14 @@ def embed_events(unique_id):
         margin: 0 auto;
     }
 
+    #ticketrush-embed .section-title {
+        font-size: 28px;
+        color: #333;
+        text-align: center;
+        margin-bottom: 30px;
+        font-weight: bold;
+    }
+
     #ticketrush-embed .event-card {
         border: 1px solid #ddd;
         border-radius: 10px;
@@ -508,11 +518,11 @@ def embed_events(unique_id):
 
     /* Adjusted Event Title */
     #ticketrush-embed .event-title {
-        font-size: 26px;
+        font-size: 24px;
         color: #fff;
         margin: 0;
         padding: 20px;
-        background-color: #ff0000;
+        background-color: #333333;
         text-align: center;
         font-weight: bold;
     }
@@ -538,7 +548,7 @@ def embed_events(unique_id):
     #ticketrush-embed .event-button {
         display: inline-block;
         padding: 10px 20px;
-        background-color: #ff0000;
+        background-color: #555555;
         color: #fff;
         text-decoration: none;
         border-radius: 5px;
@@ -547,7 +557,7 @@ def embed_events(unique_id):
     }
 
     #ticketrush-embed .event-button:hover {
-        background-color: #cc0000;
+        background-color: #333333;
     }
 
     #ticketrush-embed .sold-out {
@@ -567,7 +577,7 @@ def embed_events(unique_id):
     }
 
     #ticketrush-embed .powered-by a {
-        color: #ff0000;
+        color: #333333;
         text-decoration: none;
         font-weight: bold;
     }
@@ -590,6 +600,7 @@ def embed_events(unique_id):
     if not future_events:
         events_html += '<p style="text-align: center; font-size: 16px; color: #444;">No upcoming events available.</p>'
     else:
+        events_html += '<h2 class="section-title">Book Tickets</h2>'
         events_html += '<div class="event-list">'
         for event in future_events:
             # Calculate tickets sold
@@ -636,7 +647,7 @@ def embed_events(unique_id):
             # Show the 'Book Ticket' button if tickets are available
             if tickets_available > 0:
                 events_html += f'''
-                <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Book Ticket</a>
+                <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Book Tickets</a>
                 '''
             events_html += '''
                 </div>
@@ -655,6 +666,7 @@ def embed_events(unique_id):
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 
