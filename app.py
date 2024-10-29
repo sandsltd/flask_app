@@ -1621,30 +1621,28 @@ def add_attendee(event_id):
             answer = request.form.get(f'answer_{idx}')
             ticket_answers[question] = answer
 
-        # Collect billing details if provided
+        # Collect billing details, include all fields, set missing ones to None
         billing_details = {
-            "name": request.form.get('billing_name'),
-            "email": request.form.get('billing_email'),
-            "phone": request.form.get('billing_phone'),
+            "name": request.form.get('billing_name') or None,
+            "email": request.form.get('billing_email') or None,
+            "phone": request.form.get('billing_phone') or None,
             "address": {
-                "line1": request.form.get('billing_address_line1'),
-                "line2": request.form.get('billing_address_line2'),
-                "city": request.form.get('billing_city'),
-                "state": request.form.get('billing_state'),
-                "postal_code": request.form.get('billing_postal_code'),
-                "country": request.form.get('billing_country'),
+                "line1": request.form.get('billing_address_line1') or None,
+                "line2": request.form.get('billing_address_line2') or None,
+                "city": request.form.get('billing_city') or None,
+                "state": request.form.get('billing_state') or None,
+                "postal_code": request.form.get('billing_postal_code') or None,
+                "country": request.form.get('billing_country') or None,
             }
         }
 
-        # Remove empty fields from billing details
-        billing_details = {k: v for k, v in billing_details.items() if v}
-        billing_details['address'] = {k: v for k, v in billing_details['address'].items() if v}
-
-        if not billing_details['address']:
-            del billing_details['address']
-
-        if not billing_details:
-            billing_details = None
+        # Ensure country code is in two-letter format (e.g., 'GB' for Great Britain)
+        if billing_details['address']['country']:
+            country_code = billing_details['address']['country'].upper()
+            if len(country_code) != 2:
+                flash("Please enter a valid two-letter country code (e.g., 'US' for United States).")
+                return redirect(url_for('add_attendee', event_id=event_id))
+            billing_details['address']['country'] = country_code
 
         # Create a new Attendee object
         attendee = Attendee(
@@ -1657,7 +1655,7 @@ def add_attendee(event_id):
             payment_status='succeeded',
             session_id='N/A',  # Since there's no payment session
             ticket_answers=json.dumps(ticket_answers),
-            billing_details=json.dumps(billing_details) if billing_details else None
+            billing_details=json.dumps(billing_details)
         )
 
         db.session.add(attendee)
