@@ -462,6 +462,8 @@ def reset_db():
 
 from markupsafe import escape
 
+from markupsafe import escape
+
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
     user = User.query.filter_by(unique_id=unique_id).first()
@@ -519,10 +521,10 @@ def embed_events(unique_id):
     /* Adjusted Event Title */
     #ticketrush-embed .event-title {
         font-size: 24px;
-        color: #fff;
+        color: #000000; /* Changed text color to black */
         margin: 0;
         padding: 20px;
-        background-color: #333333;
+        background-color: #808080; /* Updated background color */
         text-align: center;
         font-weight: bold;
     }
@@ -644,7 +646,7 @@ def embed_events(unique_id):
 
             events_html += '</p>'
 
-            # Show the 'Book Ticket' button if tickets are available
+            # Show the 'Book Tickets' button if tickets are available
             if tickets_available > 0:
                 events_html += f'''
                 <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Book Tickets</a>
@@ -666,6 +668,7 @@ def embed_events(unique_id):
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 
