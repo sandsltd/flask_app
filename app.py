@@ -632,7 +632,7 @@ def cancel():
 if __name__ == "__main__":
     app.run(debug=True)
 
-@app.route('/manage-default-questions', methods=['GET', 'POST'])
+@app.route('/account_settings', methods=['GET', 'POST'])
 @login_required
 def manage_default_questions():
     if request.method == 'POST':
@@ -1510,3 +1510,51 @@ def datetimeformat(value):
     if value:
         return datetime.strptime(value, '%Y-%m-%d').strftime('%d-%m-%Y')
     return ""
+
+
+# Route to display the account settings page
+@app.route('/account-settings', methods=['GET', 'POST'])
+@login_required
+def account_settings():
+    user = current_user  # Assuming you're using Flask-Login
+    error = None
+
+    if request.method == 'POST':
+        try:
+            # Update core account information
+            user.first_name = request.form['first_name']
+            user.last_name = request.form['last_name']
+            user.email = request.form['email']
+            user.phone_number = request.form['phone_number']
+            user.business_name = request.form['business_name']
+            user.website_url = request.form.get('website_url')
+            user.vat_number = request.form.get('vat_number')
+            user.house_name_or_number = request.form['house_name_or_number']
+            user.street = request.form['street']
+            user.locality = request.form.get('locality')
+            user.town = request.form['town']
+            user.postcode = request.form['postcode']
+            user.terms = request.form.get('terms_link')
+
+            # Update default ticket questions
+            questions_input = request.form.getlist('questions[]')
+            # Clear existing questions and add new ones
+            user.default_questions = []  # Assuming you have a relationship set up
+            for question_text in questions_input:
+                if question_text.strip():
+                    new_question = DefaultQuestion(question=question_text.strip(), user_id=user.id)
+                    db.session.add(new_question)
+
+            db.session.commit()
+            flash('Account settings updated successfully.', 'success')
+            return redirect(url_for('account_settings'))
+
+        except Exception as e:
+            db.session.rollback()
+            error = f"An error occurred: {str(e)}"
+
+    else:
+        # GET request, retrieve existing questions
+        questions = user.default_questions  # Assuming you have a relationship set up
+
+    return render_template('account_settings.html', user=user, questions=questions, error=error)
