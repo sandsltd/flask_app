@@ -73,12 +73,14 @@
 
             <!-- Terms and Conditions Checkboxes -->
             <h2>Terms and Conditions</h2>
+            {% if organizer_terms_link %}
             <div class="form-group checkbox-group">
                 <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
                 <label for="accept_organizer_terms">
                     I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organizer's Terms and Conditions</a>.
                 </label>
             </div>
+            {% endif %}
             <div class="form-group checkbox-group">
                 <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
                 <label for="accept_platform_terms">
@@ -86,14 +88,15 @@
                 </label>
             </div>
 
-            <input type="submit" value="Proceed to Payment" class="submit-btn">
-        </form>
+                <input type="submit" value="Proceed to Payment" class="submit-btn">
+            </form>
 
-        {% if error %}
-            <p class="error-msg">{{ error }}</p>
-        {% endif %}
-    </div>
-</div>
+            {% if error %}
+                <p class="error-msg">{{ error }}</p>
+            {% endif %}
+            </div>
+        </div>
+
 
 <!-- Include your JavaScript code after the form -->
 <script type="application/json" id="questions-data">

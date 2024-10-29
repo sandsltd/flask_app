@@ -772,9 +772,11 @@ def purchase(event_id):
             return redirect(url_for('purchase', event_id=event_id))
 
         # Validate terms acceptance
-        if not request.form.get('accept_organizer_terms'):
-            flash('You must accept the event organizer\'s Terms and Conditions.')
-            return redirect(url_for('purchase', event_id=event_id))
+        if organizer.terms and organizer.terms.lower() != 'none':
+            if not request.form.get('accept_organizer_terms'):
+                flash('You must accept the event organizer\'s Terms and Conditions.')
+                return redirect(url_for('purchase', event_id=event_id))
+
         if not request.form.get('accept_platform_terms'):
             flash('You must accept the platform\'s Terms and Conditions.')
             return redirect(url_for('purchase', event_id=event_id))
@@ -879,7 +881,7 @@ def purchase(event_id):
     else:
         # GET request: render the purchase page
         platform_terms_link = 'https://your-platform-domain.com/terms-and-conditions'
-        organizer_terms_link = organizer.terms if organizer.terms != 'none' else None
+        organizer_terms_link = organizer.terms if organizer.terms and organizer.terms.lower() != 'none' else None
 
         return render_template(
             'purchase.html',
