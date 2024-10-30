@@ -75,6 +75,11 @@
 
             <!-- Manage Default Questions -->
             <h2>Manage Default Questions</h2>
+            <p>
+                Default questions allow you to gather important information from your attendees across all events, whether they’re already live or newly created. These questions will automatically be included in every event you host, saving you the time of manually adding them each time and ensuring consistency in the information you collect.
+                <br><br>
+                This feature is ideal for questions you frequently need answered, like attendee names, dietary restrictions, or other essential details. Having these questions ready ensures that no matter when or where attendees purchase tickets, you’ll receive the necessary details without extra setup for each event.
+            </p>
             {% for question in questions %}
                 <div class="form-group">
                     <label for="question{{ loop.index }}">Question {{ loop.index }}:</label>
