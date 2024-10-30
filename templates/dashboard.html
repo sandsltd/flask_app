@@ -162,6 +162,35 @@
                 background-color: #d4edda;
                 border-color: #c3e6cb;
             }
+
+                /* First Login Flash Message Styles */
+            .alert-first-login {
+                background-color: #e0f7fa;
+                border: 1px solid #00acc1;
+                color: #006064;
+                padding: 15px;
+                margin-bottom: 20px;
+                border-radius: 4px;
+                font-size: 1.1em;
+                font-weight: bold;
+                text-align: center;
+            }
+
+            /* Additional styling to differentiate it from other alerts */
+            .alert-first-login::before {
+                content: "🎉 ";  /* Add an icon to make it stand out */
+                font-size: 1.2em;
+                color: #004d40;
+                margin-right: 5px;
+            }
+
+            /* Other alert styles if needed */
+            .alert-success {
+                color: #155724;
+                background-color: #d4edda;
+                border-color: #c3e6cb;
+            }
+
 </style>
     <script>
         function copyEmbedCode() {
@@ -179,18 +208,24 @@
     <div class="dashboard-container">
         <h1>Dashboard</h1>
 
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            <div class="flash-messages">
-              {% for message in messages %}
-                <div class="alert alert-success">
-                  {{ message }}
-                </div>
-              {% endfor %}
-            </div>
-          {% endif %}
-        {% endwith %}
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-messages">
+      {% for category, message in messages %}
+        <div class="alert 
+                    {% if category == 'success' and message == 'Welcome to your first login!' %}
+                        alert-first-login
+                    {% else %}
+                        alert-{{ category }}
+                    {% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
 
         <!-- Summary Section -->
         <div class="summary-section">

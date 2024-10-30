@@ -207,7 +207,13 @@ def login():
             if check_password_hash(user.password, password):
                 # Check if the user has completed Stripe onboarding
                 if user.onboarding_status == "complete":
-                    # Log the user in if they have completed onboarding
+                    # Check if this is the user's first login
+                    if user.first_login == "N":
+                        user.first_login = "Y"  # Update to indicate first login completed
+                        db.session.commit()
+                        flash("Welcome to your first login!", "success")  # Flash message for first login
+
+                    # Log the user in
                     login_user(user)
                     flash('Logged in successfully!', 'success')
                     return redirect(url_for('dashboard'))
@@ -224,11 +230,11 @@ def login():
 
 
 
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
     filter_value = request.args.get('filter', 'all')
-
     user_events = Event.query.filter_by(user_id=current_user.id)
 
     # Helper function to convert string dates to datetime for comparison
@@ -249,26 +255,17 @@ def dashboard():
 
     event_data = []
     for event in user_events:
-        # Only count attendees with a "succeeded" payment status
         succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
-        
-        # Calculate tickets sold and revenue for succeeded attendees only
         tickets_sold = sum([attendee.tickets_purchased for attendee in succeeded_attendees])
         tickets_remaining = event.ticket_quantity - tickets_sold
-        
-        # Calculate total revenue for succeeded attendees
         event_revenue = sum([attendee.tickets_purchased * attendee.ticket_price_at_purchase for attendee in succeeded_attendees])
 
-        # Update the overall totals
         total_tickets_sold += tickets_sold
         total_revenue += event_revenue
 
         event_date = str_to_date(event.date) if event.date else None
         event_status = "Upcoming" if event_date and event_date >= datetime.now() else "Past"
 
-
-
-        # Append event data to the list
         event_data.append({
             'name': event.name,
             'date': event.date,
@@ -286,6 +283,7 @@ def dashboard():
                            total_revenue=total_revenue, 
                            total_tickets_sold=total_tickets_sold, 
                            user=current_user)
+
 
 
 
