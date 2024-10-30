@@ -93,8 +93,6 @@ class User(db.Model, UserMixin):
     promo_rate = db.Column(db.Float, nullable=True)  # Promotional rate
     promo_rate_date_end = db.Column(db.Date, nullable=True)
 
-    first_login = db.Column(db.String(1), default='n')  # 'n' for No, 'y' for Yes
-
     events = db.relationship('Event', backref='user', lazy=True)
 
 
@@ -197,13 +195,8 @@ from datetime import datetime, timedelta
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email').strip().lower()
-        password = request.form.get('password')
-
-        # Validate form inputs
-        if not email or not password:
-            flash('Please enter both email and password.', 'warning')
-            return render_template('login.html')
+        email = request.form['email']
+        password = request.form['password']
 
         # Find the user by email
         user = User.query.filter_by(email=email).first()
@@ -213,34 +206,27 @@ def login():
             if check_password_hash(user.password, password):
                 # Check if the user has completed Stripe onboarding
                 if user.onboarding_status == "complete":
-                    # Log the user in
+                    # Log the user in if they have completed onboarding
                     login_user(user)
                     flash('Logged in successfully!', 'success')
-
-                    # Check if it's the user's first login
-                    if user.first_login == 'n':
-                        user.first_login = 'y'  # Update the flag
-                        db.session.commit()     # Commit the change to the database
-                        return redirect(url_for('dashboard', first_login='true'))
-                    else:
-                        return redirect(url_for('dashboard'))
+                    return redirect(url_for('dashboard'))
                 else:
                     # Show message if onboarding is incomplete
                     flash('It looks like you have recently attempted to register but not completed the Stripe setup. Please complete the process before logging in.', 'warning')
                     return render_template('login.html')  # Stay on the login page
             else:
-                flash('Invalid email or password.', 'danger')
+                flash('Invalid email or password', 'danger')
         else:
             flash('Email not found. Please register first.', 'warning')
 
     return render_template('login.html')
 
 
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
     filter_value = request.args.get('filter', 'all')
-    first_login = request.args.get('first_login', 'false').lower() == 'true'  # Capture the first_login flag
 
     user_events = Event.query.filter_by(user_id=current_user.id)
 
@@ -248,7 +234,7 @@ def dashboard():
     def str_to_date(date_str):
         try:
             return datetime.strptime(date_str, '%Y-%m-%d')  # Adjust the format if your date strings differ
-        except (ValueError, TypeError):
+        except ValueError:
             return None
 
     # Apply filtering for upcoming or past events
@@ -279,6 +265,8 @@ def dashboard():
         event_date = str_to_date(event.date) if event.date else None
         event_status = "Upcoming" if event_date and event_date >= datetime.now() else "Past"
 
+
+
         # Append event data to the list
         event_data.append({
             'name': event.name,
@@ -296,8 +284,7 @@ def dashboard():
                            events=event_data, 
                            total_revenue=total_revenue, 
                            total_tickets_sold=total_tickets_sold, 
-                           user=current_user,
-                           first_login=first_login)  # Pass the first_login flag to the template
+                           user=current_user)
 
 
 
