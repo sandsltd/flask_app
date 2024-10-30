@@ -258,6 +258,14 @@
             </p>
         </div>
 
+        {% if first_login == 'n' %}
+    <div class="flash-messages">
+        <div class="alert alert-success">
+            Welcome! This is your first login. Explore your dashboard and get started!
+        </div>
+    </div>
+{% endif %}
+
 
         <!-- Logout Link -->
         <div class="links">
@@ -265,4 +273,3 @@
         </div>
     </div>
 </div>
-{% endblock %}
