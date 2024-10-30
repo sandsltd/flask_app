@@ -40,14 +40,14 @@ stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 app.secret_key = 'supersecretkey'
 login_manager = LoginManager()
 login_manager.init_app(app)
-
+ 
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Configuration for Flask-Mail
-app.config['MAIL_SERVER'] = 'mail.saunders-simmons.co.uk'
+app.config['MAIL_SERVER'] = 'mail.ticketrush.io'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')  # Your email here (from Render)
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')  # Your password here (from Render)
