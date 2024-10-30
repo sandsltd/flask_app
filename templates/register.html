@@ -5,12 +5,12 @@
     <div class="register-info">
         <h2>Join Us at TicketRush</h2>
         <p>Get your events online with ease and start selling tickets today.</p>
-        <p>No hidden fees. No stress. Just results.</p>
+        <p>No hidden fees. No Monthly Fees. No stress. Just results.</p>
     </div>
 
     <div class="register-form">
         <h1>Create Your Account</h1>
-        <form action="/register" method="POST">
+        <form action="/register" method="POST" onsubmit="return validateForm()">
             <div class="form-group">
                 <label for="email">Email:</label>
                 <input type="email" id="email" name="email" required>
@@ -19,6 +19,12 @@
             <div class="form-group">
                 <label for="password">Password:</label>
                 <input type="password" id="password" name="password" required>
+                <small>Password must be at least 8 characters long, include a number, an uppercase letter, and a special character.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password:</label>
+                <input type="password" id="confirm_password" name="confirm_password" required>
             </div>
 
             <div class="form-group">
@@ -83,12 +89,39 @@
             <p class="error-msg">{{ error }}</p>
         {% endif %}
         
-        <!-- Already registered? Login link -->
         <p class="login-link">
             Already registered? <a href="/login">Click here to login</a>.
         </p>
     </div>
 </div>
+
+<script>
+    function validateForm() {
+        const password = document.getElementById("password").value;
+        const confirmPassword = document.getElementById("confirm_password").value;
+        const websiteUrl = document.getElementById("website_url");
+
+        // Password validation: 8 characters, one uppercase, one number, one special character
+        const passwordPattern = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        if (!passwordPattern.test(password)) {
+            alert("Password must be at least 8 characters long, include a number, an uppercase letter, and a special character.");
+            return false;
+        }
+
+        // Confirm password validation
+        if (password !== confirmPassword) {
+            alert("Passwords do not match.");
+            return false;
+        }
+
+        // Add 'http://' to website URL if not present
+        if (websiteUrl.value && !/^https?:\/\//i.test(websiteUrl.value)) {
+            websiteUrl.value = 'http://' + websiteUrl.value;
+        }
+
+        return true;
+    }
+</script>
 
 <style>
     /* Scoped styles for the registration page */
