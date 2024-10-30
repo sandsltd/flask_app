@@ -132,7 +132,7 @@
         }
 
         .copy-button {
-            background-color: #008000;
+            background-color: #007bff;
             color: white;
             padding: 8px 12px;
             border-radius: 5px;
@@ -202,7 +202,7 @@
         <!-- Action Buttons -->
         <div class="action-buttons">
             <a href="/create_event" class="button">Create New Event</a>
-            <a href="/manage-default-questions" class="button">Account Settings</a>
+            <a href="/manage-default-questions" class="button">Manage Default Questions</a>
         </div>
 
         <!-- Filter Form -->
@@ -246,18 +246,11 @@
         <div class="embed-section">
             <h3>Your Embed Code</h3>
             <pre id="embed-code">
-                &lt;script src="https://bookings.ticketrush.io/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
+                &lt;script src="https://flask-app-2gp0.onrender.com/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
             </pre>
             <button onclick="copyEmbedCode()" class="copy-button">Copy to Clipboard</button>
-            <p>
-                This embed code is designed to make displaying your events effortless. Simply copy and paste the code onto any page of your website, and your customers will instantly see the latest events you’re hosting, complete with ticket options and event details. 
-                <br><br>
-                Whether you’re running a one-off event or managing multiple occasions, this code will keep your audience informed without any extra steps.
-                For more guidance on how to integrate it smoothly, visit our 
-                <a href="https://ticketrush.io/tutorials/embed" target="_blank">implementation tutorial</a>.
-            </p>
+            <p>Copy this code and paste it into your website to display your events.</p>
         </div>
-
 
         <!-- Logout Link -->
         <div class="links">
@@ -265,3 +258,4 @@
         </div>
     </div>
 </div>
+{% endblock %}
