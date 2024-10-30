@@ -75,6 +75,7 @@ class User(db.Model, UserMixin):
     stripe_connect_id = db.Column(db.String(120), nullable=True)
     onboarding_status = db.Column(db.String(20), default="pending")  # Onboarding status
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # Add created_at timestamp
+    first_login = db.Column(db.String(1), nullable=True)
 
 
     # Address fields
@@ -345,10 +346,12 @@ def register():
                 locality=locality,
                 town=town,
                 postcode=postcode,
-                stripe_connect_id=None,  # No Stripe ID yet
-                onboarding_status="pending",  # Mark onboarding as pending
-                created_at=datetime.utcnow()  # Set the created_at timestamp
+                stripe_connect_id=None,
+                onboarding_status="pending",
+                created_at=datetime.utcnow(),
+                first_login="N"  # Set first_login to "N" upon registration
             )
+
             db.session.add(new_user)
             db.session.commit()
 
