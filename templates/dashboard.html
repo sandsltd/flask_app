@@ -143,53 +143,75 @@
         }
 
         .copy-button:hover {
-            background-color: #0056b3;
+            background-color: #008000;
         }
         /* Flash Messages Styles */
         .flash-messages {
-                margin-bottom: 20px;
-            }
+            margin-bottom: 20px;
+        }
 
-            .alert {
-                padding: 15px;
-                margin-bottom: 20px;
-                border: 1px solid transparent;
-                border-radius: 4px;
-            }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-size: 1em;
+            font-weight: normal;
+            text-align: left;
+        }
 
-            .alert-success {
-                color: #155724;
-                background-color: #d4edda;
-                border-color: #c3e6cb;
-            }
+        /* Success Alert */
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
 
-                /* First Login Flash Message Styles */
-            .alert-first-login {
-                background-color: #e0f7fa;
-                border: 1px solid #00acc1;
-                color: #006064;
-                padding: 15px;
-                margin-bottom: 20px;
-                border-radius: 4px;
-                font-size: 1.1em;
-                font-weight: bold;
-                text-align: center;
-            }
+        /* First Login Flash Message Styles */
+        .alert-first-login {
+            background-color: #fff3f3; /* Soft, consistent with summary section */
+            border: 1px solid #ffcccc; /* Matches the summary section border */
+            color: #333; /* Text color for readability */
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: normal;
+            text-align: left;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Light shadow like dashboard */
+        }
 
-            /* Additional styling to differentiate it from other alerts */
-            .alert-first-login::before {
-                content: "🎉 ";  /* Add an icon to make it stand out */
-                font-size: 1.2em;
-                color: #004d40;
-                margin-right: 5px;
-            }
+        /* Additional styling to highlight the first login alert */
+        .alert-first-login h3 {
+            color: #ff0000; /* Consistent red for heading */
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
 
-            /* Other alert styles if needed */
-            .alert-success {
-                color: #155724;
-                background-color: #d4edda;
-                border-color: #c3e6cb;
-            }
+        .alert-first-login p {
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .alert-first-login a {
+            color: #ff0000; /* Matching interactive element color */
+            text-decoration: underline;
+            font-weight: bold;
+        }
+
+        .alert-first-login a:hover {
+            color: #cc0000; /* Darker red on hover */
+        }
+
+        /* Icon styling */
+        .alert-first-login::before {
+            content: "🎉 "; /* Celebration icon */
+            font-size: 1.5em;
+            vertical-align: middle;
+            margin-right: 8px;
+            color: #ff0000; /* Consistent red */
+        }
+
 
 </style>
     <script>
@@ -282,7 +304,7 @@
         <div class="embed-section">
             <h3>Your Embed Code</h3>
             <pre id="embed-code">
-                &lt;script src="https://flask-app-2gp0.onrender.com/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
+                &lt;script src="https://bookings.ticketrush.io/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
             </pre>
             <button onclick="copyEmbedCode()" class="copy-button">Copy to Clipboard</button>
             <p>Copy this code and paste it into your website to display your events.</p>
