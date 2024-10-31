@@ -1799,12 +1799,18 @@ def stripe_onboarding_complete():
                 user.onboarding_status = onboarding_status
                 db.session.commit()  # Commit the updated onboarding status to the database
                 print(f"Onboarding status updated to {onboarding_status} for user {user.email}")
+
+                # Send welcome email if onboarding is complete
+                if onboarding_status == "complete":
+                    send_welcome_email(user)
+                    flash("Stripe onboarding complete! A welcome email has been sent.", "success")
+
             except Exception as e:
                 print(f"Error fetching account details from Stripe: {str(e)}")
                 flash('Error verifying Stripe onboarding status. Please try again later.')
 
-            flash('Stripe onboarding complete! Please log in to access your dashboard.')
-            return redirect(url_for('login'))  # Redirect to login page after onboarding
+            # Redirect to login page after onboarding
+            return redirect(url_for('login'))
         else:
             print("User not found.")
             flash('User not found.')
@@ -1813,6 +1819,7 @@ def stripe_onboarding_complete():
         print("Stripe onboarding failed: Missing account_id or user_id.")
         flash('Stripe onboarding failed. Please try again.')
         return redirect(url_for('register'))
+
 
 
 
@@ -1866,3 +1873,30 @@ def success():
 
     return render_template('success.html', **context)
 
+
+def send_welcome_email(user):
+    try:
+        msg = Message(
+            subject="Welcome to TicketRush!",
+            sender="no-reply@ticketrush.io",
+            recipients=[user.email]
+        )
+        msg.html = f"""
+        <html>
+        <body style="background-color: #ffffff; color: #333333; font-family: Arial, sans-serif; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="http://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush Logo" style="max-width: 200px;">
+            </div>
+            <h2 style="color: #ff0000;">Welcome to TicketRush, {user.first_name}!</h2>
+            <p>We're thrilled to have you on board! Since you’ve joined TicketRush, you’re all set to start creating memorable events with our simple and secure ticketing platform.</p>
+            <p><strong>Access Your Dashboard:</strong> <a href="https://bookings.ticketrush.io/login" style="color: #ff0000;">Login Here</a></p>
+            <p>To help you get started, take a look at our <a href="https://www.ticketrush.io/support" style="color: #ff0000;">First-Time User Guide</a>. It's full of tips to make the most out of your TicketRush experience.</p>
+            <p>We can’t wait to see the incredible events you create!</p>
+            <p>Happy Ticketing!<br>— The TicketRush Team</p>
+        </body>
+        </html>
+        """
+        mail.send(msg)
+        print("Welcome email sent successfully!")
+    except Exception as e:
+        print(f"Failed to send welcome email: {str(e)}")
