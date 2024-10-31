@@ -19,7 +19,7 @@
             <div class="form-group">
                 <label for="password">Password:</label>
                 <input type="password" id="password" name="password" required>
-                <small>Password must be at least 8 characters long, include a number, an uppercase letter, and a special character.</small>
+                <small>Password must be at least 8 characters long, include a number, and an uppercase letter.</small>
             </div>
 
             <div class="form-group">
@@ -101,10 +101,10 @@
         const confirmPassword = document.getElementById("confirm_password").value;
         const websiteUrl = document.getElementById("website_url");
 
-        // Password validation: 8 characters, one uppercase, one number, one special character
-        const passwordPattern = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        // Updated password validation: 8 characters, one uppercase letter, one number
+        const passwordPattern = /^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
         if (!passwordPattern.test(password)) {
-            alert("Password must be at least 8 characters long, include a number, an uppercase letter, and a special character.");
+            alert("Password must be at least 8 characters long, include a number, and an uppercase letter.");
             return false;
         }
 
@@ -112,11 +112,6 @@
         if (password !== confirmPassword) {
             alert("Passwords do not match.");
             return false;
-        }
-
-        // Add 'http://' to website URL if not present
-        if (websiteUrl.value && !/^https?:\/\//i.test(websiteUrl.value)) {
-            websiteUrl.value = 'http://' + websiteUrl.value;
         }
 
         return true;
