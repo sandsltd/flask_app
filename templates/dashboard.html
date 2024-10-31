@@ -254,7 +254,7 @@
         <div class="summary-section">
             <h2>Dashboard Summary</h2>
             <p><strong>Total Tickets Sold:</strong> {{ total_tickets_sold }}</p>
-            <p><strong>Total Revenue Generated:</strong> £{{ total_revenue | floatformat:2 }}</p>
+            <p><strong>Total Revenue Generated:</strong> £{{ total_revenue | format(',.2f') }}</p>
         </div>
 
         <!-- Action Buttons -->
@@ -287,7 +287,7 @@
                     <br>
                     <strong>Tickets Remaining:</strong> {{ event_data.tickets_remaining }}
                     <br>
-                    <strong>Total Revenue:</strong> £{{ event_data.total_revenue | floatformat:2 }}
+                    <strong>Total Revenue:</strong> £{{ event_data.total_revenue | format(',.2f') }}
                     <br>
                     <strong>Status:</strong> {{ event_data.status }}
                     <br>
