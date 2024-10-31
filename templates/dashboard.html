@@ -252,10 +252,18 @@
 
         <!-- Summary Section -->
         <div class="summary-section">
-            <h2>Dashboard Summary</h2>
-            <p><strong>Total Tickets Sold:</strong> {{ total_tickets_sold }}</p>
+            <h2>Since you've been using TicketRush</h2>
+            <p><strong>Tickets Sold:</strong> {{ total_tickets_sold }}</p>
             <p><strong>Total Revenue Generated:</strong> £{{ "{:.2f}".format(total_revenue) }}</p>
+            <p>Thanks for choosing TicketRush for your event ticketing needs!</p>
         </div>
+
+        <!-- Stripe Account Access Section -->
+        <div class="summary-section">
+            <h3>Manage Your Payments</h3>
+            <p>To view detailed payment history or manage your account, visit your <a href="https://dashboard.stripe.com/login" target="_blank" style="color: #ff0000; font-weight: bold; text-decoration: underline;">Stripe Dashboard</a>.</p>
+        </div>
+
 
         <!-- Action Buttons -->
         <div class="action-buttons">
