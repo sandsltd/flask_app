@@ -107,8 +107,8 @@
         // Clear previous error messages
         errorMessage.innerHTML = "";
 
-        // Updated password validation: minimum 8 characters, at least one uppercase letter
-        const passwordPattern = /^(?=.*[A-Z])[A-Za-z\d]{8,}$/;
+        // Updated password validation: minimum 8 characters, at least one uppercase letter, any character allowed
+        const passwordPattern = /^(?=.*[A-Z]).{8,}$/;
         if (!passwordPattern.test(password)) {
             errorMessage.innerHTML = "Password must be at least 8 characters long and include at least one uppercase letter.";
             return false;
@@ -123,6 +123,7 @@
         return true;
     }
 </script>
+
 
 <style>
     /* Scoped styles for the registration page */
