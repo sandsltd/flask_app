@@ -287,7 +287,7 @@
                     <br>
                     <strong>Tickets Remaining:</strong> {{ event_data.tickets_remaining }}
                     <br>
-                    <strong>Total Revenue:</strong> £{{ (event_data.total_revenue + 0.00) | round(2) }}
+                    <strong>Total Revenue:</strong> £{{ "{:.2f}".format(event_data.total_revenue) }}
                     <br>
                     <strong>Status:</strong> {{ event_data.status }}
                     <br>
