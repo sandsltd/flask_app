@@ -4,30 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Attendee</title>
-</head>
-<body>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f8f8;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
 
+        /* Container Styling */
+        .edit-attendee-container {
+            max-width: 600px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Heading Styling */
+        h1 {
+            color: #d9534f;
+            text-align: center;
+            font-size: 1.75em;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            color: #5a5a5a;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        /* Form Styling */
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="email"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f5f5f5;
+            box-sizing: border-box;
+        }
+
+        /* Button Styling */
+        button[type="submit"] {
+            padding: 12px 20px;
+            background-color: #d9534f;
+            color: #ffffff;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 1em;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #c9302c;
+        }
+    </style>
+</head>
+
+{% extends "partials/base-logged-in.html" %}
+
+{% block content %}
+
+<div class="edit-attendee-container">
     <h1>Edit Attendee: {{ attendee.full_name }}</h1>
 
+    <!-- Form for Editing Attendee -->
     <form action="{{ url_for('edit_attendee', attendee_id=attendee.id) }}" method="POST">
         <label for="full_name">Full Name:</label>
-        <input type="text" id="full_name" name="full_name" value="{{ attendee.full_name }}" required><br>
+        <input type="text" id="full_name" name="full_name" value="{{ attendee.full_name }}" required>
 
         <label for="email">Email:</label>
-        <input type="email" id="email" name="email" value="{{ attendee.email }}" required><br>
+        <input type="email" id="email" name="email" value="{{ attendee.email }}" required>
 
         <label for="phone_number">Phone Number:</label>
-        <input type="text" id="phone_number" name="phone_number" value="{{ attendee.phone_number }}" required><br>
+        <input type="text" id="phone_number" name="phone_number" value="{{ attendee.phone_number }}" required>
 
-        <!-- Display ticket answers for editing -->
+        <!-- Ticket Answers Section -->
         <h3>Edit Ticket Answers</h3>
         {% for question, answer in ticket_answers.items() %}
             <label for="answer_{{ question }}">{{ question }}:</label>
-            <input type="text" id="answer_{{ question }}" name="answer_{{ question }}" value="{{ answer }}" required><br>
+            <input type="text" id="answer_{{ question }}" name="answer_{{ question }}" value="{{ answer }}" required>
         {% endfor %}
 
         <button type="submit">Save Changes</button>
     </form>
+</div>
 
-</body>
+{% endblock %}
 </html>

@@ -4,29 +4,120 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Event</title>
+    <style>
+        /* Global Styling */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f8f8;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Container Styling */
+        .edit-event-container {
+            max-width: 600px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Heading Styling */
+        h1 {
+            color: #d9534f;
+            text-align: center;
+            font-size: 1.75em;
+            margin-bottom: 20px;
+        }
+
+        /* Form Styling */
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f5f5f5;
+            box-sizing: border-box;
+        }
+
+        /* Button Styling */
+        button[type="submit"] {
+            padding: 12px 20px;
+            background-color: #d9534f;
+            color: #ffffff;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 1em;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #c9302c;
+        }
+
+        /* Link Styling */
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #d9534f;
+            text-decoration: none;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .back-link:hover {
+            color: #c9302c;
+        }
+    </style>
 </head>
-<body>
+
+{% extends "partials/base-logged-in.html" %}
+
+{% block content %}
+
+<div class="edit-event-container">
     <h1>Edit Event: {{ event.name }}</h1>
 
+    <!-- Form for Editing Event -->
     <form method="POST" action="{{ url_for('edit_event', event_id=event.id) }}">
         <label for="name">Event Name:</label>
-        <input type="text" id="name" name="name" value="{{ event.name }}" required><br>
+        <input type="text" id="name" name="name" value="{{ event.name }}" required>
 
         <label for="date">Event Date (YYYY-MM-DD):</label>
-        <input type="date" id="date" name="date" value="{{ event.date }}" required><br>
+        <input type="date" id="date" name="date" value="{{ event.date }}" required>
 
         <label for="location">Location:</label>
-        <input type="text" id="location" name="location" value="{{ event.location }}" required><br>
+        <input type="text" id="location" name="location" value="{{ event.location }}" required>
 
         <label for="ticket_quantity">Total Tickets:</label>
-        <input type="number" id="ticket_quantity" name="ticket_quantity" value="{{ event.ticket_quantity }}" required><br>
+        <input type="number" id="ticket_quantity" name="ticket_quantity" value="{{ event.ticket_quantity }}" required>
 
         <label for="ticket_price">Ticket Price (£):</label>
-        <input type="number" id="ticket_price" name="ticket_price" step="0.01" value="{{ event.ticket_price }}" required><br>
+        <input type="number" id="ticket_price" name="ticket_price" step="0.01" value="{{ event.ticket_price }}" required>
 
         <button type="submit">Save Changes</button>
     </form>
 
-    <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
-</body>
+    <!-- Back to Dashboard Link -->
+    <a href="{{ url_for('dashboard') }}" class="back-link">Back to Dashboard</a>
+</div>
+
+{% endblock %}
 </html>
