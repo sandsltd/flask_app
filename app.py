@@ -25,6 +25,7 @@ from flask_mail import Mail, Message
 import urllib.parse
 from flask import Response
 from markupsafe import escape
+from markupsafe import Markup
 
 
 
@@ -211,16 +212,20 @@ def login():
                     if user.first_login == "N":
                         user.first_login = "Y"  # Update to indicate first login completed
                         db.session.commit()
+                        # Flash the welcome message with links, using Markup to render HTML
                         flash(
-                            """<strong>Welcome to TicketRush!</strong> 🎉 <br>
-                            We’re excited to have you here! It looks like it’s your first time logging in, 
-                            so we recommend starting with our <a href="https://tickettush.io/tutorials/first_time_user" 
-                            target="_blank">First-Time User Guide</a> to get the most out of TicketRush.<br><br>
-                            Before creating your first event, take a moment to personalize your 
-                            <a href="/manage_default_questions">Account Settings</a> so your events are customized 
-                            just the way you like.<br><br>Let’s get started!""",
-                            "first_login"
+                            Markup(
+                                "Welcome to TicketRush! 🎉 <br> "
+                                "We’re excited to have you here! It looks like it’s your first time logging in, so we recommend starting with our "
+                                "<a href='https://tickettush.io/tutorials/first_time_user' target='_blank'>First-Time User Guide</a> "
+                                "to get the most out of TicketRush. <br><br>"
+                                "Before creating your first event, take a moment to personalize your "
+                                "<a href='/manage_default_questions'>Account Settings</a> so your events are customized just the way you like. <br><br>"
+                                "Let’s get started!"
+                            ),
+                            "success"
                         )
+
                     # Log the user in
                     login_user(user)
                     flash('Logged in successfully!', 'success')
