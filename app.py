@@ -1543,15 +1543,13 @@ def delete_attendee(attendee_id):
         flash("You don't have permission to delete this attendee.")
         return redirect(url_for('dashboard'))
 
-    # Update the event's ticket quantity
-    event.ticket_quantity += attendee.tickets_purchased  # Increase available ticket quantity
-    
     # Delete the attendee
     db.session.delete(attendee)
     db.session.commit()
 
-    flash('Attendee deleted successfully, and ticket quantity updated!')
+    flash('Attendee deleted successfully, and ticket availability updated!')
     return redirect(url_for('view_attendees', event_id=event.id))
+
 
 @app.route('/edit_attendee/<int:attendee_id>', methods=['GET', 'POST'])
 @login_required
