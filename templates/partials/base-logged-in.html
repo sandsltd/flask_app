@@ -3,26 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
+    <title>{{ title if title else "TicketRush" }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        /* General Styling */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #fff;
+            color: #333;
+        }
+
+        .container {
+            width: 90%;
+            margin: 0 auto;
+        }
+
+        /* Header Styling */
+        .header {
+            background-color: #f00; /* Red background */
+            padding: 20px 0;
+            color: #fff; /* White text */
+            border-bottom: 3px solid #f00; /* Red underline */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        }
+        
+        .header .logo {
+            width: 150px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Logged-in Navigation Styling */
+        .logged-in-nav {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .logged-in-nav ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .logged-in-nav ul li {
+            display: inline-block;
+            margin: 0 15px;
+        }
+
+        .logged-in-nav ul li a {
+            text-decoration: none;
+            color: #fff; /* White text for navigation */
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+
+        .logged-in-nav ul li a:hover {
+            color: #000; /* Black hover effect */
+        }
+
+        /* Content Styling */
+        .content {
+            padding: 40px 0;
+        }
+
+        /* Footer Styling */
+        .footer {
+            background-color: #f00; /* Red background */
+            color: #fff;
+            padding: 20px 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .usp {
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .footer a.footer-link {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+
+        .footer a.footer-link:hover {
+            color: #000; /* Hover to black */
+        }
+
+        .footer p {
+            font-size: 14px;
+        }
+
+        /* Small Screens */
+        @media (max-width: 768px) {
+            .container {
+                width: 100%;
+                padding: 0 10px;
+            }
+
+            .header .logo {
+                width: 120px;
+            }
+
+            .logged-in-nav ul li {
+                margin: 0 10px;
+            }
+
+            .footer p {
+                font-size: 12px;
+            }
+        }
+    </style>
 </head>
 <body>
 
     <!-- Header for Logged-in Users -->
     <header class="header">
         <div class="container">
-            <a href="https://ticketrush.io">
-                <img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T.png" alt="Logo" class="logo">
-            </a>
-
+            <!-- Logo without a link -->
+            <img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T.png" alt="Logo" class="logo">
+    
             <!-- Navigation Links for Logged-in Users -->
             <nav class="logged-in-nav">
                 <ul>
-                    <li><a href="/dashboard">Dashboard</a></li>
-                    <li><a href="/create_event">Create an Event</a></li>
-                    <li><a href="/manage-default-questions">Settings</a></li>
-                    <li><a href="/support.html">Support</a></li>
-                    <li><a href="/logout">Logout</a></li>
+                    <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('create_event') }}">Create an Event</a></li>
+                    <li><a href="{{ url_for('manage_default_questions') }}">Settings</a></li>
+                    <li><a href="https://www.ticketrush.io/support">Support</a></li>
+                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
                 </ul>
             </nav>
         </div>
@@ -47,124 +166,3 @@
 
 </body>
 </html>
-
-<style>
-
-    /* General Styling */
-body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Arial', sans-serif;
-    background-color: #fff;
-    color: #333;
-}
-
-.container {
-    width: 90%;
-    margin: 0 auto;
-}
-
-/* Header Styling */
-.header {
-    background-color: #fff;
-    padding: 20px 0;
-    border-bottom: 3px solid #f00; /* Red underline */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
-}
-
-.header .logo {
-    width: 150px;
-    display: block;
-    margin: 0 auto;
-}
-
-/* Logged-in Navigation Styling */
-.logged-in-nav {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
-}
-
-.logged-in-nav ul {
-    list-style-type: none;
-    padding: 0;
-}
-
-.logged-in-nav ul li {
-    display: inline-block;
-    margin: 0 15px;
-}
-
-.logged-in-nav ul li a {
-    text-decoration: none;
-    color: #333;
-    font-weight: bold;
-    transition: color 0.3s;
-}
-
-.logged-in-nav ul li a:hover {
-    color: #f00; /* Red hover effect */
-}
-
-/* Content Styling */
-.content {
-    padding: 40px 0;
-}
-
-/* Footer Styling */
-.footer {
-    background-color: #f00; /* Red background */
-    color: #fff;
-    padding: 20px 0;
-    text-align: center;
-    position: relative;
-}
-
-.footer-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.usp {
-    font-size: 18px;
-    margin-bottom: 10px;
-    font-weight: bold;
-}
-
-.footer a.footer-link {
-    color: #fff;
-    text-decoration: none;
-    font-weight: bold;
-    transition: color 0.3s;
-}
-
-.footer a.footer-link:hover {
-    color: #000; /* Hover to black */
-}
-
-.footer p {
-    font-size: 14px;
-}
-
-/* Small Screens */
-@media (max-width: 768px) {
-    .container {
-        width: 100%;
-        padding: 0 10px;
-    }
-
-    .header .logo {
-        width: 120px;
-    }
-
-    .logged-in-nav ul li {
-        margin: 0 10px;
-    }
-
-    .footer p {
-        font-size: 12px;
-    }
-}
-
-</style>
