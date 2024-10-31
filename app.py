@@ -475,12 +475,6 @@ def reset_db():
 
 from markupsafe import escape
 
-from markupsafe import escape
-
-from markupsafe import escape
-
-from markupsafe import escape
-
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
     user = User.query.filter_by(unique_id=unique_id).first()
@@ -1161,14 +1155,22 @@ END:VCALENDAR
     })
 
 
-def send_confirmation_email_to_attendee(attendee, billing_details):
+def send_confirmation_email_to_attendee(attendees, billing_details):
     try:
+        if not attendees:
+            print("No attendees found.")
+            return
+
+        # Use the first attendee to gather common details
+        first_attendee = attendees[0]
+
         # Fetch event and organizer (user) details
-        event = Event.query.get(attendee.event_id)
+        event = Event.query.get(first_attendee.event_id)
         organizer = User.query.get(event.user_id)
 
-        # Calculate the total payment based on the ticket price
-        total_ticket_price = attendee.tickets_purchased * attendee.ticket_price_at_purchase
+        # Calculate the total tickets and total price
+        total_tickets = sum(attendee.tickets_purchased for attendee in attendees)
+        total_price = sum(attendee.ticket_price_at_purchase * attendee.tickets_purchased for attendee in attendees)
 
         # Prepare the subject line
         subject = f"Your Ticket Confirmation for {event.name}"
@@ -1198,7 +1200,6 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
             <strong>Website:</strong> <a href="{organizer.website_url or '#'}" style="color: #ff0000;">{organizer.website_url or 'No website provided'}</a><br>
         """
 
-        # Include the terms link only if organizer.terms is set and not 'none'
         if organizer.terms and organizer.terms.lower() != 'none':
             organizer_details += f"""
             <strong>Organiser's Terms (Please Read):</strong> <a href="{organizer.terms}" style="color: #ff0000;">{organizer.terms}</a>
@@ -1215,7 +1216,7 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
                 <img src="http://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
             </div>
 
-            <h2 style="color: #ff0000;">Hello {attendee.full_name},</h2>
+            <h2 style="color: #ff0000;">Hello {first_attendee.full_name},</h2>
 
             <p>Thank you for purchasing tickets for the event <strong>'{event.name}'</strong>. Below are your details:</p>
 
@@ -1231,11 +1232,11 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
             
             <h3 style="color: #ff0000;">Your Details:</h3>
             <p>
-                <strong>Full Name:</strong> {attendee.full_name}<br>
-                <strong>Email:</strong> {attendee.email}<br>
-                <strong>Phone Number:</strong> {attendee.phone_number}<br>
-                <strong>Ticket Quantity:</strong> {attendee.tickets_purchased}<br>
-                <strong>Amount Paid:</strong> £{total_ticket_price:.2f}<br>
+                <strong>Full Name:</strong> {first_attendee.full_name}<br>
+                <strong>Email:</strong> {first_attendee.email}<br>
+                <strong>Phone Number:</strong> {first_attendee.phone_number}<br>
+                <strong>Ticket Quantity:</strong> {total_tickets}<br>
+                <strong>Amount Paid:</strong> £{total_price:.2f}<br>
                 <strong>Billing Address:</strong> {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}
             </p>
             
@@ -1243,7 +1244,6 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
             
             <h3 style="color: #ff0000;">Add to Calendar:</h3>
             <div style="margin-bottom: 20px;">
-                <a href="{google_calendar_url}" style="display: inline-block; background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px; margin-right: 20px;">Click here to add to Google Calendar</a>
                 <a href="{ics_file_url}" style="display: inline-block; background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Click here to add to Apple/iOS or other Calendar</a>
             </div>
             
@@ -1275,15 +1275,16 @@ def send_confirmation_email_to_attendee(attendee, billing_details):
         # Create and send the email using Flask-Mail
         msg = Message(
             subject=subject,
-            recipients=[attendee.email],
+            recipients=[first_attendee.email],
             body=body,
             html=body  # Render the email as HTML to support links and styling
         )
         mail.send(msg)
-        print(f"Confirmation email sent to attendee {attendee.email}.")
+        print(f"Confirmation email sent to attendee {first_attendee.email}.")
 
     except Exception as e:
-        print(f"Failed to send confirmation email to attendee {attendee.email}. Error: {str(e)}")
+        print(f"Failed to send confirmation email to attendee {first_attendee.email}. Error: {str(e)}")
+
 
 
 
@@ -1315,7 +1316,7 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
         subject = f"New Ticket Purchase for Your Event '{event.name}'"
 
         # Placeholder for the dashboard link
-        dashboard_link = "#"  # Replace with actual dashboard link
+        dashboard_link = "https://bookings.ticketrush.io/login"  # Replace with actual dashboard link
 
         # Prepare the email body with the same inline CSS and logo as the attendee email
         body = f"""
