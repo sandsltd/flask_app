@@ -219,8 +219,8 @@ def login():
                                 "We’re excited to have you here! It looks like it’s your first time logging in, so we recommend starting with our "
                                 "<a href='https://ticketrush.io/tutorials/first_time_user' target='_blank'>First-Time User Guide</a> "
                                 "to get the most out of TicketRush. <br><br>"
-                                "Before creating your first event, take a moment to personalize your "
-                                "<a href='/manage_default_questions'>Account Settings</a> so your events are customized just the way you like. <br><br>"
+                                "Before creating your first event, take a moment to personalise your "
+                                "<a href='/manage_default_questions'>Account Settings</a> so your events are customised just the way you like. <br><br>"
                             ),
                             "success"
                         )
