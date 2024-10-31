@@ -1261,10 +1261,6 @@ def send_confirmation_email_to_attendee(attendees, billing_details):
 
             <hr style="border: 1px solid #ff0000;">
 
-            <p>Thank you for using TicketRush</p>
-
-            <p>Best regards,<br>Ticket Rush Team</p>
-
             <p style="color: #ff0000;"><strong>Powered by TicketRush</strong></p>
         </body>
         </html>
