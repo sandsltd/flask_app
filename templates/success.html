@@ -81,7 +81,7 @@
                 <img src="{{ event.event_image }}" alt="Event Image" class="event-image">
             {% endif %}
             <p><strong>Event:</strong> {{ event.name }}</p>
-            <p><strong>Date:</strong> {{ event.date }}</p>
+            <p><strong>Date:</strong> {{ event.date | datetimeformat }}</p>
             <p><strong>Time:</strong> {{ event.start_time }} - {{ event.end_time }}</p>
             <p><strong>Location:</strong> {{ event.location }}</p>
             <p><strong>Description:</strong> {{ event.description }}</p>
