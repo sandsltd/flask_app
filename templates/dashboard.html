@@ -254,7 +254,7 @@
         <div class="summary-section">
             <h2>Dashboard Summary</h2>
             <p><strong>Total Tickets Sold:</strong> {{ total_tickets_sold }}</p>
-            <p><strong>Total Revenue Generated:</strong> £{{ total_revenue + 0.00 }}</p>
+            <p><strong>Total Revenue Generated:</strong> £{{ "{:.2f}".format(total_revenue) }}</p>
         </div>
 
         <!-- Action Buttons -->
