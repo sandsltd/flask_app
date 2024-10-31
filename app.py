@@ -1674,17 +1674,13 @@ def add_attendee(event_id):
         db.session.add(attendee)
         db.session.commit()
 
-        # Send confirmation emails
-        try:
-            send_confirmation_email_to_attendee(attendee, billing_details)
-            send_email_to_organizer(attendee)
-            flash("Attendee added and emails sent successfully.")
-        except Exception as e:
-            flash(f"Attendee added, but failed to send emails: {str(e)}")
+        # Flash a success message without sending emails
+        flash("Attendee added successfully without sending emails.")
 
         return redirect(url_for('view_attendees', event_id=event_id))
 
     return render_template('add_attendee.html', event=event, questions=all_questions)
+
 
 def send_email_to_organizer(attendee):
     try:
