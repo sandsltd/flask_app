@@ -1157,8 +1157,9 @@ END:VCALENDAR
 
 def send_confirmation_email_to_attendee(attendees, billing_details):
     try:
+        # Ensure attendees list is not empty
         if not attendees:
-            print("No attendees found.")
+            print("No attendees provided to send confirmation email.")
             return
 
         # Use the first attendee to gather common details
@@ -1171,9 +1172,6 @@ def send_confirmation_email_to_attendee(attendees, billing_details):
         # Calculate the total tickets and total price
         total_tickets = sum(attendee.tickets_purchased for attendee in attendees)
         total_price = sum(attendee.ticket_price_at_purchase * attendee.tickets_purchased for attendee in attendees)
-
-        # Prepare the subject line
-        subject = f"Your Ticket Confirmation for {event.name}"
 
         # Generate "Add to Calendar" links (Google Calendar and iOS .ics file)
         start_time = event.start_time.replace(':', '')  # Assuming time is 'HH:MM'
@@ -1267,14 +1265,14 @@ def send_confirmation_email_to_attendee(attendees, billing_details):
 
             <p>Best regards,<br>Ticket Rush Team</p>
 
-            <p style="color: #ff0000;"><strong>Powered by Ticket Rush</strong></p>
+            <p style="color: #ff0000;"><strong>Powered by TicketRush</strong></p>
         </body>
         </html>
         """
 
         # Create and send the email using Flask-Mail
         msg = Message(
-            subject=subject,
+            subject=f"Your Ticket Confirmation for {event.name}",
             recipients=[first_attendee.email],
             body=body,
             html=body  # Render the email as HTML to support links and styling
@@ -1283,7 +1281,8 @@ def send_confirmation_email_to_attendee(attendees, billing_details):
         print(f"Confirmation email sent to attendee {first_attendee.email}.")
 
     except Exception as e:
-        print(f"Failed to send confirmation email to attendee {first_attendee.email}. Error: {str(e)}")
+        print(f"Failed to send confirmation email to attendee. Error: {str(e)}")
+
 
 
 
@@ -1402,7 +1401,7 @@ def handle_checkout_session(session):
         return
 
     # Retrieve all attendees for this session ID
-    attendees = Attendee.query.filter_by(session_id=session_id).all()
+    attendees = Attendee.query.filter_by(session_id=session_id).all()  # Ensuring we have a list of attendees
 
     if not attendees:
         print(f"No attendees found for session ID {session_id}.")
@@ -1424,20 +1423,22 @@ def handle_checkout_session(session):
         attendee.billing_details = json.dumps(billing_details)
         attendee.stripe_charge_id = charge.id
         attendee.payment_status = 'succeeded'
-        db.session.commit()
+    
+    db.session.commit()  # Commit all updates after the loop
 
     print(f"Updated {len(attendees)} attendees with payment details.")
 
-    # Send confirmation email to the attendee (buyer)
-    send_confirmation_email_to_attendee(attendees[0], billing_details)
+    # Send confirmation email to the attendees (pass the list of attendees)
+    send_confirmation_email_to_attendee(attendees, billing_details)
 
     # Retrieve the event organizer (seller) details
-    event = Event.query.get(attendees[0].event_id)
+    event = Event.query.get(attendees[0].event_id)  # Use the first attendee's event_id to get the event
     organizer = User.query.get(event.user_id)
     
     if organizer:
         # Send email to the event organizer
         send_confirmation_email_to_organizer(organizer, attendees, billing_details, event)
+
 
 
 
