@@ -1889,8 +1889,8 @@ def send_welcome_email(user):
             </div>
             <h2 style="color: #ff0000;">Welcome to TicketRush, {user.first_name}!</h2>
             <p>We're thrilled to have you on board! Since you’ve joined TicketRush, you’re all set to start creating memorable events with our simple and secure ticketing platform.</p>
-            <p><strong>Access Your Dashboard:</strong> <a href="https://bookings.ticketrush.io/login" style="color: #ff0000;">Login Here</a></p>
-            <p>To help you get started, take a look at our <a href="https://www.ticketrush.io/support" style="color: #ff0000;">First-Time User Guide</a>. It's full of tips to make the most out of your TicketRush experience.</p>
+            <p><strong>Access Your Dashboard:</strong> <a href="https://bookings.ticketrush.io/manage_default_questions" style="color: #ff0000;" target="_blank">Login Here</a></p>
+            <p>To help you get started, take a look at our <a href="https://www.ticketrush.io/support" style="color: #ff0000;" target="_blank">Tutorials Page</a>. It's full of tips to make the most out of your TicketRush experience.</p>
             <p>We can’t wait to see the incredible events you create!</p>
             <p>Happy Ticketing!<br>— The TicketRush Team</p>
         </body>
