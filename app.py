@@ -852,37 +852,36 @@ def manage_default_questions():
 # Define the /purchase/<int:event_id> route
 def calculate_total_charge_and_booking_fee(n_tickets, ticket_price_gbp):
     """
-    Calculate the total amount to charge the buyer and the combined booking fee.
+    Calculate the total charge to the buyer (ticket price + platform fee + Stripe fee),
+    while ensuring the organizer receives the full ticket price and the platform receives the platform fee.
 
     :param n_tickets: Number of tickets being purchased.
     :param ticket_price_gbp: Price per ticket in GBP.
-    :return: Tuple of total charge in pence and booking fee in pence.
+    :return: Tuple of total charge to the buyer in pence and platform fee in pence.
     """
     # Constants
-    platform_fee_per_ticket_pence = 30  # 30p per ticket
-    transaction_fee_pence = 20           # 20p per transaction
-    stripe_percent_fee = 0.014           # 1.4%
+    platform_fee_per_ticket_pence = 30  # 30p platform fee per ticket
+    stripe_percent_fee = 0.014          # Stripe fee percentage (1.4%)
+    stripe_fixed_fee_pence = 20         # Fixed Stripe fee per transaction (20p)
 
-    # Calculate total ticket price in pence
+    # Calculate the total ticket price in pence
     total_ticket_price_pence = int(n_tickets * ticket_price_gbp * 100)
 
-    # Calculate total platform fee in pence
+    # Calculate the total platform fee (30p per ticket)
     total_platform_fee_pence = platform_fee_per_ticket_pence * n_tickets
 
-    # Calculate total fixed fees in pence (Platform Fee + Transaction Fee)
-    total_fixed_fees_pence = total_platform_fee_pence + transaction_fee_pence
+    # Calculate the subtotal (ticket price + platform fee) before Stripe fees
+    subtotal_before_stripe = total_ticket_price_pence + total_platform_fee_pence
 
-    # Calculate total charge before Stripe fee
-    # Using the formula: X = (Total Ticket Price + Total Fixed Fees) / (1 - Stripe Percentage Fee)
-    total_charge_pence = (total_ticket_price_pence + total_fixed_fees_pence) / (1 - stripe_percent_fee)
+    # Calculate the Stripe fee on the subtotal
+    stripe_fee_pence = int(subtotal_before_stripe * stripe_percent_fee) + stripe_fixed_fee_pence
 
-    # Calculate booking fee (Total Charge - Total Ticket Price)
-    booking_fee_pence = total_charge_pence - total_ticket_price_pence
+    # Calculate the total charge to the buyer (subtotal + Stripe fee)
+    total_charge_pence = subtotal_before_stripe + stripe_fee_pence
 
-    # Round up to the nearest penny to ensure all fees are covered
-    return int(math.ceil(total_charge_pence)), int(math.ceil(booking_fee_pence))
+    # Return the total charge to the buyer and the platform fee, both rounded up
+    return int(math.ceil(total_charge_pence)), int(math.ceil(total_platform_fee_pence))
 
-# [Define your models: User, Event, Attendee, DefaultQuestion here]
 
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
 def purchase(event_id):
