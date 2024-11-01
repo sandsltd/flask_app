@@ -27,6 +27,7 @@ from flask import Response
 from markupsafe import escape
 from markupsafe import Markup
 from itsdangerous import URLSafeTimedSerializer
+from flask import current_app
 
 
 
@@ -79,7 +80,6 @@ class User(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # Add created_at timestamp
     first_login = db.Column(db.String(1), nullable=True)
 
-
     # Address fields
     house_name_or_number = db.Column(db.String(255), nullable=False)
     street = db.Column(db.String(255), nullable=False)
@@ -97,6 +97,21 @@ class User(db.Model, UserMixin):
     promo_rate_date_end = db.Column(db.Date, nullable=True)
 
     events = db.relationship('Event', backref='user', lazy=True)
+
+    # Token generation for password reset
+    def get_reset_token(self, expires_sec=3600):
+        s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+        return s.dumps(self.id, salt='password-reset-salt')
+
+    # Token verification for password reset
+    @staticmethod
+    def verify_reset_token(token, expires_sec=3600):
+        s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+        try:
+            user_id = s.loads(token, salt='password-reset-salt', max_age=expires_sec)
+        except:
+            return None
+        return User.query.get(user_id)
 
 
 
@@ -1900,18 +1915,6 @@ def reset_request():
 
     return render_template('reset_request.html')
 
-def get_reset_token(self, expires_sec=3600):
-    s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-    return s.dumps(self.id, salt='password-reset-salt')
-
-@staticmethod
-def verify_reset_token(token):
-    s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-    try:
-        user_id = s.loads(token, salt='password-reset-salt', max_age=3600)
-    except:
-        return None
-    return User.query.get(user_id)
 
 def send_reset_email(user):
     token = user.get_reset_token()
