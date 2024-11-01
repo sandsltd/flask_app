@@ -849,37 +849,35 @@ def manage_default_questions():
 
 
 
-# Define the /purchase/<int:event_id> route
 def calculate_total_charge_and_booking_fee(n_tickets, ticket_price_gbp):
     """
-    Calculate the total charge to the buyer (ticket price + platform fee + Stripe fee),
-    while ensuring the organizer receives the full ticket price and the platform receives the platform fee.
-
+    Calculate the total amount to charge the buyer (ticket price + platform fee + Stripe fee).
+    
     :param n_tickets: Number of tickets being purchased.
     :param ticket_price_gbp: Price per ticket in GBP.
-    :return: Tuple of total charge to the buyer in pence and platform fee in pence.
+    :return: Tuple of total charge to buyer in pence and platform fee in pence.
     """
     # Constants
-    platform_fee_per_ticket_pence = 30  # 30p platform fee per ticket
-    stripe_percent_fee = 0.014          # Stripe fee percentage (1.4%)
+    platform_fee_per_ticket_pence = 30  # Platform fee: 30p per ticket
+    stripe_percent_fee = 0.014          # Stripe percentage fee (1.4%)
     stripe_fixed_fee_pence = 20         # Fixed Stripe fee per transaction (20p)
 
-    # Calculate the total ticket price in pence
+    # Calculate the ticket price in pence
     total_ticket_price_pence = int(n_tickets * ticket_price_gbp * 100)
 
-    # Calculate the total platform fee (30p per ticket)
+    # Calculate the platform fee (30p per ticket)
     total_platform_fee_pence = platform_fee_per_ticket_pence * n_tickets
 
-    # Calculate the subtotal (ticket price + platform fee) before Stripe fees
+    # Calculate the subtotal (ticket price + platform fee)
     subtotal_before_stripe = total_ticket_price_pence + total_platform_fee_pence
 
-    # Calculate the Stripe fee on the subtotal
+    # Calculate the Stripe fee (1.4% of subtotal + 20p)
     stripe_fee_pence = int(subtotal_before_stripe * stripe_percent_fee) + stripe_fixed_fee_pence
 
-    # Calculate the total charge to the buyer (subtotal + Stripe fee)
+    # Calculate total charge to the buyer, including Stripe fee
     total_charge_pence = subtotal_before_stripe + stripe_fee_pence
 
-    # Return the total charge to the buyer and the platform fee, both rounded up
+    # Round up and return the total charge to the buyer and platform fee
     return int(math.ceil(total_charge_pence)), int(math.ceil(total_platform_fee_pence))
 
 
