@@ -11,7 +11,7 @@
             <p><strong>Date:</strong> {{ event.date[8:10] }}/{{ event.date[5:7] }}/{{ event.date[0:4] }}</p>
             <p><strong>Time:</strong> {{ event.start_time }} - {{ event.end_time }}</p>
             <p><strong>Location:</strong> {{ event.location }}</p>
-            <p><strong>Price per ticket:</strong> £{{ event.ticket_price }}</p>
+            <p><strong>Price per ticket:</strong> £{{ "{:.2f}".format(event.ticket_price) }}</p>
             <p><strong>Tickets Available:</strong> {{ event.ticket_quantity }}</p>
         </div>
 
