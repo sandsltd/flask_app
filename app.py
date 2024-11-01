@@ -1519,24 +1519,28 @@ def edit_event(event_id):
     event = Event.query.get_or_404(event_id)
 
     if request.method == 'POST':
-        # Update basic event information
         event.name = request.form['name']
         event.date = request.form['date']
         event.location = request.form['location']
         event.ticket_quantity = request.form['ticket_quantity']
         event.ticket_price = request.form['ticket_price']
-        
+
         # Update custom questions
         for i in range(1, 11):
             question_key = f'custom_question_{i}'
-            question_text = request.form.get(question_key, '').strip()
-            setattr(event, question_key, question_text if question_text else None)
+            setattr(event, question_key, request.form.get(question_key))
 
         db.session.commit()
-        flash('Event and custom questions updated successfully!')
+        flash('Event updated successfully!')
         return redirect(url_for('dashboard'))
 
-    return render_template('edit_event.html', event=event)
+    # Prepare custom questions dictionary with default empty values if not set
+    custom_questions = {f'custom_question_{i}': getattr(event, f'custom_question_{i}', '') for i in range(1, 11)}
+
+    # Pass custom_questions dictionary along with event
+    return render_template('edit_event.html', event=event, custom_questions=custom_questions)
+
+
 
 
 
