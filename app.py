@@ -1525,20 +1525,22 @@ def edit_event(event_id):
         event.ticket_quantity = request.form['ticket_quantity']
         event.ticket_price = request.form['ticket_price']
 
-        # Update custom questions
+        # Update custom questions conditionally
         for i in range(1, 11):
             question_key = f'custom_question_{i}'
-            setattr(event, question_key, request.form.get(question_key))
+            question_value = request.form.get(question_key)
+            # Only update if there’s content; clear if left blank
+            setattr(event, question_key, question_value if question_value else None)
 
         db.session.commit()
         flash('Event updated successfully!')
         return redirect(url_for('dashboard'))
 
-    # Prepare custom questions dictionary with default empty values if not set
+    # Prepare custom questions dictionary
     custom_questions = {f'custom_question_{i}': getattr(event, f'custom_question_{i}', '') for i in range(1, 11)}
 
-    # Pass custom_questions dictionary along with event
     return render_template('edit_event.html', event=event, custom_questions=custom_questions)
+
 
 
 
