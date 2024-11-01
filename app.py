@@ -1999,7 +1999,72 @@ def reset_password(token):
         password = request.form.get('password')
         user.password = generate_password_hash(password)
         db.session.commit()
+
+        # Send a confirmation email after successful reset
+        send_password_reset_confirmation(user)
+
         flash('Your password has been updated!', 'success')
         return redirect(url_for('login'))
 
     return render_template('reset_password.html')
+
+
+def send_password_reset_confirmation(user):
+    """
+    Sends a confirmation email to the user after a successful password reset.
+    :param user: User object containing email and other user details.
+    """
+    try:
+        msg = Message(
+            subject="Your Password Has Been Reset",
+            sender=app.config['MAIL_DEFAULT_SENDER'],
+            recipients=[user.email]
+        )
+
+        # HTML version of the email body
+        msg.html = f"""
+        <html>
+        <body style="background-color: #ffffff; color: #333333; font-family: Arial, sans-serif; padding: 20px;">
+            <!-- TicketRush Logo -->
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="http://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="TicketRush Logo" style="max-width: 200px;">
+            </div>
+
+            <!-- Confirmation Message -->
+            <h2 style="color: #ff0000;">Password Reset Successful</h2>
+            <p>
+                Hi {user.first_name},<br>
+                Your password has been successfully reset. You can now log in using your new password.
+            </p>
+
+            <p>
+                If you did not request this change, please contact our support team immediately at 
+                <a href="mailto:support@ticketrush.io" style="color: #ff0000;">support@ticketrush.io</a>.
+            </p>
+
+            <hr style="border: 1px solid #ff0000;">
+            <p style="font-size: 0.9em; color: #666666;">
+                Thanks for using TicketRush!<br>
+                — The TicketRush Team
+            </p>
+        </body>
+        </html>
+        """
+
+        # Plain-text version of the email body
+        msg.body = f"""Hi {user.first_name},
+
+Your password has been successfully reset. You can now log in using your new password.
+
+If you did not request this change, please contact our support team immediately at support@ticketrush.io.
+
+Thanks for using TicketRush!
+— The TicketRush Team
+"""
+
+        # Send the email
+        mail.send(msg)
+        print("Password reset confirmation email sent successfully!")
+
+    except Exception as e:
+        print(f"Failed to send password reset confirmation email: {str(e)}")
