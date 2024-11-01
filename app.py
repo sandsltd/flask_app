@@ -1916,18 +1916,77 @@ def reset_request():
     return render_template('reset_request.html')
 
 def send_reset_email(user):
+    """
+    Sends a password reset email with a secure token link.
+    :param user: User object containing email and token generation method.
+    """
+    # Generate a token for password reset
     token = user.get_reset_token()
-    msg = Message(
-        'Password Reset Request',
-        sender=app.config['MAIL_DEFAULT_SENDER'],  # Use the default sender from config
-        recipients=[user.email]
-    )
-    msg.body = f'''To reset your password, visit the following link:
+
+    try:
+        # Create the reset email message
+        msg = Message(
+            subject="Password Reset Request",
+            sender=app.config['MAIL_DEFAULT_SENDER'],  # Use the default sender from config
+            recipients=[user.email]
+        )
+
+        # HTML version of the email body
+        msg.html = f"""
+        <html>
+        <body style="background-color: #ffffff; color: #333333; font-family: Arial, sans-serif; padding: 20px;">
+            <!-- TicketRush Logo -->
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T-1.png" alt="TicketRush Logo" style="max-width: 200px;">
+            </div>
+
+            <!-- Reset Password Heading -->
+            <h2 style="color: #ff0000;">Password Reset Request</h2>
+            <p>
+                Hi {user.first_name},<br>
+                We received a request to reset your password. Click the button below to reset your password. If you did not request this, please ignore this email.
+            </p>
+
+            <!-- Reset Password Button -->
+            <div style="text-align: center; margin: 20px 0;">
+                <a href="{url_for('reset_password', token=token, _external=True)}" style="display: inline-block; background-color: #ff0000; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                    Reset Password
+                </a>
+            </div>
+
+            <p>
+                Alternatively, you can copy and paste the following URL into your browser:
+                <br><a href="{url_for('reset_password', token=token, _external=True)}" style="color: #ff0000;">{url_for('reset_password', token=token, _external=True)}</a>
+            </p>
+
+            <!-- Footer Section -->
+            <hr style="border: 1px solid #ff0000;">
+            <p style="font-size: 0.9em; color: #666666;">
+                <strong>Need Assistance?</strong> Contact our support team at 
+                <a href="mailto:support@ticketrush.io" style="color: #ff0000;">support@ticketrush.io</a>.
+            </p>
+        </body>
+        </html>
+        """
+
+        # Plain-text version of the email body
+        msg.body = f"""Hi {user.first_name},
+
+We received a request to reset your password. To reset your password, visit the following link:
 {url_for('reset_password', token=token, _external=True)}
 
-If you did not make this request, simply ignore this email.
-'''
-    mail.send(msg)
+If you did not make this request, you can ignore this email, and no changes will be made.
+
+Need Assistance? Contact our support team at support@ticketrush.io.
+"""
+
+        # Send the email
+        mail.send(msg)
+        print("Password reset email sent successfully!")
+
+    except Exception as e:
+        print(f"Failed to send password reset email: {str(e)}")
+
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
