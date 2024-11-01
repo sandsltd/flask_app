@@ -26,6 +26,7 @@ import urllib.parse
 from flask import Response
 from markupsafe import escape
 from markupsafe import Markup
+from itsdangerous import URLSafeTimedSerializer
 
 
 
@@ -1883,3 +1884,59 @@ def send_welcome_email(user):
         print("Welcome email sent successfully!")
     except Exception as e:
         print(f"Failed to send welcome email: {str(e)}")
+
+@app.route('/reset_request', methods=['GET', 'POST'])
+def reset_request():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            send_reset_email(user)
+            flash('An email has been sent with instructions to reset your password.', 'info')
+        else:
+            flash('If an account with that email exists, a reset link has been sent.', 'info')
+        return redirect(url_for('login'))
+
+    return render_template('reset_request.html')
+
+def get_reset_token(self, expires_sec=3600):
+    s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    return s.dumps(self.id, salt='password-reset-salt')
+
+@staticmethod
+def verify_reset_token(token):
+    s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    try:
+        user_id = s.loads(token, salt='password-reset-salt', max_age=3600)
+    except:
+        return None
+    return User.query.get(user_id)
+
+def send_reset_email(user):
+    token = user.get_reset_token()
+    msg = Message('Password Reset Request', 
+                  sender='noreply@yourdomain.com', 
+                  recipients=[user.email])
+    msg.body = f'''To reset your password, visit the following link:
+{url_for('reset_password', token=token, _external=True)}
+
+If you did not make this request, simply ignore this email.
+'''
+    mail.send(msg)
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    user = User.verify_reset_token(token)
+    if not user:
+        flash('The token is invalid or has expired.', 'warning')
+        return redirect(url_for('reset_request'))
+
+    if request.method == 'POST':
+        password = request.form.get('password')
+        user.password = generate_password_hash(password)
+        db.session.commit()
+        flash('Your password has been updated!', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('reset_password.html')

@@ -14,4 +14,5 @@ APScheduler==3.9.1.post1  # Or the latest stable version
 Flask-Mail==0.9.1
 markupsafe==2.1.2
 MarkupSafe>=2.0
-
+itsdangerous>=2.0
+Flask-WTF>=1.0
