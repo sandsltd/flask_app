@@ -995,14 +995,14 @@ def purchase(event_id):
 
 
         else:
-            # Proceed with Stripe payment
-            # Calculate the total amount to charge the customer in pence and booking fee
-            total_charge_pence, booking_fee_pence = calculate_total_charge_and_booking_fee(number_of_tickets, event.ticket_price)
+            # Calculate fees and total amount in pence
+            ticket_total = number_of_tickets * event.ticket_price * 100  # Ticket price in pence
+            platform_fee_pence = 30 * number_of_tickets  # Platform fee (30p per ticket)
+            transaction_fee_pence = 20  # Flat 20p transaction fee
+            stripe_fee_pence = int((ticket_total + platform_fee_pence) * 0.029) + transaction_fee_pence
+            booking_fee_pence = platform_fee_pence + stripe_fee_pence
+            total_charge_pence = ticket_total + booking_fee_pence
 
-            # Calculate the platform's total fee (Platform Fee + Transaction Fee)
-            platform_fee_pence = 30 * number_of_tickets  # 30p per ticket
-            transaction_fee_pence = 20                   # 20p per transaction
-            application_fee_pence = platform_fee_pence + transaction_fee_pence  # Total application fee
 
             # Logging for debugging
             app.logger.debug(f"Number of Tickets: {number_of_tickets}")
@@ -1048,7 +1048,7 @@ def purchase(event_id):
                         'session_id': session_id  # Pass session ID to Stripe
                     },
                     payment_intent_data={
-                        'application_fee_amount': application_fee_pence,  # Platform fee: 30p per ticket + 20p per transaction
+                        'application_fee_amount': platform_fee_pence + transaction_fee_pence,
                         'transfer_data': {
                             'destination': organizer.stripe_connect_id,  # Organizer's connected Stripe account
                         },
