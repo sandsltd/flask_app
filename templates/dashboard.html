@@ -230,8 +230,6 @@
     <div class="dashboard-container">
         <h1>Dashboard</h1>
 
-<!-- Flash Messages -->
-<!-- Flash Messages -->
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     <div class="flash-messages">
@@ -272,15 +270,17 @@
         </div>
 
         <!-- Filter Form -->
+<!-- Filter Form -->
         <form method="GET" action="{{ url_for('dashboard') }}">
             <label for="filter">Filter:</label>
             <select name="filter" id="filter">
-                <option value="all">All Events</option>
-                <option value="upcoming">Upcoming Events</option>
-                <option value="past">Past Events</option>
+                <option value="all" {% if request.args.get('filter') == 'all' %}selected{% endif %}>All Events</option>
+                <option value="upcoming" {% if request.args.get('filter') == 'upcoming' %}selected{% endif %}>Upcoming Events</option>
+                <option value="past" {% if request.args.get('filter') == 'past' %}selected{% endif %}>Past Events</option>
             </select>
             <button type="submit">Apply</button>
         </form>
+
 
         <!-- Events Section -->
         <h2>Your Events</h2>
@@ -300,19 +300,13 @@
                     <strong>Status:</strong> {{ event_data.status }}
                     <br>
                     <a href="{{ url_for('view_attendees', event_id=event_data.id) }}">View Attendees</a> | 
-                    <a href="{{ url_for('edit_event', event_id=event_data.id) }}">Edit</a> |
-                    <!-- Delete Form -->
-                    <form action="{{ url_for('delete_event', event_id=event_data.id) }}" method="post" style="display: inline;">
-                        <button type="submit" onclick="return confirm('Are you sure you want to delete this event? This action cannot be undone. All attendee data will be permanently deleted, and you will need to process any applicable refunds separately through Stripe.');" style="background: none; border: none; color: blue; text-decoration: underline; cursor: pointer;">
-                            Delete
-                        </button>
-                    </form>                    
+                    <a href="{{ url_for('edit_event', event_id=event_data.id) }}">Edit</a> | 
+                    <a href="{{ url_for('delete_event', event_id=event_data.id) }}" onclick="return confirm('Are you sure you want to delete this event?');">Delete</a>
                 </li>
             {% else %}
                 <li>No events yet.</li>
             {% endfor %}
         </ul>
-
 
         <!-- Embed Code Section -->
         <div class="embed-section">

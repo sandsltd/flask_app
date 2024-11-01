@@ -237,8 +237,8 @@ def login():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    filter_value = request.args.get('filter', 'all')
-    user_events = Event.query.filter_by(user_id=current_user.id)
+    filter_value = request.args.get('filter', 'upcoming')  # Set 'upcoming' as the default filter
+    user_events = Event.query.filter_by(user_id=current_user.id).all()
 
     # Helper function to convert string dates to datetime for comparison
     def str_to_date(date_str):
@@ -247,11 +247,14 @@ def dashboard():
         except ValueError:
             return None
 
-    # Apply filtering for upcoming or past events
+    # Filter and sort events based on the filter value
     if filter_value == 'upcoming':
         user_events = [event for event in user_events if str_to_date(event.date) and str_to_date(event.date) >= datetime.now()]
     elif filter_value == 'past':
         user_events = [event for event in user_events if str_to_date(event.date) and str_to_date(event.date) < datetime.now()]
+    
+    # Sort events by date
+    user_events.sort(key=lambda event: str_to_date(event.date) or datetime.max)
 
     total_tickets_sold = 0
     total_revenue = 0
@@ -286,7 +289,6 @@ def dashboard():
                            total_revenue=total_revenue, 
                            total_tickets_sold=total_tickets_sold, 
                            user=current_user)
-
 
 
 
