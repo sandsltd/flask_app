@@ -128,6 +128,8 @@ class Event(db.Model):
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
+    attendees = db.relationship('Attendee', backref='event', lazy=True, cascade="all, delete")
+
 class Attendee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     
@@ -1512,6 +1514,7 @@ def delete_event(event_id):
     db.session.commit()
     flash('Event deleted successfully!')
     return redirect(url_for('dashboard'))
+
 
 
 @app.route('/edit_event/<int:event_id>', methods=['GET', 'POST'])
