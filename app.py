@@ -150,49 +150,6 @@ class Attendee(db.Model):
     event = db.relationship('Event', back_populates='attendees')
 
 
-class Attendee(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    
-    # Field to link multiple tickets in one purchase session
-    session_id = db.Column(db.String(255), nullable=True) 
-
-    # Foreign key linking to the event
-    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    
-    # Answers to custom questions stored as JSON
-    ticket_answers = db.Column(db.Text, nullable=False)
-    
-    # Billing details stored as JSON (from Stripe)
-    billing_details = db.Column(db.Text, nullable=True)
-    
-    # Stripe charge ID
-    stripe_charge_id = db.Column(db.String(255), nullable=True)
-    
-    # Payment status (pending/succeeded/failed)
-    payment_status = db.Column(db.String(50), nullable=False, default='pending')
-    
-    # Timestamp for when the attendee entry is created
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Full name of the attendee
-    full_name = db.Column(db.String(255), nullable=False)
-    
-    # Email address of the attendee
-    email = db.Column(db.String(255), nullable=False)
-    
-    # Phone number of the attendee
-    phone_number = db.Column(db.String(50), nullable=False)
-    
-    # Number of tickets purchased
-    tickets_purchased = db.Column(db.Integer, nullable=False)
-    
-    # Price of tickets at the time of purchase
-    ticket_price_at_purchase = db.Column(db.Float, nullable=False)
-    
-    # Relationship to the Event model
-    event = db.relationship('Event', backref=db.backref('attendees', lazy=True))
-
-
 
 
 class DefaultQuestion(db.Model):
