@@ -37,6 +37,10 @@
             <input type="submit" value="Login" class="submit-btn">
         </form>
 
+        <div class="forgot-password">
+            <a href="{{ url_for('reset_request') }}">Forgot your password?</a>
+        </div>
+        
         <!-- Friendly registration prompt -->
         <div class="register-prompt">
             <p>Not registered yet? No worries! <a href="/register">Click here to create an account</a> and get started.</p>
