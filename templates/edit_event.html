@@ -119,7 +119,7 @@
             <div class="form-group">
                 <label for="custom_question_{{ i }}">Question {{ i }}:</label>
                 <input type="text" id="custom_question_{{ i }}" name="custom_question_{{ i }}" 
-                       value="{{ getattr(event, 'custom_question_' ~ i) }}">
+                       value="{{ custom_questions['custom_question_' + i|string] }}">
                 <small>Leave blank to delete this question</small>
             </div>
         {% endfor %}
