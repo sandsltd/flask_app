@@ -1536,8 +1536,8 @@ def edit_event(event_id):
         flash('Event updated successfully!')
         return redirect(url_for('dashboard'))
 
-    # Prepare custom questions dictionary
-    custom_questions = {f'custom_question_{i}': getattr(event, f'custom_question_{i}', '') for i in range(1, 11)}
+    # Prepare custom questions with empty strings as default values if None
+    custom_questions = {f'custom_question_{i}': getattr(event, f'custom_question_{i}', '') or '' for i in range(1, 11)}
 
     return render_template('edit_event.html', event=event, custom_questions=custom_questions)
 
