@@ -903,7 +903,7 @@ def purchase(event_id):
                                 'currency': 'gbp',
                                 'product_data': {
                                     'name': 'Booking Fee',
-                                    'description': 'Includes platform, transaction, and Stripe fees',
+                                    'description': 'Includes platform, transaction, card charges',
                                 },
                                 'unit_amount': booking_fee_pence,
                             },
