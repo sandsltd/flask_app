@@ -78,6 +78,7 @@ class User(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # Add created_at timestamp
     first_login = db.Column(db.String(1), nullable=True)
 
+
     # Address fields
     house_name_or_number = db.Column(db.String(255), nullable=False)
     street = db.Column(db.String(255), nullable=False)
@@ -85,7 +86,7 @@ class User(db.Model, UserMixin):
     town = db.Column(db.String(100), nullable=False)
     postcode = db.Column(db.String(20), nullable=False)
 
-    terms = db.Column(db.String(255), nullable=True)
+    terms = db.Column(db.String(255), nullable=True)  # Changed from False to True
 
     # Default flat_rate set to 0.01
     flat_rate = db.Column(db.Float, nullable=True, default=0.01)  # Flat rate with default value
@@ -94,10 +95,13 @@ class User(db.Model, UserMixin):
     promo_rate = db.Column(db.Float, nullable=True)  # Promotional rate
     promo_rate_date_end = db.Column(db.Date, nullable=True)
 
-    # Relationship to Event model with back_populates for a bidirectional relationship
-    events = db.relationship('Event', back_populates='user', lazy=True)
+    events = db.relationship('Event', backref='user', lazy=True)
 
 
+
+
+
+# Event model
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
@@ -124,29 +128,23 @@ class Event(db.Model):
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
-    # Establish bidirectional relationship with User
-    user = db.relationship('User', back_populates='events')
-
-    # Cascading delete for attendees
-    attendees = db.relationship('Attendee', back_populates='event', lazy=True, cascade="all, delete")
-
-
 class Attendee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    session_id = db.Column(db.String(255), nullable=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id', ondelete='CASCADE'), nullable=False)
     ticket_answers = db.Column(db.Text, nullable=False)
+    billing_details = db.Column(db.Text, nullable=True)
+    stripe_charge_id = db.Column(db.String(255), nullable=True)
     payment_status = db.Column(db.String(50), nullable=False, default='pending')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     full_name = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), nullable=False)
     phone_number = db.Column(db.String(50), nullable=False)
     tickets_purchased = db.Column(db.Integer, nullable=False)
     ticket_price_at_purchase = db.Column(db.Float, nullable=False)
-    session_id = db.Column(db.String(36), nullable=False)  # Add this line to define session_id
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    # Relationship with Event
-    event = db.relationship('Event', back_populates='attendees')
-
+    # Relationship to the Event model
+    event = db.relationship('Event', backref=db.backref('attendees', passive_deletes=True))
 
 
 
@@ -1485,10 +1483,17 @@ def view_attendees(event_id):
 @login_required
 def delete_event(event_id):
     event = Event.query.get_or_404(event_id)
+
+    # Check if current user owns the event before deleting (for extra security)
+    if event.user_id != current_user.id:
+        flash("You do not have permission to delete this event.", "error")
+        return redirect(url_for('dashboard'))
+
     db.session.delete(event)
     db.session.commit()
-    flash('Event deleted successfully!')
+    flash('Event and all associated attendees deleted successfully!')
     return redirect(url_for('dashboard'))
+
 
 
 
