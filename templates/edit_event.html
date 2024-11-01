@@ -114,15 +114,16 @@
 
         <!-- Custom Questions Section -->
         <h3>Custom Questions</h3>
-        
+
         {% for i in range(1, 11) %}
             <div class="form-group">
                 <label for="custom_question_{{ i }}">Question {{ i }}:</label>
-                <input type="text" id="custom_question_{{ i }}" name="custom_question_{{ i }}" value="{{ getattr(event, 'custom_question_' + i|string) }}">
+                <input type="text" id="custom_question_{{ i }}" name="custom_question_{{ i }}" 
+                       value="{{ getattr(event, 'custom_question_' ~ i) }}">
                 <small>Leave blank to delete this question</small>
             </div>
         {% endfor %}
-        
+
         <button type="submit">Save Changes</button>
     </form>
 
