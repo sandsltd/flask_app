@@ -137,11 +137,11 @@
             <!-- Navigation Links for Logged-in Users -->
             <nav class="logged-in-nav">
                 <ul>
-                    <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                    <li><a href="{{ url_for('create_event') }}">Create an Event</a></li>
-                    <li><a href="{{ url_for('manage_default_questions') }}">Settings</a></li>
-                    <li><a href="https://www.ticketrush.io/support">Support</a></li>
-                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                    <li><a href="{{ url_for('dashboard') }}" target="_blank">Dashboard</a></li>
+                    <li><a href="{{ url_for('create_event') }}" target="_blank">Create an Event</a></li>
+                    <li><a href="{{ url_for('manage_default_questions') }}" target="_blank">Settings</a></li>
+                    <li><a href="https://www.ticketrush.io/support" target="_blank">Support</a></li>
+                    <li><a href="{{ url_for('logout') }}" target="_blank">Logout</a></li>                    
                 </ul>
             </nav>
         </div>
