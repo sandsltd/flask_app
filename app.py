@@ -1915,12 +1915,13 @@ def reset_request():
 
     return render_template('reset_request.html')
 
-
 def send_reset_email(user):
     token = user.get_reset_token()
-    msg = Message('Password Reset Request', 
-                  sender='noreply@yourdomain.com', 
-                  recipients=[user.email])
+    msg = Message(
+        'Password Reset Request',
+        sender=app.config['MAIL_DEFAULT_SENDER'],  # Use the default sender from config
+        recipients=[user.email]
+    )
     msg.body = f'''To reset your password, visit the following link:
 {url_for('reset_password', token=token, _external=True)}
 
