@@ -78,7 +78,6 @@ class User(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # Add created_at timestamp
     first_login = db.Column(db.String(1), nullable=True)
 
-
     # Address fields
     house_name_or_number = db.Column(db.String(255), nullable=False)
     street = db.Column(db.String(255), nullable=False)
@@ -86,7 +85,7 @@ class User(db.Model, UserMixin):
     town = db.Column(db.String(100), nullable=False)
     postcode = db.Column(db.String(20), nullable=False)
 
-    terms = db.Column(db.String(255), nullable=True)  # Changed from False to True
+    terms = db.Column(db.String(255), nullable=True)
 
     # Default flat_rate set to 0.01
     flat_rate = db.Column(db.Float, nullable=True, default=0.01)  # Flat rate with default value
@@ -95,13 +94,10 @@ class User(db.Model, UserMixin):
     promo_rate = db.Column(db.Float, nullable=True)  # Promotional rate
     promo_rate_date_end = db.Column(db.Date, nullable=True)
 
-    events = db.relationship('Event', backref='user', lazy=True)
+    # Relationship to Event model with back_populates for a bidirectional relationship
+    events = db.relationship('Event', back_populates='user', lazy=True)
 
 
-
-
-
-# Event model
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
@@ -128,7 +124,31 @@ class Event(db.Model):
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
-    attendees = db.relationship('Attendee', backref='event', lazy=True, cascade="all, delete")
+    # Establish bidirectional relationship with User
+    user = db.relationship('User', back_populates='events')
+
+    # Cascading delete for attendees
+    attendees = db.relationship('Attendee', back_populates='event', lazy=True, cascade="all, delete")
+
+
+class Attendee(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    
+    # Other attendee fields
+    ticket_answers = db.Column(db.Text, nullable=False)
+    billing_details = db.Column(db.Text, nullable=True)
+    stripe_charge_id = db.Column(db.String(255), nullable=True)
+    payment_status = db.Column(db.String(50), nullable=False, default='pending')
+    full_name = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), nullable=False)
+    phone_number = db.Column(db.String(50), nullable=False)
+    tickets_purchased = db.Column(db.Integer, nullable=False)
+    ticket_price_at_purchase = db.Column(db.Float, nullable=False)
+
+    # Establish bidirectional relationship with Event
+    event = db.relationship('Event', back_populates='attendees')
+
 
 class Attendee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
