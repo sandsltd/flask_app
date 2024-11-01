@@ -796,45 +796,27 @@ def calculate_total_charge_and_booking_fee(n_tickets, ticket_price_gbp):
 
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
 def purchase(event_id):
-    # Fetch the event
+    # Fetch the event and organizer
     event = Event.query.get(event_id)
     if not event:
         return "Event not found", 404
-
-    # Fetch the organizer (user who created the event)
     organizer = User.query.get(event.user_id)
     if not organizer:
         return "Event organizer not found", 404
 
-    # Fetch default and custom questions
+    # Collect questions
     default_questions = DefaultQuestion.query.filter_by(user_id=organizer.id).order_by(DefaultQuestion.id).all()
     default_question_texts = [dq.question for dq in default_questions]
-
-    custom_questions = []
-    for i in range(1, 11):  # Adjusted to include 10 questions
-        question = getattr(event, f'custom_question_{i}')
-        if question:
-            custom_questions.append(question)
-
-    # Initialize with default questions in their original order
-    all_questions = default_question_texts.copy()
-
-    # Add custom questions in the original order, only if they don't already exist in default questions
-    for question in custom_questions:
-        if question not in all_questions:
-            all_questions.append(question)
+    custom_questions = [getattr(event, f'custom_question_{i}') for i in range(1, 11) if getattr(event, f'custom_question_{i}', None)]
+    all_questions = default_question_texts + [q for q in custom_questions if q not in default_question_texts]
 
     if request.method == 'POST':
-        # Generate a unique session ID for this purchase
         session_id = str(uuid4())
-
-        # Collect form data
         full_name = request.form.get('full_name')
         email = request.form.get('email')
         phone_number = request.form.get('phone_number')
         number_of_tickets = int(request.form.get('number_of_tickets', 1))
 
-        # Validate required fields
         if not all([full_name, email, phone_number]):
             flash('Please fill in all required fields.')
             return redirect(url_for('purchase', event_id=event_id))
@@ -843,7 +825,6 @@ def purchase(event_id):
             flash('Requested number of tickets exceeds available tickets.')
             return redirect(url_for('purchase', event_id=event_id))
 
-        # Validate terms acceptance
         if organizer.terms and organizer.terms.lower() != 'none':
             if not request.form.get('accept_organizer_terms'):
                 flash('You must accept the event organizer\'s Terms and Conditions.')
@@ -853,7 +834,7 @@ def purchase(event_id):
             flash('You must accept the platform\'s Terms and Conditions.')
             return redirect(url_for('purchase', event_id=event_id))
 
-        # Loop to create an `Attendee` entry for each ticket, with the same session_id
+        # Loop to create an `Attendee` entry for each ticket
         attendees = []
         for i in range(number_of_tickets):
             ticket_answers = {}
@@ -865,47 +846,32 @@ def purchase(event_id):
                     return redirect(url_for('purchase', event_id=event_id))
                 ticket_answers[question] = answer
 
-            # Create an attendee record for each ticket, linked by session_id
             attendee = Attendee(
                 event_id=event_id,
                 ticket_answers=json.dumps(ticket_answers),
-                payment_status='pending',  # Will update later
+                payment_status='pending',
                 full_name=full_name,
                 email=email,
                 phone_number=phone_number,
-                tickets_purchased=1,  # Store each ticket individually
+                tickets_purchased=1,
                 ticket_price_at_purchase=event.ticket_price,
-                session_id=session_id,  # Assign the same session ID for all tickets
+                session_id=session_id,
                 created_at=datetime.utcnow()
             )
             db.session.add(attendee)
             attendees.append(attendee)
 
-        # Commit all the new attendee rows to the database
         db.session.commit()
 
         if event.ticket_price == 0:
-            # For free tickets, mark payment_status as 'succeeded' and send confirmation emails
             for attendee in attendees:
                 attendee.payment_status = 'succeeded'
             db.session.commit()
-
-            # Since there is no payment, we need to send confirmation emails directly
-            # Prepare dummy billing_details
-            billing_details = {
-                'name': full_name,
-                'email': email,
-                'phone': phone_number,
-                'address': {}  # No address
-            }
-
-            # Send confirmation emails
+            billing_details = {'name': full_name, 'email': email, 'phone': phone_number, 'address': {}}
             send_confirmation_email_to_attendee(attendees[0], billing_details)
             send_confirmation_email_to_organizer(organizer, attendees, billing_details, event)
-
             flash('Your free ticket(s) have been booked successfully!')
             return redirect(url_for('success', session_id=session_id))
-
 
         else:
             # Calculate fees and total amount in pence
@@ -915,66 +881,56 @@ def purchase(event_id):
             stripe_fee_pence = int((ticket_total + platform_fee_pence) * 0.029) + transaction_fee_pence
             booking_fee_pence = platform_fee_pence + stripe_fee_pence
             total_charge_pence = ticket_total + booking_fee_pence
-            # Adjust platform fee to cover Stripe’s processing cut
 
+            # Adjust platform fee to cover Stripe’s processing cut
             adjusted_platform_fee = int(platform_fee_pence / 0.971)  # Adjusted to counter 2.9% Stripe fee
 
-
-            # Logging for debugging
-            app.logger.debug(f"Number of Tickets: {number_of_tickets}")
-            app.logger.debug(f"Ticket Price per Ticket: £{event.ticket_price}")
-            app.logger.debug(f"Total Ticket Price: £{number_of_tickets * event.ticket_price}")
-            app.logger.debug(f"Platform Fixed Fee (30p per ticket): {platform_fee_pence} pence")
-            app.logger.debug(f"Platform Transaction Fee (20p): {transaction_fee_pence} pence")
-            app.logger.debug(f"Booking Fee (Platform + Transaction + Stripe): {booking_fee_pence} pence")
-            app.logger.debug(f"Total Amount to Charge (pence): {total_charge_pence}")
-            app.logger.debug(f"Total Amount to Charge (£): {total_charge_pence / 100}")
-
             # Stripe checkout session
-        try:
-            checkout_session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[
-                    {
-                        'price_data': {
-                            'currency': 'gbp',
-                            'product_data': {'name': event.name},
-                            'unit_amount': int(event.ticket_price * 100),
-                        },
-                        'quantity': number_of_tickets,
-                    },
-                    {
-                        'price_data': {
-                            'currency': 'gbp',
-                            'product_data': {
-                                'name': 'Booking Fee',
-                                'description': 'Includes platform, transaction, and Stripe fees',
+            try:
+                checkout_session = stripe.checkout.Session.create(
+                    payment_method_types=['card'],
+                    line_items=[
+                        {
+                            'price_data': {
+                                'currency': 'gbp',
+                                'product_data': {'name': event.name},
+                                'unit_amount': int(event.ticket_price * 100),
                             },
-                            'unit_amount': booking_fee_pence,
+                            'quantity': number_of_tickets,
                         },
-                        'quantity': 1,
-                    }
-                ],
-                mode='payment',
-                success_url=url_for('success', session_id=session_id, _external=True),
-                cancel_url=url_for('cancel', _external=True),
-                metadata={'session_id': session_id},
-                payment_intent_data={
-                    'application_fee_amount': adjusted_platform_fee,  # Adjusted platform fee to cover Stripe’s cut
-                    'transfer_data': {
-                        'destination': organizer.stripe_connect_id,
+                        {
+                            'price_data': {
+                                'currency': 'gbp',
+                                'product_data': {
+                                    'name': 'Booking Fee',
+                                    'description': 'Includes platform, transaction, and Stripe fees',
+                                },
+                                'unit_amount': booking_fee_pence,
+                            },
+                            'quantity': 1,
+                        }
+                    ],
+                    mode='payment',
+                    success_url=url_for('success', session_id=session_id, _external=True),
+                    cancel_url=url_for('cancel', _external=True),
+                    metadata={'session_id': session_id},
+                    payment_intent_data={
+                        'application_fee_amount': adjusted_platform_fee,  # Adjusted platform fee to cover Stripe’s cut
+                        'on_behalf_of': organizer.stripe_connect_id,  # Display organizer's branding
+                        'transfer_data': {
+                            'destination': organizer.stripe_connect_id,
+                        },
                     },
-                },
-                billing_address_collection='required',
-                customer_email=email
-            )
+                    billing_address_collection='required',
+                    customer_email=email
+                )
 
-            return redirect(checkout_session.url)
+                return redirect(checkout_session.url)
 
-        except Exception as e:
-            app.logger.error(f"Error creating checkout session: {str(e)}")
-            flash('An error occurred while processing your payment.')
-            return redirect(url_for('purchase', event_id=event_id))
+            except Exception as e:
+                app.logger.error(f"Error creating checkout session: {str(e)}")
+                flash('An error occurred while processing your payment.')
+                return redirect(url_for('purchase', event_id=event_id))
 
     else:
         platform_terms_link = 'https://your-platform-domain.com/terms-and-conditions'
