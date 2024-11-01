@@ -134,19 +134,17 @@ class Event(db.Model):
 class Attendee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    
-    # Other attendee fields
     ticket_answers = db.Column(db.Text, nullable=False)
-    billing_details = db.Column(db.Text, nullable=True)
-    stripe_charge_id = db.Column(db.String(255), nullable=True)
     payment_status = db.Column(db.String(50), nullable=False, default='pending')
     full_name = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), nullable=False)
     phone_number = db.Column(db.String(50), nullable=False)
     tickets_purchased = db.Column(db.Integer, nullable=False)
     ticket_price_at_purchase = db.Column(db.Float, nullable=False)
+    session_id = db.Column(db.String(36), nullable=False)  # Add this line to define session_id
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    # Establish bidirectional relationship with Event
+    # Relationship with Event
     event = db.relationship('Event', back_populates='attendees')
 
 
@@ -196,10 +194,10 @@ def login():
                             Markup(
                                 "Welcome to TicketRush! 🎉 <br> "
                                 "We’re excited to have you here! It looks like it’s your first time logging in, so we recommend starting with our "
-                                "<a href='https://ticketrush.io/tutorials/first_time_user' target='_blank'>First-Time User Guide</a> "
+                                "<a href='https://ticketrush.io/tutorials' target='_blank'>First-Time User Guide</a> "
                                 "to get the most out of TicketRush. <br><br>"
                                 "Before creating your first event, take a moment to personalise your "
-                                "<a href='/manage_default_questions'>Account Settings</a> so your events are customised just the way you like. <br><br>"
+                                "<a href='https://bookings.ticketrush.io/manage-default-questions'>Account Settings</a> so your events are customised just the way you like. <br><br>"
                             ),
                             "success"
                         )
