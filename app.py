@@ -454,7 +454,7 @@ def create_event():
 
 
 
-# Reset database
+"""
 @app.route('/reset_db')
 def reset_db():
     try:
@@ -464,7 +464,7 @@ def reset_db():
     except Exception as e:
         return f"An error occurred during reset: {str(e)}"
 
-
+"""
 
 from markupsafe import escape
 
