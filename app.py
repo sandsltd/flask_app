@@ -1959,3 +1959,19 @@ def create_webpage(event_id):
 
     # Render the create_webpage template with the event details
     return render_template('create_webpage.html', event=event)
+
+# In app.py
+
+@app.route('/submit_webpage_request/<int:event_id>', methods=['POST'])
+def submit_webpage_request(event_id):
+    # Fetch the event based on event_id
+    event = Event.query.get_or_404(event_id)
+
+    # Add any additional logic to process the webpage request for this event
+    # e.g., you could set a flag in the database, send an email confirmation, etc.
+    # For demonstration, let's flash a message
+
+    flash(f"Webpage creation request for event '{event.name}' has been submitted successfully.", "success")
+
+    # Redirect back to the dashboard or any other page as needed
+    return redirect(url_for('dashboard'))
