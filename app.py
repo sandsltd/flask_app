@@ -1969,33 +1969,64 @@ def create_webpage(event_id):
 # In app.py
 
 @app.route('/submit_webpage_request/<int:event_id>', methods=['POST'])
-@app.route('/submit_webpage_request/<int:event_id>', methods=['POST'])
 def submit_webpage_request(event_id):
-    event = Event.query.get_or_404(event_id)
-    
-    # Retrieve additional text information
-    additional_text = request.form.get('additional_text', '')
+    event = Event.query.get(event_id)
 
-    # Process and validate file uploads
-    files_to_attach = []
-    for file_key in ['business_logo', 'event_picture']:
-        file = request.files.get(file_key)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-            files_to_attach.append(filepath)
-        else:
-            flash(f"Invalid file format for {file_key}. Please upload an image file.", "danger")
-            return redirect(url_for('create_webpage', event_id=event_id))
+    # Ensure the upload directory exists
+    upload_dir = '/path/to/uploads'  # Change to your actual upload directory
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
 
-    # Send email with attachments
-    send_webpage_request_email(event, additional_text, files_to_attach)
+    # Get files from the form
+    business_logo = request.files.get('business_logo')
+    event_picture = request.files.get('event_picture')
+    additional_text = request.form.get('additional_text')
 
-    # Flash success message
-    flash("Your webpage request has been submitted. It may take up to 48 hours to process.", "success")
-    
-    return redirect(url_for('dashboard'))
+    # Save the files with unique names
+    business_logo_filename = f"{event.name}_business_logo_{business_logo.filename}"
+    event_picture_filename = f"{event.name}_event_picture_{event_picture.filename}"
+    business_logo_path = os.path.join(upload_dir, business_logo_filename)
+    event_picture_path = os.path.join(upload_dir, event_picture_filename)
+
+    try:
+        if business_logo:
+            business_logo.save(business_logo_path)
+        if event_picture:
+            event_picture.save(event_picture_path)
+
+        # Send an email with event and file details
+        subject = f"New Webpage Request for Event: {event.name}"
+        body = f"""
+        A new webpage request has been submitted for the event "{event.name}".\n
+        Event details:
+        Name: {event.name}
+        Date: {event.date}
+        Location: {event.location}
+        Description: {event.description}
+        Start Time: {event.start_time}
+        End Time: {event.end_time}
+        
+        Additional text from user:
+        {additional_text}
+        
+        Attachments:
+        Business Logo: {business_logo_path}
+        Event Picture: {event_picture_path}
+        """
+        msg = Message(
+            subject=subject,
+            recipients=["support@ticketrush.io"],
+            body=body
+        )
+        mail.send(msg)
+
+        flash("Your webpage request has been submitted. Please allow up to 48 hours for processing.", "success")
+        return redirect(url_for('dashboard'))
+
+    except Exception as e:
+        print(f"Error saving files or sending email: {str(e)}")
+        flash("There was an error processing your request. Please try again later.", "error")
+        return redirect(url_for('create_webpage', event_id=event_id))
 
 def send_webpage_request_email(event, additional_text, attachments):
     try:
