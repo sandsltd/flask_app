@@ -1,6 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 import os
 from flask_migrate import Migrate
@@ -57,6 +58,11 @@ app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')  # Your password here (
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')  # Default sender email
+# Configure upload limits and paths
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB limit
+app.config['UPLOAD_FOLDER'] = '/path/to/uploads'  # Temporary storage for file uploads
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
 
 mail = Mail(app)
 
@@ -1963,23 +1969,36 @@ def create_webpage(event_id):
 # In app.py
 
 @app.route('/submit_webpage_request/<int:event_id>', methods=['POST'])
+@app.route('/submit_webpage_request/<int:event_id>', methods=['POST'])
 def submit_webpage_request(event_id):
-    # Fetch the event based on event_id
     event = Event.query.get_or_404(event_id)
+    
+    # Retrieve additional text information
+    additional_text = request.form.get('additional_text', '')
 
-    # Send email notification to support
-    send_webpage_request_email(event)
+    # Process and validate file uploads
+    files_to_attach = []
+    for file_key in ['business_logo', 'event_picture']:
+        file = request.files.get(file_key)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            files_to_attach.append(filepath)
+        else:
+            flash(f"Invalid file format for {file_key}. Please upload an image file.", "danger")
+            return redirect(url_for('create_webpage', event_id=event_id))
 
-    # Flash success message to the user
+    # Send email with attachments
+    send_webpage_request_email(event, additional_text, files_to_attach)
+
+    # Flash success message
     flash("Your webpage request has been submitted. It may take up to 48 hours to process.", "success")
-
-    # Redirect back to the dashboard or another page
+    
     return redirect(url_for('dashboard'))
 
-
-def send_webpage_request_email(event):
+def send_webpage_request_email(event, additional_text, attachments):
     try:
-        # Compose email content
         subject = f"New Webpage Request for Event: {event.name}"
         body = f"""
         <html>
@@ -1994,8 +2013,7 @@ def send_webpage_request_email(event):
                 <strong>Description:</strong> {event.description}<br>
                 <strong>Start Time:</strong> {event.start_time}<br>
                 <strong>End Time:</strong> {event.end_time}<br>
-                <strong>Ticket Quantity:</strong> {event.ticket_quantity}<br>
-                <strong>Ticket Price:</strong> £{event.ticket_price:.2f}<br>
+                <strong>Additional Text:</strong> {additional_text or 'N/A'}
             </p>
             <p>Please ensure this request is processed within 48 hours.</p>
             <p><strong>TicketRush Support Team</strong></p>
@@ -2008,9 +2026,23 @@ def send_webpage_request_email(event):
             subject=subject,
             recipients=["support@ticketrush.io"],
             body=body,
-            html=body  # Render the email as HTML for better formatting
+            html=body
         )
+
+        # Attach files to the email
+        for attachment in attachments:
+            with open(attachment, 'rb') as f:
+                msg.attach(os.path.basename(attachment), "image/*", f.read())
+
         mail.send(msg)
         print(f"Webpage request email sent for event '{event.name}' to support@ticketrush.io.")
+        
     except Exception as e:
         print(f"Failed to send webpage request email. Error: {str(e)}")
+    finally:
+        # Optionally, clean up files if stored temporarily
+        for filepath in attachments:
+            os.remove(filepath)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

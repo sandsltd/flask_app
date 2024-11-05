@@ -42,6 +42,9 @@
             margin-top: 20px;
             display: inline-block;
         }
+        .input-field {
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -58,12 +61,31 @@
     <p><strong>Start Time:</strong> {{ event.start_time }}</p>
     <p><strong>End Time:</strong> {{ event.end_time }}</p>
 
-    <!-- Instructions and form submission -->
-    <p>By using our webpage service, we will create a new webpage to showcase your event. Please make sure all of your event details are correct before submitting your request.</p>
-    <p>This service is for customers who do not have a website and cannot embed our code onto their site. The page creation process can take up to 48 hours, and we’ll email you with a link once it’s ready for your users to book tickets.</p>
+    <!-- Additional Instructions -->
+    <h2>Service Information</h2>
+    <p>With our webpage service, we’ll create a dedicated webpage to showcase your event. This service is designed especially for customers who might not have a website or who may not be comfortable embedding our code on their existing site.</p>
+    <p>Please take a moment to confirm that all event details are accurate before submitting your request. The page creation process usually takes up to 48 hours, and we’ll send you an email with a link to your event’s webpage once it’s ready for users to book tickets.</p>
 
-    <!-- Submit Button -->
-    <form action="{{ url_for('submit_webpage_request', event_id=event.id) }}" method="POST">
+    <!-- Form for file uploads and additional text -->
+    <form action="{{ url_for('submit_webpage_request', event_id=event.id) }}" method="POST" enctype="multipart/form-data">
+        <div class="input-field">
+            <label for="business_logo">Upload Business Logo:</label>
+            <input type="file" name="business_logo" id="business_logo" accept="image/*" required>
+            <p>Recommended size: 300x300 pixels (max 2MB)</p>
+        </div>
+        
+        <div class="input-field">
+            <label for="event_picture">Upload Event Picture:</label>
+            <input type="file" name="event_picture" id="event_picture" accept="image/*" required>
+            <p>Recommended size: 1200x800 pixels (max 5MB)</p>
+        </div>
+        
+        <div class="input-field">
+            <label for="additional_text">Additional Event Text (optional):</label>
+            <textarea name="additional_text" id="additional_text" rows="5" placeholder="Any additional details for your event..."></textarea>
+        </div>
+
+        <!-- Submit Button -->
         <button type="submit" class="button">Submit Request</button>
     </form>
 
