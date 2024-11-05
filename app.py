@@ -1949,3 +1949,44 @@ Thanks for using TicketRush!
 
     except Exception as e:
         print(f"Failed to send password reset confirmation email: {str(e)}")
+
+
+from flask import render_template, redirect, url_for, flash
+from flask_mail import Message
+
+@app.route('/create_webpage/<int:event_id>')
+@login_required
+def create_webpage(event_id):
+    event = Event.query.get_or_404(event_id)
+    if event.user_id != current_user.id:
+        flash("You don't have permission to create a webpage for this event.")
+        return redirect(url_for('dashboard'))
+
+    return render_template('create_webpage.html', event_id=event_id)
+
+
+@app.route('/request_webpage/<int:event_id>', methods=['POST'])
+@login_required
+def request_webpage(event_id):
+    event = Event.query.get_or_404(event_id)
+    if event.user_id != current_user.id:
+        flash("You don't have permission to request a webpage for this event.")
+        return redirect(url_for('dashboard'))
+
+    # Send an email notification to support
+    try:
+        msg = Message(
+            subject="New Web Page Request",
+            sender=current_user.email,
+            recipients=["support@ticketrush.io"],
+            body=f"User {current_user.first_name} {current_user.last_name} "
+                 f"({current_user.email}) has requested a new webpage for the event '{event.name}' (ID: {event_id}). "
+                 f"Please ensure the event details are correct and process the request."
+        )
+        mail.send(msg)
+        flash("Your request has been submitted! We’ll email you within 48 hours with your event page link.", "success")
+    except Exception as e:
+        flash("Failed to submit the request. Please try again later.", "error")
+        print(f"Email send error: {str(e)}")
+
+    return redirect(url_for('dashboard'))
