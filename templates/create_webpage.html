@@ -5,43 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Webpage</title>
     <style>
-        /* Global Styles - reuse styles from dashboard */
+        /* Apply the same styles as dashboard.html for consistency */
         body {
             font-family: Arial, sans-serif;
             background-color: #f8f8f8;
             color: #333;
             margin: 0;
-            padding: 0;
-        }
-
-        .centered-container {
-            display: flex;
-            justify-content: center;
             padding: 20px;
         }
-
         .container {
             max-width: 800px;
-            width: 100%;
             background-color: white;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
-
-        h1, h2 {
+        h1, h2, p {
             color: #ff0000;
         }
-
-        .info-section {
-            background-color: #fff3f3;
-            border: 1px solid #ffcccc;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            color: #333;
-        }
-
         .button {
             padding: 10px 15px;
             background-color: #ff0000;
@@ -54,37 +35,40 @@
             text-decoration: none;
             transition: background-color 0.3s ease;
         }
-
         .button:hover {
             background-color: #cc0000;
         }
-
-        .button-container {
-            display: flex;
-            justify-content: space-between;
+        .back-button {
             margin-top: 20px;
+            display: inline-block;
         }
     </style>
 </head>
 <body>
 
-<div class="centered-container">
-    <div class="container">
-        <h1>Create Event Webpage</h1>
-        <div class="info-section">
-            <p>By using our webpage service, we will create a dedicated webpage to showcase your event. Please ensure all of your event details are correct before submitting your request.</p>
-            <p>This service is for customers who <strong>do not have their own website</strong> and cannot embed our event code directly onto their site. If you already have a website, please use the embed code provided on the dashboard.</p>
-            <p>Note: It takes up to <strong>48 hours</strong> to create the page. Once it's ready, we’ll email you with the link, which you can share with your users for ticket booking.</p>
-        </div>
+<div class="container">
+    <h1>Create Webpage for Your Event</h1>
 
-        <!-- Back and Submit Buttons -->
-        <div class="button-container">
-            <a href="{{ url_for('dashboard') }}" class="button">Back to Dashboard</a>
-            <form action="{{ url_for('request_webpage', event_id=event_id) }}" method="POST">
-                <button type="submit" class="button">Submit Request</button>
-            </form>
-        </div>
-    </div>
+    <!-- Display event details -->
+    <h2>Event Details</h2>
+    <p><strong>Name:</strong> {{ event.name }}</p>
+    <p><strong>Date:</strong> {{ event.date }}</p>
+    <p><strong>Location:</strong> {{ event.location }}</p>
+    <p><strong>Description:</strong> {{ event.description }}</p>
+    <p><strong>Start Time:</strong> {{ event.start_time }}</p>
+    <p><strong>End Time:</strong> {{ event.end_time }}</p>
+
+    <!-- Instructions and form submission -->
+    <p>By using our webpage service, we will create a new webpage to showcase your event. Please make sure all of your event details are correct before submitting your request.</p>
+    <p>This service is for customers who do not have a website and cannot embed our code onto their site. The page creation process can take up to 48 hours, and we’ll email you with a link once it’s ready for your users to book tickets.</p>
+
+    <!-- Submit Button -->
+    <form action="{{ url_for('submit_webpage_request', event_id=event.id) }}" method="POST">
+        <button type="submit" class="button">Submit Request</button>
+    </form>
+
+    <!-- Back Button -->
+    <a href="{{ url_for('dashboard') }}" class="button back-button">Back to Dashboard</a>
 </div>
 
 </body>
