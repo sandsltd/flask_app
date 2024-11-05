@@ -1990,3 +1990,35 @@ def request_webpage(event_id):
         print(f"Email send error: {str(e)}")
 
     return redirect(url_for('dashboard'))
+
+
+from flask_mail import Message
+
+@app.route('/submit_webpage_request/<int:event_id>', methods=['POST'])
+@login_required
+def submit_webpage_request(event_id):
+    event = Event.query.get_or_404(event_id)
+    
+    # Send email to support with event details
+    msg = Message("New Web Page Request",
+                  sender="no-reply@ticketrush.io",
+                  recipients=["support@ticketrush.io"])
+    msg.body = f"""
+    A new web page request has been submitted.
+
+    Event Details:
+    Name: {event.name}
+    Date: {event.date}
+    Location: {event.location}
+    Description: {event.description}
+    Start Time: {event.start_time}
+    End Time: {event.end_time}
+
+    This service is intended for customers without an existing website who cannot embed the code.
+    """
+    
+    mail.send(msg)
+    
+    flash("Your request has been submitted! We will email you a link once your page is ready.")
+    return redirect(url_for('dashboard'))
+
