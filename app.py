@@ -1967,11 +1967,50 @@ def submit_webpage_request(event_id):
     # Fetch the event based on event_id
     event = Event.query.get_or_404(event_id)
 
-    # Add any additional logic to process the webpage request for this event
-    # e.g., you could set a flag in the database, send an email confirmation, etc.
-    # For demonstration, let's flash a message
+    # Send email notification to support
+    send_webpage_request_email(event)
 
-    flash(f"Webpage creation request for event '{event.name}' has been submitted successfully.", "success")
+    # Flash success message to the user
+    flash("Your webpage request has been submitted. It may take up to 48 hours to process.", "success")
 
-    # Redirect back to the dashboard or any other page as needed
+    # Redirect back to the dashboard or another page
     return redirect(url_for('dashboard'))
+
+
+def send_webpage_request_email(event):
+    try:
+        # Compose email content
+        subject = f"New Webpage Request for Event: {event.name}"
+        body = f"""
+        <html>
+        <body>
+            <h2>New Webpage Request Submitted</h2>
+            <p>A new webpage request has been submitted for the following event:</p>
+            <h3>Event Details:</h3>
+            <p>
+                <strong>Name:</strong> {event.name}<br>
+                <strong>Date:</strong> {event.date}<br>
+                <strong>Location:</strong> {event.location}<br>
+                <strong>Description:</strong> {event.description}<br>
+                <strong>Start Time:</strong> {event.start_time}<br>
+                <strong>End Time:</strong> {event.end_time}<br>
+                <strong>Ticket Quantity:</strong> {event.ticket_quantity}<br>
+                <strong>Ticket Price:</strong> £{event.ticket_price:.2f}<br>
+            </p>
+            <p>Please ensure this request is processed within 48 hours.</p>
+            <p><strong>TicketRush Support Team</strong></p>
+        </body>
+        </html>
+        """
+
+        # Create and send the email
+        msg = Message(
+            subject=subject,
+            recipients=["support@ticketrush.io"],
+            body=body,
+            html=body  # Render the email as HTML for better formatting
+        )
+        mail.send(msg)
+        print(f"Webpage request email sent for event '{event.name}' to support@ticketrush.io.")
+    except Exception as e:
+        print(f"Failed to send webpage request email. Error: {str(e)}")
