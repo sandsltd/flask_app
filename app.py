@@ -1951,74 +1951,11 @@ Thanks for using TicketRush!
         print(f"Failed to send password reset confirmation email: {str(e)}")
 
 
-from flask import render_template, redirect, url_for, flash
-from flask_mail import Message
-
 @app.route('/create_webpage/<int:event_id>')
 @login_required
 def create_webpage(event_id):
+    # Query the database for the event by its ID
     event = Event.query.get_or_404(event_id)
-    if event.user_id != current_user.id:
-        flash("You don't have permission to create a webpage for this event.")
-        return redirect(url_for('dashboard'))
 
-    return render_template('create_webpage.html', event_id=event_id)
-
-
-@app.route('/request_webpage/<int:event_id>', methods=['POST'])
-@login_required
-def request_webpage(event_id):
-    event = Event.query.get_or_404(event_id)
-    if event.user_id != current_user.id:
-        flash("You don't have permission to request a webpage for this event.")
-        return redirect(url_for('dashboard'))
-
-    # Send an email notification to support
-    try:
-        msg = Message(
-            subject="New Web Page Request",
-            sender=current_user.email,
-            recipients=["support@ticketrush.io"],
-            body=f"User {current_user.first_name} {current_user.last_name} "
-                 f"({current_user.email}) has requested a new webpage for the event '{event.name}' (ID: {event_id}). "
-                 f"Please ensure the event details are correct and process the request."
-        )
-        mail.send(msg)
-        flash("Your request has been submitted! We’ll email you within 48 hours with your event page link.", "success")
-    except Exception as e:
-        flash("Failed to submit the request. Please try again later.", "error")
-        print(f"Email send error: {str(e)}")
-
-    return redirect(url_for('dashboard'))
-
-
-from flask_mail import Message
-
-@app.route('/submit_webpage_request/<int:event_id>', methods=['POST'])
-@login_required
-def submit_webpage_request(event_id):
-    event = Event.query.get_or_404(event_id)
-    
-    # Send email to support with event details
-    msg = Message("New Web Page Request",
-                  sender="no-reply@ticketrush.io",
-                  recipients=["support@ticketrush.io"])
-    msg.body = f"""
-    A new web page request has been submitted.
-
-    Event Details:
-    Name: {event.name}
-    Date: {event.date}
-    Location: {event.location}
-    Description: {event.description}
-    Start Time: {event.start_time}
-    End Time: {event.end_time}
-
-    This service is intended for customers without an existing website who cannot embed the code.
-    """
-    
-    mail.send(msg)
-    
-    flash("Your request has been submitted! We will email you a link once your page is ready.")
-    return redirect(url_for('dashboard'))
-
+    # Render the create_webpage template with the event details
+    return render_template('create_webpage.html', event=event)
