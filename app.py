@@ -29,7 +29,7 @@ from markupsafe import escape
 from markupsafe import Markup
 from itsdangerous import URLSafeTimedSerializer
 from flask import current_app
-from flask import escape
+
 
 
 
@@ -475,7 +475,6 @@ def reset_db():
 
 from markupsafe import escape
 
-from flask import escape
 
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
