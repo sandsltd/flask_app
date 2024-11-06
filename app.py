@@ -477,6 +477,7 @@ from markupsafe import escape
 
 from datetime import datetime
 
+from flask import escape
 
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
@@ -586,6 +587,14 @@ def embed_events(unique_id):
         font-size: 14px;
         color: inherit;
         margin-bottom: 15px;
+    }
+
+    #ticketrush-embed .view-more {
+        color: #007bff;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-block;
+        margin-top: 10px;
     }
 
     /* Ticket Button */
@@ -700,38 +709,37 @@ def embed_events(unique_id):
 
         events_html += '<div class="event-list">'
 
-        for event in future_events:
+        for index, event in enumerate(future_events):
             event_date = datetime.strptime(event.date, '%Y-%m-%d').strftime('%A %d %B %Y')
             ticket_price = "Free" if event.ticket_price == 0 else f"£{event.ticket_price:.2f}"
             truncated_description = (event.description[:150] + '...') if len(event.description) > 150 else event.description
 
             events_html += f'''
             <div class="event-card">
-                <div class="event-content">
-                    <h3 class="event-title">{escape(event.name)}</h3>
-                    <p class="event-details">
-                        <strong>Date:</strong> {event_date}<br>
-                        <strong>Time:</strong> {event.start_time} - {event.end_time}<br>
-                        <strong>Location:</strong> {escape(event.location)}<br>
-                        <strong>Price:</strong> {ticket_price}
-                    </p>
-                    <p class="event-description">{escape(truncated_description)}</p>
-                    <div class="social-share">
-                        <a href="https://www.facebook.com/sharer/sharer.php?u=https://bookings.ticketrush.io/purchase/{event.id}" target="_blank">
-                            <img src="https://ticketrush.io/wp-content/uploads/2024/11/facebook-129.png" alt="Facebook">
-                        </a>
-                        <a href="https://www.instagram.com/" target="_blank">
-                            <img src="https://ticketrush.io/wp-content/uploads/2024/11/transparent-social-media-instagram-icon-with-centered-image-symbol65ff3fa8a91258.78351108.webp" alt="Instagram">
-                        </a>
-                        <a href="https://x.com/intent/tweet?url=https://bookings.ticketrush.io/purchase/{event.id}" target="_blank">
-                            <img src="https://ticketrush.io/wp-content/uploads/2024/11/transparent-x-icon-black-and-white-x-in-the-1710888893456.webp" alt="X">
-                        </a>
-                        <a href="mailto:?subject=Check out this event!&body=https://bookings.ticketrush.io/purchase/{event.id}">
-                            <img src="https://ticketrush.io/wp-content/uploads/2024/11/pngtree-email-vector-icon-png-image_3876244.jpg" alt="Email">
-                        </a>
-                    </div>
-                    <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Book Tickets</a>
+                <h3 class="event-title">{escape(event.name)}</h3>
+                <p class="event-details">
+                    <strong>Date:</strong> {event_date}<br>
+                    <strong>Time:</strong> {event.start_time} - {event.end_time}<br>
+                    <strong>Location:</strong> {escape(event.location)}<br>
+                    <strong>Price:</strong> {ticket_price}
+                </p>
+                <p class="event-description" id="desc-{index}">{escape(truncated_description)}</p>
+                <span class="view-more" onclick="document.getElementById('desc-{index}').innerHTML = '{escape(event.description)}'; this.style.display='none';">View More</span>
+                <div class="social-share">
+                    <a href="https://www.facebook.com/sharer/sharer.php?u=https://bookings.ticketrush.io/purchase/{event.id}" target="_blank">
+                        <img src="https://ticketrush.io/wp-content/uploads/2024/11/facebook-129.png" alt="Facebook">
+                    </a>
+                    <a href="https://www.instagram.com/" target="_blank">
+                        <img src="https://ticketrush.io/wp-content/uploads/2024/11/transparent-social-media-instagram-icon-with-centered-image-symbol65ff3fa8a91258.78351108.webp" alt="Instagram">
+                    </a>
+                    <a href="https://x.com/intent/tweet?url=https://bookings.ticketrush.io/purchase/{event.id}" target="_blank">
+                        <img src="https://ticketrush.io/wp-content/uploads/2024/11/transparent-x-icon-black-and-white-x-in-the-1710888893456.webp" alt="X">
+                    </a>
+                    <a href="mailto:?subject=Check out this event!&body=https://bookings.ticketrush.io/purchase/{event.id}">
+                        <img src="https://ticketrush.io/wp-content/uploads/2024/11/pngtree-email-vector-icon-png-image_3876244.jpg" alt="Email">
+                    </a>
                 </div>
+                <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Book Tickets</a>
             </div>
             '''
 
@@ -746,6 +754,7 @@ def embed_events(unique_id):
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 
