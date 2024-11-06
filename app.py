@@ -474,6 +474,8 @@ def reset_db():
 
 from markupsafe import escape
 
+from flask import escape
+
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
     user = User.query.filter_by(unique_id=unique_id).first()
@@ -586,6 +588,17 @@ def embed_events(unique_id):
         font-weight: bold;
     }
 
+    .more-info-btn {
+        color: #0056b3;
+        cursor: pointer;
+        text-decoration: underline;
+        font-size: 14px;
+    }
+
+    .more-info-btn:hover {
+        color: #003366;
+    }
+
     @media (min-width: 768px) {
         #ticketrush-embed .event-list {
             display: flex;
@@ -598,6 +611,25 @@ def embed_events(unique_id):
         }
     }
     </style>
+
+    <script>
+    function toggleDescription(id) {
+        var shortDesc = document.getElementById("short-desc-" + id);
+        var fullDesc = document.getElementById("full-desc-" + id);
+        var btnText = document.getElementById("more-info-btn-" + id);
+
+        if (shortDesc.style.display === "none") {
+            shortDesc.style.display = "inline";
+            fullDesc.style.display = "none";
+            btnText.innerHTML = "View More Information";
+        } else {
+            shortDesc.style.display = "none";
+            fullDesc.style.display = "inline";
+            btnText.innerHTML = "Show Less";
+        }
+    }
+    </script>
+
     <div id="ticketrush-embed">
     '''
 
@@ -621,13 +653,11 @@ def embed_events(unique_id):
             # Format the ticket price
             ticket_price = "Free" if event.ticket_price == 0 else f"£{event.ticket_price:.2f}"
 
-            # Optional: Truncate the event description for cleaner layout (limit to 150 characters)
-            truncated_description = (event.description[:150] + '...') if len(event.description) > 150 else event.description
-
-            # Escape any special characters to prevent XSS
+            # Escape special characters and prepare descriptions
             event_name = escape(event.name)
             event_location = escape(event.location)
-            truncated_description = escape(truncated_description)
+            short_description = escape(event.description[:150] + '...') if len(event.description) > 150 else escape(event.description)
+            full_description = escape(event.description)
 
             # Build the event card HTML
             events_html += f'''
@@ -640,7 +670,11 @@ def embed_events(unique_id):
                         <strong>Location:</strong> {event_location}<br>
                         <strong>Price:</strong> {ticket_price}
                     </p>
-                    <p class="event-description">{truncated_description}</p>
+                    <p class="event-description">
+                        <span id="short-desc-{event.id}">{short_description}</span>
+                        <span id="full-desc-{event.id}" style="display: none;">{full_description}</span>
+                        <span class="more-info-btn" id="more-info-btn-{event.id}" onclick="toggleDescription('{event.id}')">View More Information</span>
+                    </p>
             '''
 
             # Show ticket status
@@ -673,6 +707,7 @@ def embed_events(unique_id):
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 
