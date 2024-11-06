@@ -600,6 +600,19 @@ def embed_events(unique_id):
         color: #003366;
     }
 
+    .share-buttons {
+        display: flex;
+        align-items: center;
+        margin: 10px 0;
+    }
+
+    .share-buttons img {
+        width: 24px;
+        height: 24px;
+        margin-right: 8px;
+        cursor: pointer;
+    }
+
     @media (min-width: 768px) {
         #ticketrush-embed .event-list {
             display: flex;
@@ -676,6 +689,22 @@ def embed_events(unique_id):
                         <span id="full-desc-{event.id}" style="display: none;">{full_description}</span>
                         <span class="more-info-btn" id="more-info-btn-{event.id}" onclick="toggleDescription('{event.id}')">View More Information</span>
                     </p>
+                    
+                    <!-- Share Buttons -->
+                    <div class="share-buttons">
+                        <a href="https://www.facebook.com/sharer/sharer.php?u=https://bookings.ticketrush.io/purchase/{event.id}" target="_blank">
+                            <img src="https://ticketrush.io/wp-content/uploads/2024/11/facebook-129.png" alt="Share on Facebook">
+                        </a>
+                        <a href="https://www.instagram.com/?url=https://bookings.ticketrush.io/purchase/{event.id}" target="_blank">
+                            <img src="https://ticketrush.io/wp-content/uploads/2024/11/transparent-social-media-instagram-icon-with-centered-image-symbol65ff3fa8a91258.78351108.webp" alt="Share on Instagram">
+                        </a>
+                        <a href="https://twitter.com/intent/tweet?url=https://bookings.ticketrush.io/purchase/{event.id}" target="_blank">
+                            <img src="https://ticketrush.io/wp-content/uploads/2024/11/transparent-x-icon-black-and-white-x-in-the-1710888893456.webp" alt="Share on Twitter">
+                        </a>
+                        <a href="mailto:?subject=Check out this event!&body=https://bookings.ticketrush.io/purchase/{event.id}" target="_blank">
+                            <img src="https://ticketrush.io/wp-content/uploads/2024/11/pngtree-email-vector-icon-png-image_3876244.jpg" alt="Share via Email">
+                        </a>
+                    </div>
             '''
 
             # Show ticket status
