@@ -479,6 +479,8 @@ from datetime import datetime
 
 from flask import escape
 
+from flask import escape
+
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
     user = User.query.filter_by(unique_id=unique_id).first()
@@ -670,6 +672,11 @@ def embed_events(unique_id):
                 <strong>Price:</strong> {next_event_price}
             </p>
             <p class="event-description">{escape(next_event.description)}</p>
+            <div class="social-share">
+                <a href="https://www.facebook.com/sharer/sharer.php?u=https://bookings.ticketrush.io/purchase/{next_event.id}" target="_blank">Share on Facebook</a> |
+                <a href="https://twitter.com/intent/tweet?url=https://bookings.ticketrush.io/purchase/{next_event.id}" target="_blank">Share on Twitter</a> |
+                <a href="mailto:?subject=Check out this event!&body=https://bookings.ticketrush.io/purchase/{next_event.id}">Share via Email</a>
+            </div>
             <a href="https://bookings.ticketrush.io/purchase/{next_event.id}" target="_blank" class="event-button">Book Tickets</a>
         </div>
         '''
@@ -693,6 +700,11 @@ def embed_events(unique_id):
                         <strong>Price:</strong> {ticket_price}
                     </p>
                     <p class="event-description">{escape(truncated_description)}</p>
+                    <div class="social-share">
+                        <a href="https://www.facebook.com/sharer/sharer.php?u=https://bookings.ticketrush.io/purchase/{event.id}" target="_blank">Share on Facebook</a> |
+                        <a href="https://twitter.com/intent/tweet?url=https://bookings.ticketrush.io/purchase/{event.id}" target="_blank">Share on Twitter</a> |
+                        <a href="mailto:?subject=Check out this event!&body=https://bookings.ticketrush.io/purchase/{event.id}">Share via Email</a>
+                    </div>
                     <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Book Tickets</a>
                 </div>
             </div>
@@ -719,7 +731,6 @@ def embed_events(unique_id):
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
-
 
 
 
