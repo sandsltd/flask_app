@@ -721,8 +721,16 @@ def embed_events(unique_id):
                     <strong>Location:</strong> {escape(event.location)}<br>
                     <strong>Price:</strong> {ticket_price}
                 </p>
-                <p class="event-description" id="desc-{index}">{escape(truncated_description)}</p>
-                <span class="view-more" onclick="document.getElementById('desc-{index}').innerHTML = '{escape(event.description)}'; this.style.display='none';">View More</span>
+                
+                <!-- Display truncated description and full description in separate spans -->
+                <p class="event-description">
+                    <span id="truncated-{index}">{escape(truncated_description)}</span>
+                    <span id="full-{index}" style="display: none;">{escape(event.description)}</span>
+                </p>
+                
+                <!-- View More button to toggle description -->
+                <span class="view-more" onclick="toggleDescription({index})">View More</span>
+                
                 <div class="social-share">
                     <a href="https://www.facebook.com/sharer/sharer.php?u=https://bookings.ticketrush.io/purchase/{event.id}" target="_blank">
                         <img src="https://ticketrush.io/wp-content/uploads/2024/11/facebook-129.png" alt="Facebook">
@@ -748,11 +756,36 @@ def embed_events(unique_id):
         Powered by <a href="https://www.ticketrush.io" target="_blank">TicketRush</a>
     </div>
     </div>
+
+    <script>
+    // JavaScript to handle the date and location filters
+    document.getElementById('filterDate').addEventListener('change', function() {
+        // Implement date filtering logic here
+    });
+    document.getElementById('filterLocation').addEventListener('change', function() {
+        // Implement location filtering logic here
+    });
+    
+    function toggleDescription(index) {
+        const truncated = document.getElementById(`truncated-${index}`);
+        const full = document.getElementById(`full-${index}`);
+        const viewMore = document.querySelector(`.view-more[onclick="toggleDescription(${index})"]`);
+
+        if (full.style.display === "none") {
+            full.style.display = "inline";
+            truncated.style.display = "none";
+            viewMore.textContent = "View Less";
+        } else {
+            full.style.display = "none";
+            truncated.style.display = "inline";
+            viewMore.textContent = "View More";
+        }
+    }
+    </script>
     '''
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
-
 
 
 
