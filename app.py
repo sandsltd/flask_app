@@ -673,6 +673,11 @@ def embed_events(unique_id):
         # Highlight the Next Event
         next_event = future_events.pop(0)
         
+        # Calculate tickets available for the next event
+        succeeded_attendees = Attendee.query.filter_by(event_id=next_event.id, payment_status='succeeded').all()
+        tickets_sold = sum([attendee.tickets_purchased for attendee in succeeded_attendees])
+        tickets_available = next_event.ticket_quantity - tickets_sold
+
         # Format the next event's date and details
         next_event_date = datetime.strptime(next_event.date, '%Y-%m-%d').strftime('%A %d %B %Y')
         next_event_price = "Free" if next_event.ticket_price == 0 else f"£{next_event.ticket_price:.2f}"
@@ -684,7 +689,8 @@ def embed_events(unique_id):
                 <strong>Date:</strong> {next_event_date}<br>
                 <strong>Time:</strong> {next_event.start_time} - {next_event.end_time}<br>
                 <strong>Location:</strong> {escape(next_event.location)}<br>
-                <strong>Price:</strong> {next_event_price}
+                <strong>Price:</strong> {next_event_price}<br>
+                <strong>Tickets Available:</strong> {tickets_available}
             </p>
             <p class="event-description">{escape(next_event.description)}</p>
             <div class="social-share">
@@ -708,6 +714,10 @@ def embed_events(unique_id):
         events_html += '<div class="event-list">'
 
         for index, event in enumerate(future_events):
+            succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
+            tickets_sold = sum([attendee.tickets_purchased for attendee in succeeded_attendees])
+            tickets_available = event.ticket_quantity - tickets_sold
+            
             event_date = datetime.strptime(event.date, '%Y-%m-%d').strftime('%A %d %B %Y')
             ticket_price = "Free" if event.ticket_price == 0 else f"£{event.ticket_price:.2f}"
             truncated_description = (event.description[:150] + '...') if len(event.description) > 150 else event.description
@@ -719,16 +729,15 @@ def embed_events(unique_id):
                     <strong>Date:</strong> {event_date}<br>
                     <strong>Time:</strong> {event.start_time} - {event.end_time}<br>
                     <strong>Location:</strong> {escape(event.location)}<br>
-                    <strong>Price:</strong> {ticket_price}
+                    <strong>Price:</strong> {ticket_price}<br>
+                    <strong>Tickets Available:</strong> {tickets_available}
                 </p>
                 
-                <!-- Display truncated description and full description in separate spans -->
                 <p class="event-description">
                     <span id="truncated-{index}">{escape(truncated_description)}</span>
                     <span id="full-{index}" style="display: none;">{escape(event.description)}</span>
                 </p>
                 
-                <!-- View More button to toggle description -->
                 <span class="view-more" onclick="toggleDescription({index})">View More</span>
                 
                 <div class="social-share">
@@ -758,14 +767,6 @@ def embed_events(unique_id):
     </div>
 
     <script>
-    // JavaScript to handle the date and location filters
-    document.getElementById('filterDate').addEventListener('change', function() {
-        // Implement date filtering logic here
-    });
-    document.getElementById('filterLocation').addEventListener('change', function() {
-        // Implement location filtering logic here
-    });
-    
     function toggleDescription(index) {
         const truncated = document.getElementById(`truncated-${index}`);
         const full = document.getElementById(`full-${index}`);
