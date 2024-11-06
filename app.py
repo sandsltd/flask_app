@@ -477,8 +477,6 @@ from markupsafe import escape
 
 from datetime import datetime
 
-from flask import escape
-
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
     user = User.query.filter_by(unique_id=unique_id).first()
