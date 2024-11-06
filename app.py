@@ -598,23 +598,6 @@ def embed_events(unique_id):
         }
     }
     </style>
-    
-    <script>
-        function toggleDescription(eventId) {
-            const descriptionElement = document.getElementById(`description-${eventId}`);
-            const fullDescription = descriptionElement.getAttribute("data-full-description");
-            const truncatedDescription = descriptionElement.getAttribute("data-truncated-description");
-            
-            if (descriptionElement.innerText.endsWith("...")) {
-                // Show full description
-                descriptionElement.innerText = fullDescription;
-            } else {
-                // Show truncated description
-                descriptionElement.innerText = truncatedDescription;
-            }
-        }
-    </script>
-
     <div id="ticketrush-embed">
     '''
 
@@ -638,13 +621,13 @@ def embed_events(unique_id):
             # Format the ticket price
             ticket_price = "Free" if event.ticket_price == 0 else f"£{event.ticket_price:.2f}"
 
-            # Truncate the event description for cleaner layout (limit to 150 characters)
+            # Optional: Truncate the event description for cleaner layout (limit to 150 characters)
             truncated_description = (event.description[:150] + '...') if len(event.description) > 150 else event.description
 
             # Escape any special characters to prevent XSS
             event_name = escape(event.name)
             event_location = escape(event.location)
-            full_description = escape(event.description)
+            truncated_description = escape(truncated_description)
 
             # Build the event card HTML
             events_html += f'''
@@ -657,10 +640,7 @@ def embed_events(unique_id):
                         <strong>Location:</strong> {event_location}<br>
                         <strong>Price:</strong> {ticket_price}
                     </p>
-                    <p class="event-description" id="description-{event.id}" data-full-description="{full_description}" data-truncated-description="{truncated_description}">
-                        {truncated_description}
-                    </p>
-                    <button class="view-more-btn" onclick="toggleDescription({event.id})">View More Information</button>
+                    <p class="event-description">{truncated_description}</p>
             '''
 
             # Show ticket status
@@ -693,7 +673,6 @@ def embed_events(unique_id):
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
-
 
 
 
