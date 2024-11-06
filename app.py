@@ -476,6 +476,9 @@ def reset_db():
 from markupsafe import escape
 
 
+from flask import escape
+from datetime import datetime
+
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
     user = User.query.filter_by(unique_id=unique_id).first()
@@ -501,6 +504,17 @@ def embed_events(unique_id):
         font-family: Arial, sans-serif;
     }
 
+    /* Color themes */
+    #ticketrush-embed.theme-light {
+        background-color: #ffffff;
+        color: #333333;
+    }
+    
+    #ticketrush-embed.theme-dark {
+        background-color: #333333;
+        color: #ffffff;
+    }
+
     #ticketrush-embed {
         max-width: 800px;
         margin: 0 auto;
@@ -509,16 +523,27 @@ def embed_events(unique_id):
 
     #ticketrush-embed .section-title {
         font-size: 28px;
-        color: #333333;
+        color: inherit;
         text-align: center;
         margin-bottom: 40px;
         font-weight: bold;
     }
 
+    #ticketrush-embed .filter-bar {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    #ticketrush-embed .filter-bar select {
+        padding: 8px;
+        font-size: 14px;
+    }
+
     #ticketrush-embed .event-card {
         border: 1px solid #e0e0e0;
         border-radius: 8px;
-        background-color: #ffffff;
+        background-color: inherit;
         margin-bottom: 30px;
         transition: box-shadow 0.2s ease;
     }
@@ -533,20 +558,20 @@ def embed_events(unique_id):
 
     #ticketrush-embed .event-title {
         font-size: 22px;
-        color: #333333;
+        color: inherit;
         margin-bottom: 15px;
         font-weight: bold;
     }
 
     #ticketrush-embed .event-details {
         font-size: 16px;
-        color: #555555;
+        color: inherit;
         margin-bottom: 15px;
     }
 
     #ticketrush-embed .event-description {
         font-size: 14px;
-        color: #666666;
+        color: inherit;
         margin-bottom: 20px;
     }
 
@@ -575,6 +600,11 @@ def embed_events(unique_id):
         margin-bottom: 20px;
     }
 
+    #ticketrush-embed .social-share {
+        margin-top: 10px;
+        font-size: 14px;
+    }
+
     #ticketrush-embed .powered-by {
         text-align: center;
         margin-top: 50px;
@@ -586,17 +616,6 @@ def embed_events(unique_id):
         color: #888888;
         text-decoration: none;
         font-weight: bold;
-    }
-
-    .more-info-btn {
-        color: #0056b3;
-        cursor: pointer;
-        text-decoration: underline;
-        font-size: 14px;
-    }
-
-    .more-info-btn:hover {
-        color: #003366;
     }
 
     @media (min-width: 768px) {
@@ -612,25 +631,19 @@ def embed_events(unique_id):
     }
     </style>
 
-    <script>
-    function toggleDescription(id) {
-        var shortDesc = document.getElementById("short-desc-" + id);
-        var fullDesc = document.getElementById("full-desc-" + id);
-        var btnText = document.getElementById("more-info-btn-" + id);
-
-        if (shortDesc.style.display === "none") {
-            shortDesc.style.display = "inline";
-            fullDesc.style.display = "none";
-            btnText.innerHTML = "View More Information";
-        } else {
-            shortDesc.style.display = "none";
-            fullDesc.style.display = "inline";
-            btnText.innerHTML = "Show Less";
-        }
-    }
-    </script>
-
-    <div id="ticketrush-embed">
+    <div id="ticketrush-embed" class="theme-light"> <!-- You can change this to "theme-dark" for dark mode -->
+    <div class="filter-bar">
+        <select id="filterDate">
+            <option value="all">All Dates</option>
+            <option value="this-month">This Month</option>
+            <option value="next-month">Next Month</option>
+        </select>
+        <select id="filterLocation">
+            <option value="all">All Locations</option>
+            <option value="Topsham">Topsham</option>
+            <!-- Add more locations as needed -->
+        </select>
+    </div>
     '''
 
     if not future_events:
@@ -646,18 +659,20 @@ def embed_events(unique_id):
             # Calculate tickets available
             tickets_available = event.ticket_quantity - tickets_sold
 
-            # Format the event date to 'Monday 12th October 2024'
+            # Format the event date
             event_date = datetime.strptime(event.date, '%Y-%m-%d')
             formatted_date = event_date.strftime('%A %d %B %Y')
 
             # Format the ticket price
             ticket_price = "Free" if event.ticket_price == 0 else f"£{event.ticket_price:.2f}"
 
-            # Escape special characters and prepare descriptions
+            # Optional: Truncate the event description
+            truncated_description = (event.description[:150] + '...') if len(event.description) > 150 else event.description
+
+            # Escape any special characters to prevent XSS
             event_name = escape(event.name)
             event_location = escape(event.location)
-            short_description = escape(event.description[:150] + '...') if len(event.description) > 150 else escape(event.description)
-            full_description = escape(event.description)
+            truncated_description = escape(truncated_description)
 
             # Build the event card HTML
             events_html += f'''
@@ -670,11 +685,12 @@ def embed_events(unique_id):
                         <strong>Location:</strong> {event_location}<br>
                         <strong>Price:</strong> {ticket_price}
                     </p>
-                    <p class="event-description">
-                        <span id="short-desc-{event.id}">{short_description}</span>
-                        <span id="full-desc-{event.id}" style="display: none;">{full_description}</span>
-                        <span class="more-info-btn" id="more-info-btn-{event.id}" onclick="toggleDescription('{event.id}')">View More Information</span>
-                    </p>
+                    <p class="event-description">{truncated_description}</p>
+                    <div class="social-share">
+                        <a href="https://www.facebook.com/sharer/sharer.php?u=https://yourwebsite.com/event/{event.id}" target="_blank">Share on Facebook</a> |
+                        <a href="https://twitter.com/intent/tweet?url=https://yourwebsite.com/event/{event.id}" target="_blank">Share on Twitter</a> |
+                        <a href="mailto:?subject=Check out this event!&body=https://yourwebsite.com/event/{event.id}">Share via Email</a>
+                    </div>
             '''
 
             # Show ticket status
@@ -703,10 +719,21 @@ def embed_events(unique_id):
         Powered by <a href="https://www.ticketrush.io" target="_blank">TicketRush</a>
     </div>
     </div>
+
+    <script>
+    // JavaScript to handle the date and location filters
+    document.getElementById('filterDate').addEventListener('change', function() {
+        // Implement date filtering logic here
+    });
+    document.getElementById('filterLocation').addEventListener('change', function() {
+        // Implement location filtering logic here
+    });
+    </script>
     '''
 
     response = f"document.write(`{events_html}`);"
     return response, 200, {'Content-Type': 'application/javascript'}
+
 
 
 
