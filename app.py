@@ -503,16 +503,6 @@ def embed_events(unique_id):
         font-family: Arial, sans-serif;
     }
 
-    #ticketrush-embed.theme-light {
-        background-color: #ffffff;
-        color: #333333;
-    }
-    
-    #ticketrush-embed.theme-dark {
-        background-color: #333333;
-        color: #ffffff;
-    }
-
     #ticketrush-embed {
         max-width: 800px;
         margin: 0 auto;
@@ -521,30 +511,16 @@ def embed_events(unique_id):
 
     #ticketrush-embed .section-title {
         font-size: 28px;
-        color: inherit;
+        color: #333333;
         text-align: center;
         margin-bottom: 40px;
         font-weight: bold;
     }
 
-    #ticketrush-embed .next-event {
-        border: 2px solid #ff9800;
-        border-radius: 8px;
-        background-color: #fff7e6;
-        padding: 20px;
-        margin-bottom: 30px;
-        transition: box-shadow 0.2s ease;
-    }
-
-    #ticketrush-embed .next-event h3 {
-        color: #ff9800;
-        font-size: 24px;
-    }
-
     #ticketrush-embed .event-card {
         border: 1px solid #e0e0e0;
         border-radius: 8px;
-        background-color: inherit;
+        background-color: #ffffff;
         margin-bottom: 30px;
         transition: box-shadow 0.2s ease;
     }
@@ -559,20 +535,20 @@ def embed_events(unique_id):
 
     #ticketrush-embed .event-title {
         font-size: 22px;
-        color: inherit;
+        color: #333333;
         margin-bottom: 15px;
         font-weight: bold;
     }
 
     #ticketrush-embed .event-details {
         font-size: 16px;
-        color: inherit;
+        color: #555555;
         margin-bottom: 15px;
     }
 
     #ticketrush-embed .event-description {
         font-size: 14px;
-        color: inherit;
+        color: #666666;
         margin-bottom: 20px;
     }
 
@@ -591,20 +567,14 @@ def embed_events(unique_id):
         background-color: #0056b3;
     }
 
+    #ticketrush-embed .sold-out {
+        color: #FF0000;
+        font-weight: bold;
+        font-size: 16px;
+    }
+
     #ticketrush-embed .ticket-status {
         margin-bottom: 20px;
-    }
-
-    #ticketrush-embed .social-share {
-        margin-top: 10px;
-        font-size: 14px;
-    }
-
-    #ticketrush-embed .social-share img {
-        width: 24px;
-        height: 24px;
-        margin-right: 8px;
-        vertical-align: middle;
     }
 
     #ticketrush-embed .powered-by {
@@ -619,73 +589,105 @@ def embed_events(unique_id):
         text-decoration: none;
         font-weight: bold;
     }
-    </style>
 
-    <div id="ticketrush-embed" class="theme-light"> <!-- Change to "theme-dark" for dark mode -->
+    @media (min-width: 768px) {
+        #ticketrush-embed .event-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+
+        #ticketrush-embed .event-card {
+            width: calc(50% - 15px);
+        }
+    }
+    </style>
+    
+    <script>
+        function toggleDescription(eventId) {
+            const descriptionElement = document.getElementById(`description-${eventId}`);
+            const fullDescription = descriptionElement.getAttribute("data-full-description");
+            const truncatedDescription = descriptionElement.getAttribute("data-truncated-description");
+            
+            if (descriptionElement.innerText.endsWith("...")) {
+                // Show full description
+                descriptionElement.innerText = fullDescription;
+            } else {
+                // Show truncated description
+                descriptionElement.innerText = truncatedDescription;
+            }
+        }
+    </script>
+
+    <div id="ticketrush-embed">
     '''
 
     if not future_events:
         events_html += '<p style="text-align: center; font-size: 18px; color: #555555;">No upcoming events available.</p>'
     else:
-        # Highlight the Next Event
-        next_event = future_events.pop(0)
-        
-        # Format the next event's date and details
-        next_event_date = datetime.strptime(next_event.date, '%Y-%m-%d').strftime('%A %d %B %Y')
-        next_event_price = "Free" if next_event.ticket_price == 0 else f"£{next_event.ticket_price:.2f}"
-        
-        events_html += f'''
-        <div class="next-event">
-            <h3>Next Event: {escape(next_event.name)}</h3>
-            <p class="event-details">
-                <strong>Date:</strong> {next_event_date}<br>
-                <strong>Time:</strong> {next_event.start_time} - {next_event.end_time}<br>
-                <strong>Location:</strong> {escape(next_event.location)}<br>
-                <strong>Price:</strong> {next_event_price}
-            </p>
-            <p class="event-description">{escape(next_event.description)}</p>
-            <div class="social-share">
-                <a href="https://www.facebook.com/sharer/sharer.php?u=https://bookings.ticketrush.io/purchase/{next_event.id}" target="_blank"><img src="https://ticketrush.io/wp-content/uploads/2024/11/facebook-129.png" alt="Facebook"> Share</a>
-                <a href="https://www.instagram.com/" target="_blank"><img src="https://ticketrush.io/wp-content/uploads/2024/11/transparent-social-media-instagram-icon-with-centered-image-symbol65ff3fa8a91258.78351108.webp" alt="Instagram"> Share</a>
-                <a href="https://x.com/intent/tweet?url=https://bookings.ticketrush.io/purchase/{next_event.id}" target="_blank"><img src="https://ticketrush.io/wp-content/uploads/2024/11/transparent-x-icon-black-and-white-x-in-the-1710888893456.webp" alt="X"> Share</a>
-                <a href="mailto:?subject=Check out this event!&body=https://bookings.ticketrush.io/purchase/{next_event.id}"><img src="https://ticketrush.io/wp-content/uploads/2024/11/pngtree-email-vector-icon-png-image_3876244.jpg" alt="Email"> Share</a>
-            </div>
-            <a href="https://bookings.ticketrush.io/purchase/{next_event.id}" target="_blank" class="event-button">Book Tickets</a>
-        </div>
-        '''
-
-        events_html += '<h2 class="section-title">Other Upcoming Events</h2>'
+        events_html += '<h2 class="section-title">Upcoming Events</h2>'
         events_html += '<div class="event-list">'
-
         for event in future_events:
-            event_date = datetime.strptime(event.date, '%Y-%m-%d').strftime('%A %d %B %Y')
+            # Calculate tickets sold
+            succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
+            tickets_sold = sum([attendee.tickets_purchased for attendee in succeeded_attendees])
+
+            # Calculate tickets available
+            tickets_available = event.ticket_quantity - tickets_sold
+
+            # Format the event date to 'Monday 12th October 2024'
+            event_date = datetime.strptime(event.date, '%Y-%m-%d')
+            formatted_date = event_date.strftime('%A %d %B %Y')
+
+            # Format the ticket price
             ticket_price = "Free" if event.ticket_price == 0 else f"£{event.ticket_price:.2f}"
+
+            # Truncate the event description for cleaner layout (limit to 150 characters)
             truncated_description = (event.description[:150] + '...') if len(event.description) > 150 else event.description
 
+            # Escape any special characters to prevent XSS
+            event_name = escape(event.name)
+            event_location = escape(event.location)
+            full_description = escape(event.description)
+
+            # Build the event card HTML
             events_html += f'''
             <div class="event-card">
                 <div class="event-content">
-                    <h3 class="event-title">{escape(event.name)}</h3>
+                    <h3 class="event-title">{event_name}</h3>
                     <p class="event-details">
-                        <strong>Date:</strong> {event_date}<br>
+                        <strong>Date:</strong> {formatted_date}<br>
                         <strong>Time:</strong> {event.start_time} - {event.end_time}<br>
-                        <strong>Location:</strong> {escape(event.location)}<br>
+                        <strong>Location:</strong> {event_location}<br>
                         <strong>Price:</strong> {ticket_price}
                     </p>
-                    <p class="event-description">{escape(truncated_description)}</p>
-                    <div class="social-share">
-                        <a href="https://www.facebook.com/sharer/sharer.php?u=https://bookings.ticketrush.io/purchase/{event.id}" target="_blank"><img src="https://ticketrush.io/wp-content/uploads/2024/11/facebook-129.png" alt="Facebook"> Share</a>
-                        <a href="https://www.instagram.com/" target="_blank"><img src="https://ticketrush.io/wp-content/uploads/2024/11/transparent-social-media-instagram-icon-with-centered-image-symbol65ff3fa8a91258.78351108.webp" alt="Instagram"> Share</a>
-                        <a href="https://x.com/intent/tweet?url=https://bookings.ticketrush.io/purchase/{event.id}" target="_blank"><img src="https://ticketrush.io/wp-content/uploads/2024/11/transparent-x-icon-black-and-white-x-in-the-1710888893456.webp" alt="X"> Share</a>
-                        <a href="mailto:?subject=Check out this event!&body=https://bookings.ticketrush.io/purchase/{event.id}"><img src="https://ticketrush.io/wp-content/uploads/2024/11/pngtree-email-vector-icon-png-image_3876244.jpg" alt="Email"> Share</a>
-                    </div>
+                    <p class="event-description" id="description-{event.id}" data-full-description="{full_description}" data-truncated-description="{truncated_description}">
+                        {truncated_description}
+                    </p>
+                    <button class="view-more-btn" onclick="toggleDescription({event.id})">View More Information</button>
+            '''
+
+            # Show ticket status
+            if tickets_available > 0:
+                events_html += f'''
+                    <p class="ticket-status">
+                        <span style="color: #28a745; font-weight: bold;">Tickets Available: {tickets_available}</span>
+                    </p>
                     <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Book Tickets</a>
+                '''
+            else:
+                events_html += '''
+                    <p class="ticket-status sold-out">Sold Out</p>
+                '''
+
+            events_html += '''
                 </div>
             </div>
             '''
 
         events_html += '</div>'
 
+    # Add the "Powered by TicketRush" footer with link
     events_html += '''
     <div class="powered-by">
         Powered by <a href="https://www.ticketrush.io" target="_blank">TicketRush</a>
