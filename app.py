@@ -29,6 +29,7 @@ from markupsafe import escape
 from markupsafe import Markup
 from itsdangerous import URLSafeTimedSerializer
 from flask import current_app
+from flask import escape
 
 
 
