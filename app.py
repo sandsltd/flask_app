@@ -475,8 +475,6 @@ def reset_db():
 
 from markupsafe import escape
 
-
-from flask import escape
 from datetime import datetime
 
 @app.route('/embed/<unique_id>')
