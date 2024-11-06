@@ -477,6 +477,8 @@ from markupsafe import escape
 
 from datetime import datetime
 
+from flask import escape
+
 @app.route('/embed/<unique_id>')
 def embed_events(unique_id):
     user = User.query.filter_by(unique_id=unique_id).first()
@@ -536,6 +538,21 @@ def embed_events(unique_id):
     #ticketrush-embed .filter-bar select {
         padding: 8px;
         font-size: 14px;
+    }
+
+    /* Next Event Styling */
+    #ticketrush-embed .next-event {
+        border: 2px solid #ff9800;
+        border-radius: 8px;
+        background-color: #fff7e6;
+        padding: 20px;
+        margin-bottom: 30px;
+        transition: box-shadow 0.2s ease;
+    }
+
+    #ticketrush-embed .next-event h3 {
+        color: #ff9800;
+        font-size: 24px;
     }
 
     #ticketrush-embed .event-card {
@@ -616,17 +633,6 @@ def embed_events(unique_id):
         font-weight: bold;
     }
 
-    @media (min-width: 768px) {
-        #ticketrush-embed .event-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 30px;
-        }
-
-        #ticketrush-embed .event-card {
-            width: calc(50% - 15px);
-        }
-    }
     </style>
 
     <div id="ticketrush-embed" class="theme-light"> <!-- You can change this to "theme-dark" for dark mode -->
@@ -647,71 +653,53 @@ def embed_events(unique_id):
     if not future_events:
         events_html += '<p style="text-align: center; font-size: 18px; color: #555555;">No upcoming events available.</p>'
     else:
-        events_html += '<h2 class="section-title">Upcoming Events</h2>'
+        # Highlight the Next Event
+        next_event = future_events.pop(0)
+        
+        # Format the next event's date and details
+        next_event_date = datetime.strptime(next_event.date, '%Y-%m-%d').strftime('%A %d %B %Y')
+        next_event_price = "Free" if next_event.ticket_price == 0 else f"£{next_event.ticket_price:.2f}"
+        
+        events_html += f'''
+        <div class="next-event">
+            <h3>Next Event: {escape(next_event.name)}</h3>
+            <p class="event-details">
+                <strong>Date:</strong> {next_event_date}<br>
+                <strong>Time:</strong> {next_event.start_time} - {next_event.end_time}<br>
+                <strong>Location:</strong> {escape(next_event.location)}<br>
+                <strong>Price:</strong> {next_event_price}
+            </p>
+            <p class="event-description">{escape(next_event.description)}</p>
+            <a href="https://bookings.ticketrush.io/purchase/{next_event.id}" target="_blank" class="event-button">Book Tickets</a>
+        </div>
+        '''
+
+        events_html += '<h2 class="section-title">Other Upcoming Events</h2>'
         events_html += '<div class="event-list">'
+
         for event in future_events:
-            # Calculate tickets sold
-            succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
-            tickets_sold = sum([attendee.tickets_purchased for attendee in succeeded_attendees])
-
-            # Calculate tickets available
-            tickets_available = event.ticket_quantity - tickets_sold
-
-            # Format the event date
-            event_date = datetime.strptime(event.date, '%Y-%m-%d')
-            formatted_date = event_date.strftime('%A %d %B %Y')
-
-            # Format the ticket price
+            event_date = datetime.strptime(event.date, '%Y-%m-%d').strftime('%A %d %B %Y')
             ticket_price = "Free" if event.ticket_price == 0 else f"£{event.ticket_price:.2f}"
-
-            # Optional: Truncate the event description
             truncated_description = (event.description[:150] + '...') if len(event.description) > 150 else event.description
 
-            # Escape any special characters to prevent XSS
-            event_name = escape(event.name)
-            event_location = escape(event.location)
-            truncated_description = escape(truncated_description)
-
-            # Build the event card HTML
             events_html += f'''
             <div class="event-card">
                 <div class="event-content">
-                    <h3 class="event-title">{event_name}</h3>
+                    <h3 class="event-title">{escape(event.name)}</h3>
                     <p class="event-details">
-                        <strong>Date:</strong> {formatted_date}<br>
+                        <strong>Date:</strong> {event_date}<br>
                         <strong>Time:</strong> {event.start_time} - {event.end_time}<br>
-                        <strong>Location:</strong> {event_location}<br>
+                        <strong>Location:</strong> {escape(event.location)}<br>
                         <strong>Price:</strong> {ticket_price}
                     </p>
-                    <p class="event-description">{truncated_description}</p>
-                    <div class="social-share">
-                        <a href="https://www.facebook.com/sharer/sharer.php?u=https://yourwebsite.com/event/{event.id}" target="_blank">Share on Facebook</a> |
-                        <a href="https://twitter.com/intent/tweet?url=https://yourwebsite.com/event/{event.id}" target="_blank">Share on Twitter</a> |
-                        <a href="mailto:?subject=Check out this event!&body=https://yourwebsite.com/event/{event.id}">Share via Email</a>
-                    </div>
-            '''
-
-            # Show ticket status
-            if tickets_available > 0:
-                events_html += f'''
-                    <p class="ticket-status">
-                        <span style="color: #28a745; font-weight: bold;">Tickets Available: {tickets_available}</span>
-                    </p>
+                    <p class="event-description">{escape(truncated_description)}</p>
                     <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Book Tickets</a>
-                '''
-            else:
-                events_html += '''
-                    <p class="ticket-status sold-out">Sold Out</p>
-                '''
-
-            events_html += '''
                 </div>
             </div>
             '''
 
         events_html += '</div>'
 
-    # Add the "Powered by TicketRush" footer with link
     events_html += '''
     <div class="powered-by">
         Powered by <a href="https://www.ticketrush.io" target="_blank">TicketRush</a>
