@@ -117,7 +117,7 @@
 <div class="edit-event-container">
     <h1>Edit Event: {{ event.name }}</h1>
 
-    <form method="POST" action="{{ url_for('edit_event', event_id=event.id) }}" id="edit-event-form">
+    <form method="POST" action="{{ url_for('edit_event', event_id=event.id) }}" enctype="multipart/form-data" id="edit-event-form">
         <!-- Current Event Image Section -->
         <h3>Current Event Image:</h3>
         {% if event.image_url %}
@@ -126,11 +126,18 @@
             <p>No custom event image uploaded. Using default event image.</p>
             <img src="{{ url_for('static', filename='images/event-placeholder.png') }}" alt="Default Event Image" style="max-width: 300px;">
         {% endif %}
-
+    
         <!-- Upload New Event Image -->
         <h3>Upload New Event Image</h3>
         <p>Recommended size: 800x600px. Maximum file size: 5MB.</p>
-        <input type="file" id="event_image" name="event_image" accept="image/*">
+        <label for="event_image">Choose an image file</label>
+        <input type="file" id="event_image" name="event_image" accept="image/*" title="Upload an image file for the event. Max size 5MB.">
+        
+        <!-- Other form fields can be added here -->
+    
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+    
         
         <!-- Event Details -->
         <label for="name">Event Name:</label>
