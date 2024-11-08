@@ -36,8 +36,11 @@ from flask import send_file
 from PIL import Image
 import base64
 from sqlalchemy import func
-
-
+from requests.auth import HTTPBasicAuth
+import requests
+from werkzeug.utils import secure_filename
+import boto3
+from botocore.exceptions import NoCredentialsError
 
 load_dotenv()
 
@@ -45,6 +48,18 @@ app = Flask(__name__)
 
 # Enable CORS for all routes and origins
 CORS(app)  # This will allow all origins by default, but you can restrict it if needed.
+
+# Load environment variables for S3 configuration
+S3_BUCKET_NAME = os.getenv('AWS_S3_BUCKET_NAME')
+S3_REGION = os.getenv('AWS_REGION')
+
+# Initialize the S3 client
+s3 = boto3.client(
+    's3',
+    region_name=S3_REGION,
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
+)
 
 # Set your Stripe secret key from the environment variable
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
@@ -72,15 +87,10 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')  # Default 
 app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 5 MB limit
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 # Set the upload folder in the configuration
-app.config['UPLOAD_FOLDER_EVENTS'] = '/var/data/uploads/events'
-app.config['UPLOAD_FOLDER_LOGOS'] = '/var/data/uploads/logos'
-
-# Attempt to create the directories in case they don't exist yet
-try:
-    os.makedirs(app.config['UPLOAD_FOLDER_EVENTS'], exist_ok=True)
-    os.makedirs(app.config['UPLOAD_FOLDER_LOGOS'], exist_ok=True)
-except OSError as e:
-    print(f"Error creating directories: {e}")
+# Load environment variables for WordPress credentials
+WORDPRESS_API_URL = 'https://ticketrush.io/wp-json/wp/v2/media'
+WORDPRESS_USER = os.getenv('WP-USER')
+WORDPRESS_PASSWORD = os.getenv('WP-PASSWORD')
 
 mail = Mail(app)
 
@@ -616,19 +626,14 @@ def create_event():
             # 3. Handle Image Upload
             # ------------------------------
             
+
+            # Handle event image upload
             image_url = None
-            file = request.files.get('image_url')
-            if file and allowed_file(file.filename):
-                original_filename = secure_filename(file.filename)
-                unique_suffix = uuid.uuid4().hex  # Generate a unique suffix
-                filename = f"{unique_suffix}_{original_filename}"  # Prevent filename collisions
-                file_path = os.path.join(app.config['UPLOAD_FOLDER_EVENTS'], filename)
-                try:
-                    file.save(file_path)
-                    image_url = f"/static/uploads/events/{filename}"  # Store relative path or URL
-                except Exception as e:
-                    print(f"Error saving event image: {e}")
-                    flash("There was an error uploading the event image. Please try again.", "danger")
+            event_image = request.files.get('event_image')
+            if event_image and event_image.filename != '':
+                image_url = upload_to_s3(event_image)
+                if not image_url:
+                    flash("Failed to upload event image to S3", "danger")
                     return redirect(url_for('create_event'))
 
             # ------------------------------
@@ -2668,28 +2673,28 @@ def resend_ticket(attendee_id):
     return redirect(url_for('view_attendees', event_id=event.id))
 
 
-@app.route('/upload-image', methods=['GET', 'POST'])
-def upload_image():
-    upload_folder = '/var/data/images'  # Path where images are stored
-    os.makedirs(upload_folder, exist_ok=True)  # Ensure the directory exists
 
-    if request.method == 'POST':
-        file = request.files['file']
-        # Check if the file has the correct filename
-        if file and file.filename in ['event-placeholder.png', 'logo-placeholder.png']:
-            file_path = os.path.join(upload_folder, file.filename)
-            file.save(file_path)
-            return redirect(url_for('upload_image'))
-    
-    return '''
-    <!doctype html>
-    <title>Upload an image</title>
-    <h1>Upload a backup image</h1>
-    <form method=post enctype=multipart/form-data>
-        <input type=file name=file>
-        <input type=submit value=Upload>
-    </form>
-    '''
+
+def upload_to_s3(file, folder_prefix):
+    # Generate a unique filename to avoid conflicts
+    unique_suffix = uuid.uuid4().hex
+    filename = f"{unique_suffix}_{secure_filename(file.filename)}"
+    s3_filename = f"{folder_prefix}/{filename}"  # Folder structure in S3
+
+    try:
+        # Upload the file to S3
+        s3.upload_fileobj(
+            file,
+            S3_BUCKET_NAME,
+            s3_filename,
+            ExtraArgs={"ACL": "public-read", "ContentType": file.content_type}
+        )
+        # Return the public URL of the uploaded file
+        return f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{s3_filename}"
+    except NoCredentialsError:
+        print("Credentials not available for S3 upload.")
+        return None
+
 
 
 

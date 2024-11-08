@@ -17,3 +17,4 @@ itsdangerous>=2.0
 Flask-WTF>=1.0
 qrcode[pil]
 python-dotenv
+boto3  # Required for AWS S3 integration
