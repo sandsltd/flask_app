@@ -1,5 +1,6 @@
 {% extends "partials/base.html" %}
 
+
 {% block content %}
 <div class="purchase-container">
     <!-- Event Header Section with Image and Organizer Logo -->
@@ -7,13 +8,13 @@
         {% if event.image_url %}
             <img src="{{ event.image_url }}" alt="Event Image" class="event-image">
         {% else %}
-            <img src="https://ticketrush.io/wp-content/ticketrush/backup/event-placeholder.png" alt="Event Image" class="event-image">
+            <img src="{{ url_for('static', filename='images/event-placeholder.png') }}" alt="Event Image" class="event-image">
         {% endif %}
         <div class="event-info">
             {% if organizer.business_logo_url %}
                 <img src="{{ organizer.business_logo_url }}" alt="Organizer Logo" class="organizer-logo">
             {% else %}
-                <img src="https://ticketrush.io/wp-content/ticketrush/backup/logo-placeholder.png" alt="Organizer Logo" class="organizer-logo">
+                <img src="{{ url_for('static', filename='images/logo-placeholder.png') }}" alt="Organizer Logo" class="organizer-logo">
             {% endif %}
             <h1>{{ event.name }}</h1>
             <p>{{ event.description }}</p>
