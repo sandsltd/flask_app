@@ -1873,6 +1873,8 @@ def delete_event(event_id):
 
 
 
+@app.route('/edit_event/<int:event_id>', methods=['GET', 'POST'])
+@login_required
 def edit_event(event_id):
     event = Event.query.get_or_404(event_id)
 
@@ -1890,21 +1892,23 @@ def edit_event(event_id):
         event.location = request.form['location']
         event.description = request.form.get('description')
 
-        # Process new event image upload if provided
         image_file = request.files.get('event_image')
         if image_file and allowed_file(image_file.filename):
             original_filename = secure_filename(image_file.filename)
             unique_suffix = uuid.uuid4().hex
             filename = f"{unique_suffix}_{original_filename}"
             image_path = os.path.join(app.config['UPLOAD_FOLDER_EVENTS'], filename)
-
+            
             try:
                 image_file.save(image_path)
-                event.image_url = f"/static/uploads/events/{filename}"  # Update image URL
+                # Update the `image_url` with the new file path
+                event.image_url = f"/static/uploads/events/{filename}"
+                print("Image saved successfully:", event.image_url)  # Debugging line
             except Exception as e:
                 flash("Error saving the event image. Please try again.", "danger")
                 print(f"Error: {e}")
-        
+                
+
         # Determine if individual ticket limits are enforced
         enforce_limits = request.form.get('enforce_individual_ticket_limits') == 'on'
         event.enforce_individual_ticket_limits = enforce_limits
@@ -1931,6 +1935,11 @@ def edit_event(event_id):
                 else:
                     # Ticket type not present in form; delete it
                     db.session.delete(ticket_type)
+
+
+                     # Process new event image upload if provided
+        
+       
 
             # Process new ticket types with limits
             new_ticket_names = request.form.getlist('new_ticket_name')
@@ -1959,7 +1968,8 @@ def edit_event(event_id):
                     # Update existing ticket type without quantity
                     ticket_type.name = request.form.get(f'name_no_limit_{ticket_type.id}')
                     ticket_type.price = float(request.form.get(f'price_no_limit_{ticket_type.id}', 0))
-                    
+                    # No quantity to set
+
                     # Check if delete checkbox is checked
                     if request.form.get(f'delete_no_limit_{ticket_type.id}') == 'on':
                         db.session.delete(ticket_type)
@@ -1994,7 +2004,8 @@ def edit_event(event_id):
         except Exception as e:
             db.session.rollback()
             flash('An error occurred while updating the event. Please try again.')
-            print(f"Database Error: {e}")
+            # Optionally, log the error for debugging
+            # app.logger.error(f"Error updating event {event_id}: {e}")
 
     # Prepare custom questions with empty strings as default values if None
     custom_questions = {
