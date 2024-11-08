@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QR Code Scanner</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js"></script>
+</head>
+<body>
+    <h1>Scan QR Code</h1>
+    <video id="preview" style="width: 100%; max-width: 400px; border: 1px solid #ddd;"></video>
+    <div id="result"></div>
+
+    <script>
+        let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
+        scanner.addListener('scan', function (content) {
+            fetch(`/validate-ticket/${content}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('result').innerText = data.message;
+                    if (data.status === "success") {
+                        document.getElementById('result').style.color = "green";
+                    } else {
+                        document.getElementById('result').style.color = "red";
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('result').innerText = "Error validating ticket.";
+                    document.getElementById('result').style.color = "red";
+                });
+        });
+
+        Instascan.Camera.getCameras().then(cameras => {
+            if (cameras.length > 0) {
+                scanner.start(cameras[0]);
+            } else {
+                alert('No cameras found.');
+            }
+        }).catch(e => console.error(e));
+    </script>
+</body>
+</html>
