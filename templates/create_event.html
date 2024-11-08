@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create A New Event</title>
     <style>
-        /* Container Styling */
         .event-form-container {
             max-width: 800px;
             margin: 0 auto;
@@ -14,29 +13,22 @@
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
-
-        /* Heading Colors */
         h2, h3 {
             color: #ff0000;
         }
-
         hr {
             border: 1px solid #f5f5f5;
             margin: 20px 0;
         }
-
-        /* Form Styling */
         form {
             display: flex;
             flex-direction: column;
             gap: 15px;
         }
-
         label {
             font-weight: bold;
             color: #333;
         }
-
         input[type="text"], input[type="date"], input[type="time"], input[type="number"], textarea {
             width: 100%;
             padding: 10px;
@@ -44,13 +36,10 @@
             border-radius: 5px;
             box-sizing: border-box;
         }
-
         textarea {
             resize: vertical;
         }
-
-        /* Submit Button Styling */
-        input[type="submit"] {
+        input[type="submit"], .add-ticket-button {
             padding: 10px 20px;
             background-color: #ff0000;
             color: white;
@@ -60,12 +49,9 @@
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
-
-        input[type="submit"]:hover {
+        input[type="submit"]:hover, .add-ticket-button:hover {
             background-color: #cc0000;
         }
-
-        /* Link Styling */
         .back-link {
             display: inline-block;
             margin-top: 20px;
@@ -73,26 +59,21 @@
             text-decoration: none;
             font-weight: bold;
         }
-
         .back-link:hover {
             color: #cc0000;
         }
-
-        /* Default and Custom Questions Styling */
         .questions-section {
             margin-top: 20px;
         }
-
-        .questions-section h3 {
-            color: #333;
+        .ticket-type {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
         }
-
-        .questions-section ul {
-            padding-left: 20px;
-            list-style-type: disc;
-        }
-
-        .questions-section p {
+        .info-text {
+            margin: 20px 0;
+            font-size: 0.9em;
             color: #555;
         }
     </style>
@@ -101,81 +82,207 @@
 {% extends "partials/base-logged-in.html" %}
 
 {% block content %}
+<div class="create-event-container">
+    <h1>Create Event</h1>
 
-    <div class="event-form-container">
-        <h2>Create Event</h2>
-        
-        <!-- Form for Creating a New Event -->
-        <form action="/create_event" method="POST">
-            <label for="name">Event Name:</label>
-            <input type="text" id="name" name="name" required>
+    <form method="POST" action="{{ url_for('create_event') }}">
+        <!-- Event Details -->
+        <label for="name">Event Name:</label>
+        <input type="text" id="name" name="name" required>
 
-            <label for="date">Event Date:</label>
-            <input type="date" id="date" name="date" required>
+        <label for="date">Event Date:</label>
+        <input type="date" id="date" name="date" required>
 
-            <label for="location">Event Location:</label>
-            <input type="text" id="location" name="location" required>
+        <label for="start_time">Start Time:</label>
+        <input type="time" id="start_time" name="start_time">
 
-            <label for="description">Event Description:</label>
-            <textarea id="description" name="description" rows="5" required></textarea>
+        <label for="end_time">End Time:</label>
+        <input type="time" id="end_time" name="end_time">
 
-            <label for="start_time">Start Time:</label>
-            <input type="time" id="start_time" name="start_time" required>
+        <label for="location">Location:</label>
+        <input type="text" id="location" name="location" required>
 
-            <label for="end_time">End Time:</label>
-            <input type="time" id="end_time" name="end_time" required>
+        <label for="description">Description:</label>
+        <textarea id="description" name="description"></textarea>
 
-            <label for="ticket_quantity">Ticket Quantity:</label>
-            <input type="number" id="ticket_quantity" name="ticket_quantity" min="1" required>
+        <label for="event_image">Event Image:</label>
+        <input type="file" id="event_image" name="event_image" accept="image/*">
 
-            <label for="ticket_price">Ticket Price (£):</label>
-            <input type="number" id="ticket_price" name="ticket_price" step="0.01" min="0" required>
+        <!-- Explanation for Ticket Limits -->
+        <div class="info-text">
+            <h3>Choose Your Ticket Strategy</h3>
+            <p>
+                You can choose to <strong>enforce individual ticket type limits</strong> or 
+                <strong>enforce total event capacity</strong>. 
+            </p>
+            <p>
+                If you enforce individual limits, you can control the number of tickets available for each ticket type (like VIP or General Admission). This is great for events with different access levels or limited availability.
+            </p>
+            <p>
+                On the other hand, if you prefer to enforce total capacity, you can simplify the ticketing process by focusing on the overall number of attendees. This option is ideal for larger events where managing multiple ticket types might not be necessary.
+            </p>
+        </div>
 
-            <!-- Reminder Section for Default Questions -->
-            <div class="questions-section">
-                <h3>Your Default Questions</h3>
-                {% if default_questions %}
-                    <ul>
-                        {% for question in default_questions %}
-                            <li>{{ question.question }}</li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p>You haven't set any default questions yet. <a href="/manage-default-questions" class="back-link">Set Default Questions</a></p>
-                {% endif %}
+       <!-- Option to Enforce Individual Ticket Limits -->
+       <label>
+        <input type="radio" name="enforce_individual_ticket_limits" value="on" checked onchange="toggleTicketOptions()">
+        Enforce individual ticket type limits
+    </label>
+    <label>
+        <input type="radio" name="enforce_individual_ticket_limits" value="off" onchange="toggleTicketOptions()">
+        Enforce total event capacity
+    </label>
+
+    <!-- Ticket Options -->
+    <div id="ticket-types-section">
+        <h3>Ticket Types</h3>
+        <div id="ticket-types-container">
+            <div class="ticket-type">
+                <label>Ticket Name:</label>
+                <input type="text" name="ticket_name[]" required>
+
+
+                <label>Price (£):</label>
+                <input type="number" step="0.01" name="ticket_price[]" required>
+
+
+                <div class="ticket-quantity-field">
+                    <label>Quantity:</label>
+                    <input type="number" name="ticket_quantity[]" required>
+                </div>
+
+                <button type="button" class="remove-ticket-type-button">Remove</button>
             </div>
+        </div>
+        <button type="button" id="add-ticket-type-button">Add Ticket Type</button>
+    </div>
 
-            <!-- Custom Questions for This Event -->
-            <div class="questions-section">
-                <h3>Custom Questions for This Event</h3>
-                <p>You can add up to 10 custom questions specific to this event.</p>
-                {% for i in range(1, 11) %}
-                    <label for="custom_question_{{ i }}">Custom Question {{ i }}:</label>
-                    <input type="text" id="custom_question_{{ i }}" name="custom_question_{{ i }}">
+    <!-- Total Event Capacity -->
+    <div id="total-capacity-section" style="display: none;">
+        <label for="total_ticket_quantity">Total Event Capacity:</label>
+        <input type="number" id="total_ticket_quantity" name="total_ticket_quantity" min="1" required>
+    </div>
+
+     <!-- Recurrence Pattern -->
+     <label for="recurrence_pattern">Repeat:</label>
+     <select name="recurrence_pattern" id="recurrence_pattern">
+         <option value="none">None</option>
+         <option value="daily">Daily</option>
+         <option value="weekly">Weekly</option>
+         <option value="monthly">Monthly</option>
+     </select>
+
+     <!-- Number of Occurrences -->
+     <label for="occurrences">Number of Occurrences:</label>
+     <input type="number" name="occurrences" id="occurrences" min="1" placeholder="e.g., 5" />
+
+
+     <!-- Reminder Section for Default Questions -->
+     <div class="questions-section">
+        <h3>Your Default Questions</h3>
+        {% if default_questions %}
+            <ul>
+                {% for question in default_questions %}
+                    <li>{{ question.question }}</li>
                 {% endfor %}
-            </div>
-
-            <input type="submit" value="Create Event">
-        </form>
-
-        <!-- Back to Dashboard Link -->
-        <a href="/dashboard" class="back-link">Back to Dashboard</a>
-
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <ul>
-                    {% for message in messages %}
-                        <li>{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        {% endwith %}
-
-        <!-- Error Messages -->
-        {% if error %}
-            <p>{{ error }}</p>
+            </ul>
+        {% else %}
+            <p>You haven't set any default questions yet. <a href="/manage-default-questions" class="back-link">Set Default Questions</a></p>
         {% endif %}
     </div>
-    {% endblock %}
 
+    <!-- Custom Questions for This Event -->
+    <div class="questions-section">
+        <h3>Custom Questions for This Event</h3>
+        <p>You can add up to 10 custom questions specific to this event.</p>
+        {% for i in range(1, 11) %}
+            <label for="custom_question_{{ i }}">Custom Question {{ i }}:</label>
+            <input type="text" id="custom_question_{{ i }}" name="custom_question_{{ i }}">
+        {% endfor %}
+    </div>
+
+    <button type="submit">Create Event</button>
+</form>
+</div>
+
+<!-- JavaScript to Handle Form Logic -->
+<script>
+function toggleTicketOptions() {
+    const enforceLimits = document.querySelector('input[name="enforce_individual_ticket_limits"]:checked').value === 'on';
+    const ticketTypesSection = document.getElementById('ticket-types-section');
+    const totalCapacitySection = document.getElementById('total-capacity-section');
+
+    if (enforceLimits) {
+        ticketTypesSection.style.display = 'block';
+        totalCapacitySection.style.display = 'none';
+    } else {
+        ticketTypesSection.style.display = 'block';  // Keep ticket types visible
+        totalCapacitySection.style.display = 'block';
+    }
+
+    // Show or hide quantity fields in ticket types
+    const quantityFields = document.querySelectorAll('.ticket-quantity-field');
+    quantityFields.forEach(function(field) {
+        field.style.display = enforceLimits ? 'block' : 'none';
+    });
+
+    // Adjust 'required' attribute on quantity inputs
+    const quantityInputs = document.querySelectorAll('.ticket-quantity-field input[name="ticket_quantity[]"]');
+    quantityInputs.forEach(function(input) {
+        if (enforceLimits) {
+            input.setAttribute('required', 'required');
+        } else {
+            input.removeAttribute('required');
+        }
+    });
+
+    // Adjust 'required' attribute for total capacity input
+    const totalCapacityInput = document.getElementById('total_ticket_quantity');
+    if (enforceLimits) {
+        totalCapacityInput.removeAttribute('required');
+    } else {
+        totalCapacityInput.setAttribute('required', 'required');
+    }
+}
+
+// Initialize the form based on the default selection
+document.addEventListener('DOMContentLoaded', function() {
+    toggleTicketOptions();
+});
+
+// Add Ticket Type Functionality
+document.getElementById('add-ticket-type-button').addEventListener('click', function() {
+    const container = document.getElementById('ticket-types-container');
+
+    const div = document.createElement('div');
+    div.classList.add('ticket-type');
+    div.innerHTML = `
+        <label>Ticket Name:</label>
+        <input type="text" name="ticket_name[]" required>
+
+        <label>Price (£):</label>
+        <input type="number" step="0.01" name="ticket_price[]" required>
+
+
+        <div class="ticket-quantity-field">
+            <label>Quantity:</label>
+            <input type="number" name="ticket_quantity[]" required>
+
+        </div>
+
+        <button type="button" class="remove-ticket-type-button">Remove</button>
+    `;
+    container.appendChild(div);
+
+    // Add event listener to the remove button
+    div.querySelector('.remove-ticket-type-button').addEventListener('click', function() {
+        container.removeChild(div);
+    });
+
+    // Re-apply the toggle to hide or show quantity fields
+    toggleTicketOptions();
+});
+</script>
+
+{% endblock %}
+</html>

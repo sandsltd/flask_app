@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Booking Confirmation - {{ event.name }}</title>
-    <!-- Include any CSS files or inline styles -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -25,10 +24,10 @@
             font-size: 32px;
             margin-bottom: 20px;
         }
-        .event-details, .organizer-details, .ticketrush-promo {
+        .event-details, .organizer-details, .qr-codes-section, .ticketrush-promo {
             margin-bottom: 30px;
         }
-        .event-details h2, .organizer-details h2, .ticketrush-promo h2 {
+        .event-details h2, .organizer-details h2, .qr-codes-section h2, .ticketrush-promo h2 {
             font-size: 24px;
             margin-bottom: 15px;
             color: #333;
@@ -45,6 +44,13 @@
             border-radius: 8px;
             margin-bottom: 20px;
         }
+        .qr-code {
+            width: 150px;
+            height: 150px;
+            margin: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
         .button {
             display: inline-block;
             background-color: #ff0000;
@@ -58,6 +64,16 @@
         .button:hover {
             background-color: #cc0000;
         }
+        .print-button {
+            margin-top: 20px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
         .footer {
             text-align: center;
             margin-top: 40px;
@@ -69,6 +85,11 @@
             text-decoration: none;
         }
     </style>
+    <script>
+        function printPage() {
+            window.print();
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -96,6 +117,21 @@
             <p><strong>Contact:</strong> <a href="mailto:{{ organizer.email }}">{{ organizer.email }}</a></p>
         </div>
 
+        <!-- QR Codes Section -->
+        <div class="qr-codes-section">
+            <h2>Your Ticket QR Codes</h2>
+            <p>The following QR codes have been emailed to you. You can also print them using the button below.</p>
+            <div style="display: flex; flex-wrap: wrap;">
+                {% for qr_code in qr_codes %}
+                    <div style="text-align: center; margin: 10px;">
+                        <p><strong>Attendee {{ loop.index }}</strong></p>
+                        <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code for Attendee {{ loop.index }}" class="qr-code">
+                    </div>
+                {% endfor %}
+            </div>
+            <button onclick="printPage()" class="print-button">Print Tickets</button>
+        </div>
+
         <!-- TicketRush Promotion -->
         <div class="ticketrush-promo">
             <h2>Looking to Organise and Sell Your Events?</h2>
@@ -110,4 +146,3 @@
     </div>
 </body>
 </html>
- 

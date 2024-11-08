@@ -5,14 +5,14 @@ Flask-Login>=0.5.0
 Flask-SQLAlchemy
 psycopg2-binary
 Flask-Migrate
-stripe==3.0.0
+stripe>=3.0.0  # Consider using a range to allow updates, e.g., stripe>=3.0.0,<4.0.0
 Flask-CORS
 pandas>=1.3.0
 openpyxl>=3.0.0  # For reading/writing Excel files
 xlsxwriter>=1.3.0  # For writing Excel files using pandas
-APScheduler==3.9.1.post1  # Or the latest stable version
-Flask-Mail==0.9.1
-markupsafe==2.1.2
+APScheduler>=3.9.1  # Use >= to allow minor updates unless specific version is needed
+Flask-Mail>=0.9.1
 MarkupSafe>=2.0
 itsdangerous>=2.0
 Flask-WTF>=1.0
+qrcode[pil]

@@ -85,39 +85,134 @@
         .back-link:hover {
             color: #c9302c;
         }
+
+            /* Additional Styles */
+    .ticket-type {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+
+    .ticket-type label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    .ticket-type input[type="text"],
+    .ticket-type input[type="number"] {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+    }
     </style>
 </head>
 
 {% extends "partials/base-logged-in.html" %}
 
 {% block content %}
-
 <div class="edit-event-container">
     <h1>Edit Event: {{ event.name }}</h1>
 
-    <!-- Form for Editing Event -->
-    <form method="POST" action="{{ url_for('edit_event', event_id=event.id) }}">
+    <form method="POST" action="{{ url_for('edit_event', event_id=event.id) }}" id="edit-event-form">
+        <!-- Event Details -->
         <label for="name">Event Name:</label>
         <input type="text" id="name" name="name" value="{{ event.name }}" required>
 
-        <label for="date">Event Date (DD-MM-YYYY):</label>
+        <label for="date">Event Date:</label>
         <input type="date" id="date" name="date" value="{{ event.date }}" required>
+
+        <label for="start_time">Start Time:</label>
+        <input type="time" id="start_time" name="start_time" value="{{ event.start_time }}">
+
+        <label for="end_time">End Time:</label>
+        <input type="time" id="end_time" name="end_time" value="{{ event.end_time }}">
 
         <label for="location">Location:</label>
         <input type="text" id="location" name="location" value="{{ event.location }}" required>
 
-        <label for="ticket_quantity">Total Tickets:</label>
-        <input type="number" id="ticket_quantity" name="ticket_quantity" value="{{ event.ticket_quantity }}" required>
+        <label for="description">Description:</label>
+        <textarea id="description" name="description">{{ event.description }}</textarea>
 
-        <label for="ticket_price">Ticket Price (£):</label>
-        <input type="number" id="ticket_price" name="ticket_price" step="0.01" value="{{ event.ticket_price }}" required>
+        <!-- Option to Enforce Individual Ticket Limits -->
+        <div>
+            <label>
+                <input type="radio" name="enforce_individual_ticket_limits" value="on"
+                    {% if event.enforce_individual_ticket_limits %}checked{% endif %}
+                    onclick="toggleTicketOptions()">
+                Enforce individual ticket type limits
+            </label>
+            <label>
+                <input type="radio" name="enforce_individual_ticket_limits" value="off"
+                    {% if not event.enforce_individual_ticket_limits %}checked{% endif %}
+                    onclick="toggleTicketOptions()">
+                Enforce total event capacity
+            </label>
+        </div>
+
+        <!-- Ticket Types with Limits Section -->
+        <div id="ticket-types-section" {% if not event.enforce_individual_ticket_limits %}style="display: none;"{% endif %}>
+            <h3>Ticket Types with Limits</h3>
+            <div id="ticket-types-container">
+                {% for ticket_type in ticket_types_with_limits %}
+                    <div class="ticket-type">
+                        <input type="hidden" name="existing_ticket_type_id" value="{{ ticket_type.id }}">
+                        <label>Ticket Name:</label>
+                        <input type="text" name="name_{{ ticket_type.id }}" value="{{ ticket_type.name }}" required>
+
+                        <label>Price (£):</label>
+                        <input type="number" step="0.01" name="price_{{ ticket_type.id }}" value="{{ ticket_type.price }}" required>
+
+                        <label>Quantity:</label>
+                        <input type="number" name="quantity_{{ ticket_type.id }}" value="{{ ticket_type.quantity }}" required>
+
+                        <label>
+                            Delete:
+                            <input type="checkbox" class="delete-checkbox" name="delete_{{ ticket_type.id }}">
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+            <button type="button" id="add-ticket-type-button">Add Ticket Type</button>
+        </div>
+
+        <!-- Ticket Types without Limits Section -->
+        <div id="ticket-types-no-limit-section" {% if event.enforce_individual_ticket_limits %}style="display: none;"{% endif %}>
+            <h3>Ticket Types without Quantities</h3>
+            <div id="ticket-types-no-limit-container">
+                {% for ticket_type in ticket_types_no_limits %}
+                <div class="ticket-type">
+                    <input type="hidden" name="existing_ticket_type_id_no_limit" value="{{ ticket_type.id }}">
+                    <label>Ticket Name:</label>
+                    <input type="text" name="name_no_limit_{{ ticket_type.id }}" value="{{ ticket_type.name }}" required>
+
+                    <label>Price (£):</label>
+                    <input type="number" step="0.01" name="price_no_limit_{{ ticket_type.id }}" value="{{ ticket_type.price }}" required>
+
+                    <label>
+                        Delete:
+                        <input type="checkbox" class="delete-checkbox-no-limit" name="delete_no_limit_{{ ticket_type.id }}">
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" id="add-ticket-type-no-limit-button">Add Ticket Type</button>
+        </div>
+
+        <!-- Total Event Capacity Section -->
+        <div id="total-capacity-section" {% if event.enforce_individual_ticket_limits %}style="display: none;"{% endif %}>
+            <label for="total_ticket_quantity">Total Event Capacity:</label>
+            <input type="number" id="total_ticket_quantity" name="total_ticket_quantity" value="{{ event.ticket_quantity }}" {% if not event.enforce_individual_ticket_limits %}required{% endif %}>
+        </div>
 
         <!-- Custom Questions Section -->
         <h3>Custom Questions</h3>
-
         {% for i in range(1, 11) %}
             <div class="form-group">
-                <label for="custom_question_{{ i }}">Question {{ i }}:</label>
+                <label for="custom_question_{{ i }}">Custom Question {{ i }}:</label>
                 <input type="text" id="custom_question_{{ i }}" name="custom_question_{{ i }}" 
                        value="{{ custom_questions['custom_question_' + i|string] }}">
                 <small>Leave blank to delete this question</small>
@@ -127,9 +222,110 @@
         <button type="submit">Save Changes</button>
     </form>
 
-    <!-- Back to Dashboard Link -->
-    <a href="{{ url_for('dashboard') }}" class="back-link">Back to Dashboard</a>
+    <!-- Warning for Deletion Restriction -->
+    <div id="delete-warning" style="display: none; color: red; text-align: center; margin-top: 20px;">
+        You must have at least one ticket type. If you wish to delete the event entirely, please do so from your dashboard.
+    </div>
 </div>
+
+<!-- JavaScript to Handle Form Logic -->
+<script>
+    function toggleTicketOptions() {
+        const enforceLimits = document.querySelector('input[name="enforce_individual_ticket_limits"]:checked').value === 'on';
+        const ticketTypesSection = document.getElementById('ticket-types-section');
+        const ticketTypesNoLimitSection = document.getElementById('ticket-types-no-limit-section');
+        const totalCapacitySection = document.getElementById('total-capacity-section');
+
+        if (enforceLimits) {
+            ticketTypesSection.style.display = 'block';
+            ticketTypesNoLimitSection.style.display = 'none';
+            totalCapacitySection.style.display = 'none';
+        } else {
+            ticketTypesSection.style.display = 'none';
+            ticketTypesNoLimitSection.style.display = 'block';
+            totalCapacitySection.style.display = 'block';
+        }
+
+        // Toggle 'required' attribute for individual ticket quantities
+        document.querySelectorAll('.ticket-type input[name^="quantity_"]').forEach(input => {
+            enforceLimits ? input.setAttribute('required', 'required') : input.removeAttribute('required');
+        });
+
+        // Toggle 'required' attribute for total event capacity
+        const totalCapacityInput = document.getElementById('total_ticket_quantity');
+        if (enforceLimits) {
+            totalCapacityInput.removeAttribute('required');
+        } else {
+            totalCapacityInput.setAttribute('required', 'required');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleTicketOptions();
+    });
+
+    // Add Ticket Type with Quantity
+    document.getElementById('add-ticket-type-button').addEventListener('click', function() {
+        const container = document.getElementById('ticket-types-container');
+        const div = document.createElement('div');
+        div.classList.add('ticket-type');
+        div.innerHTML = `
+            <input type="hidden" name="new_ticket_type_id" value="new">
+            <label>Ticket Name:</label>
+            <input type="text" name="new_ticket_name" required>
+            <label>Price (£):</label>
+            <input type="number" step="0.01" name="new_ticket_price" required>
+            <label>Quantity:</label>
+            <input type="number" name="new_ticket_quantity" required>
+            <button type="button" class="remove-ticket-type-button">Remove</button>
+        `;
+        container.appendChild(div);
+        div.querySelector('.remove-ticket-type-button').addEventListener('click', function() {
+            container.removeChild(div);
+        });
+    });
+
+    // Add Ticket Type without Quantity
+    document.getElementById('add-ticket-type-no-limit-button').addEventListener('click', function() {
+        const container = document.getElementById('ticket-types-no-limit-container');
+        const div = document.createElement('div');
+        div.classList.add('ticket-type');
+        div.innerHTML = `
+            <input type="hidden" name="new_ticket_type_id_no_limit" value="new">
+            <label>Ticket Name:</label>
+            <input type="text" name="new_ticket_name_no_limit" required>
+            <label>Price (£):</label>
+            <input type="number" step="0.01" name="new_ticket_price_no_limit" required>
+            <button type="button" class="remove-ticket-type-button">Remove</button>
+        `;
+        container.appendChild(div);
+        div.querySelector('.remove-ticket-type-button').addEventListener('click', function() {
+            container.removeChild(div);
+        });
+    });
+
+    // Form submission validation for ticket types
+    document.getElementById('edit-event-form').addEventListener('submit', function(event) {
+        const enforceLimits = document.querySelector('input[name="enforce_individual_ticket_limits"]:checked').value === 'on';
+        let ticketTypesPresent = false;
+
+        if (enforceLimits) {
+            const ticketNames = document.querySelectorAll('input[name^="name_"], input[name="new_ticket_name"]');
+            ticketTypesPresent = ticketNames.length > 0;
+        } else {
+            const existingTicketNamesNoLimit = document.querySelectorAll('input[name^="name_no_limit_"]');
+            const newTicketNamesNoLimit = document.querySelectorAll('input[name="new_ticket_name_no_limit"]');
+            ticketTypesPresent = (existingTicketNamesNoLimit.length + newTicketNamesNoLimit.length) > 0;
+        }
+
+        if (!ticketTypesPresent) {
+            event.preventDefault();
+            document.getElementById('delete-warning').style.display = 'block';
+        } else {
+            document.getElementById('delete-warning').style.display = 'none';
+        }
+    });
+</script>
 
 {% endblock %}
 </html>

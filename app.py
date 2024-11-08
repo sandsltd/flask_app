@@ -13,7 +13,7 @@ from flask_cors import CORS
 import json
 from flask import request, redirect, url_for, render_template, flash
 from urllib.parse import urlparse
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import pandas as pd
 from io import BytesIO
@@ -29,12 +29,19 @@ from markupsafe import escape
 from markupsafe import Markup
 from itsdangerous import URLSafeTimedSerializer
 from flask import current_app
+from dotenv import load_dotenv
+import qrcode
+from io import BytesIO
+from flask import send_file
+from PIL import Image
+import base64
+from sqlalchemy import func
 
 
 
+load_dotenv()
 
 app = Flask(__name__)
-
 
 # Enable CORS for all routes and origins
 CORS(app)  # This will allow all origins by default, but you can restrict it if needed.
@@ -48,9 +55,11 @@ login_manager.init_app(app)
  
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 
-# Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+print("Database URI:", app.config['SQLALCHEMY_DATABASE_URI'])
+
 # Configuration for Flask-Mail
 app.config['MAIL_SERVER'] = 'mail.ticketrush.io'
 app.config['MAIL_PORT'] = 465
@@ -61,15 +70,18 @@ app.config['MAIL_USE_SSL'] = True
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')  # Default sender email
 # Configure upload limits and paths
 app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 5 MB limit
-app.config['UPLOAD_FOLDER'] = '/path/to/uploads'  # Temporary storage for file uploads
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+# Set the upload folder in the configuration
+app.config['UPLOAD_FOLDER_EVENTS'] = 'static/uploads/events'
+app.config['UPLOAD_FOLDER_LOGOS'] = 'static/uploads/logos'
 
+os.makedirs(app.config['UPLOAD_FOLDER_EVENTS'], exist_ok=True)
+os.makedirs(app.config['UPLOAD_FOLDER_LOGOS'], exist_ok=True)
 
 mail = Mail(app)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -86,6 +98,7 @@ class User(db.Model, UserMixin):
     onboarding_status = db.Column(db.String(20), default="pending")  # Onboarding status
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # Add created_at timestamp
     first_login = db.Column(db.String(1), nullable=True)
+    business_logo_url = db.Column(db.String(255), nullable=True)
 
     # Address fields
     house_name_or_number = db.Column(db.String(255), nullable=False)
@@ -120,12 +133,10 @@ class User(db.Model, UserMixin):
             return None
         return User.query.get(user_id)
 
-
-
-
-
 # Event model
 class Event(db.Model):
+    __tablename__ = 'event'
+    
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     date = db.Column(db.String(120), nullable=False)
@@ -133,10 +144,8 @@ class Event(db.Model):
     description = db.Column(db.Text, nullable=False)
     start_time = db.Column(db.String(50), nullable=False)
     end_time = db.Column(db.String(50), nullable=False)
-    ticket_quantity = db.Column(db.Integer, nullable=False)
-    ticket_price = db.Column(db.Float, nullable=False)
-    event_image = db.Column(db.String(300), nullable=True)  # Optional event image URL
-
+    
+    
     # Custom questions
     custom_question_1 = db.Column(db.String(255), nullable=True)
     custom_question_2 = db.Column(db.String(255), nullable=True)
@@ -149,7 +158,15 @@ class Event(db.Model):
     custom_question_9 = db.Column(db.String(255), nullable=True)
     custom_question_10 = db.Column(db.String(255), nullable=True)
 
+
+    # Foreign key relationship to User
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    # Relationship to TicketType
+    ticket_types = db.relationship('TicketType', back_populates='event', cascade='all, delete-orphan')
+    ticket_quantity = db.Column(db.Integer, nullable=True)  # Total event capacity
+    enforce_individual_ticket_limits = db.Column(db.Boolean, default=True)
+    image_url = db.Column(db.String(255), nullable=True)  # To store the image file path
 
 class Attendee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -165,9 +182,41 @@ class Attendee(db.Model):
     phone_number = db.Column(db.String(50), nullable=False)
     tickets_purchased = db.Column(db.Integer, nullable=False)
     ticket_price_at_purchase = db.Column(db.Float, nullable=False)
+    ticket_number = db.Column(db.String(20), unique=True, nullable=True)  # New ticket_number column
+    qr_image_path = db.Column(db.String(255), nullable=True)
 
+    ticket_type_id = db.Column(db.Integer, db.ForeignKey('ticket_type.id'), nullable=False)
+    
+    # Relationship to TicketType
+    ticket_type = db.relationship('TicketType', backref=db.backref('attendees', lazy=True))
+    
     # Relationship to the Event model
     event = db.relationship('Event', backref=db.backref('attendees', passive_deletes=True))
+
+    @property
+    def ticket_answers_dict(self):
+        if not hasattr(self, '_ticket_answers_dict'):
+            if self.ticket_answers:
+                try:
+                    self._ticket_answers_dict = json.loads(self.ticket_answers)
+                except json.JSONDecodeError:
+                    self._ticket_answers_dict = {}
+            else:
+                self._ticket_answers_dict = {}
+        return self._ticket_answers_dict
+
+    @property
+    def billing_details_dict(self):
+        if not hasattr(self, '_billing_details_dict'):
+            if self.billing_details:
+                try:
+                    self._billing_details_dict = json.loads(self.billing_details)
+                except json.JSONDecodeError:
+                    self._billing_details_dict = {}
+            else:
+                self._billing_details_dict = {}
+        return self._billing_details_dict
+
 
 
 
@@ -175,6 +224,19 @@ class DefaultQuestion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     question = db.Column(db.String(255), nullable=False)
+
+class TicketType(db.Model):
+    __tablename__ = 'ticket_type'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    quantity = db.Column(db.Integer, nullable=True)  # Allowing NULLs now
+
+    # Relationship back to Event
+    event = db.relationship('Event', back_populates='ticket_types')
+
 
 # Generate a random unique ID with 15 characters
 def generate_unique_id():
@@ -259,7 +321,7 @@ def dashboard():
         user_events = [event for event in user_events if str_to_date(event.date) and str_to_date(event.date) >= datetime.now()]
     elif filter_value == 'past':
         user_events = [event for event in user_events if str_to_date(event.date) and str_to_date(event.date) < datetime.now()]
-    
+
     # Sort events by date
     user_events.sort(key=lambda event: str_to_date(event.date) or datetime.max)
 
@@ -268,10 +330,46 @@ def dashboard():
 
     event_data = []
     for event in user_events:
+        # Calculate total tickets sold and revenue for the event
         succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
-        tickets_sold = sum([attendee.tickets_purchased for attendee in succeeded_attendees])
-        tickets_remaining = event.ticket_quantity - tickets_sold
-        event_revenue = sum([attendee.tickets_purchased * attendee.ticket_price_at_purchase for attendee in succeeded_attendees])
+        tickets_sold = len(succeeded_attendees)
+
+        # Adjust total ticket quantity calculation based on enforcement setting
+        if event.enforce_individual_ticket_limits:
+            total_ticket_quantity = sum([ticket_type.quantity or 0 for ticket_type in event.ticket_types])
+        else:
+            total_ticket_quantity = event.ticket_quantity or 0
+
+        # Calculate tickets sold and remaining per ticket type
+        ticket_breakdown = []
+        for ticket_type in event.ticket_types:
+            # Count the number of attendees for this ticket type
+            tickets_sold_type = Attendee.query.filter_by(
+                event_id=event.id,
+                ticket_type_id=ticket_type.id,
+                payment_status='succeeded'
+            ).count()
+            if event.enforce_individual_ticket_limits:
+                tickets_remaining_type = (ticket_type.quantity or 0) - tickets_sold_type
+                total_quantity = ticket_type.quantity
+            else:
+                # When individual limits are not enforced, total_quantity is the event's total capacity
+                tickets_remaining_type = (total_ticket_quantity or 0) - tickets_sold
+                total_quantity = total_ticket_quantity
+
+            ticket_breakdown.append({
+                'name': ticket_type.name,
+                'price': ticket_type.price,
+                'tickets_sold': tickets_sold_type,
+                'tickets_remaining': tickets_remaining_type,
+                'total_quantity': total_quantity
+            })
+
+        # Calculate overall tickets remaining
+        tickets_remaining = total_ticket_quantity - tickets_sold
+
+        # Calculate total revenue for the event
+        event_revenue = sum([attendee.ticket_price_at_purchase for attendee in succeeded_attendees])
 
         total_tickets_sold += tickets_sold
         total_revenue += event_revenue
@@ -284,11 +382,13 @@ def dashboard():
             'date': event.date,
             'location': event.location,
             'tickets_sold': tickets_sold,
-            'ticket_quantity': event.ticket_quantity,
+            'ticket_quantity': total_ticket_quantity,
             'tickets_remaining': tickets_remaining,
             'total_revenue': event_revenue,
             'status': event_status,
-            'id': event.id
+            'id': event.id,
+            'ticket_breakdown': ticket_breakdown,  # Include ticket breakdown
+            'enforce_individual_ticket_limits': event.enforce_individual_ticket_limits  # Pass the flag
         })
 
     return render_template('dashboard.html', 
@@ -358,7 +458,7 @@ def register():
                 postcode=postcode,
                 stripe_connect_id=None,
                 onboarding_status="pending",
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
                 first_login="N"  # Set first_login to "N" upon registration
             )
 
@@ -394,74 +494,109 @@ def register():
 
 
 
-# Event creation route
 @app.route('/create_event', methods=['GET', 'POST'])
 @login_required
 def create_event():
     if request.method == 'POST':
+        # Basic event details
         name = request.form['name']
         date = request.form['date']
+        start_time = request.form.get('start_time')
+        end_time = request.form.get('end_time')
         location = request.form['location']
-        description = request.form['description']
-        start_time = request.form['start_time']
-        end_time = request.form['end_time']
-        ticket_quantity = request.form['ticket_quantity']
-        ticket_price = request.form['ticket_price']
+        description = request.form.get('description')
+
+        # Handle recurrence details
+        recurrence = request.form.get('recurrence')  # Options: 'none', 'daily', 'weekly', 'monthly'
+        occurrences = int(request.form.get('occurrences', 1))  # Default to 1 occurrence if not specified
+
+        # Enforce individual ticket limits
+        enforce_limits = request.form.get('enforce_individual_ticket_limits') == 'on'
+        total_ticket_quantity = request.form.get('total_ticket_quantity', type=int) if not enforce_limits else None
+
+        # Process ticket types
+        ticket_names = request.form.getlist('ticket_name[]')
+        ticket_prices = request.form.getlist('ticket_price[]')
+        if enforce_limits:
+            ticket_quantities = request.form.getlist('ticket_quantity[]')
+        else:
+            ticket_quantities = [None] * len(ticket_names)
 
         # Capture custom questions for the event
-        custom_question_1 = request.form.get('custom_question_1')
-        custom_question_2 = request.form.get('custom_question_2')
-        custom_question_3 = request.form.get('custom_question_3')
-        custom_question_4 = request.form.get('custom_question_4')
-        custom_question_5 = request.form.get('custom_question_5')
-        custom_question_6 = request.form.get('custom_question_6')
-        custom_question_7 = request.form.get('custom_question_7')
-        custom_question_8 = request.form.get('custom_question_8')
-        custom_question_9 = request.form.get('custom_question_9')
-        custom_question_10 = request.form.get('custom_question_10')
+        custom_questions = [request.form.get(f'custom_question_{i}') for i in range(1, 11)]
 
         # Fetch default questions from the database
         default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
-
-        # We can now add these default questions to the custom ones
         default_question_texts = [dq.question for dq in default_questions]
 
-        # Create the new event
-        new_event = Event(
-            name=name,
-            date=date,
-            location=location,
-            description=description,
-            start_time=start_time,
-            end_time=end_time,
-            ticket_quantity=ticket_quantity,
-            ticket_price=ticket_price,
-            custom_question_1=custom_question_1 or (default_question_texts[0] if len(default_question_texts) > 0 else None),
-            custom_question_2=custom_question_2 or (default_question_texts[1] if len(default_question_texts) > 1 else None),
-            custom_question_3=custom_question_3 or (default_question_texts[2] if len(default_question_texts) > 2 else None),
-            custom_question_4=custom_question_4 or (default_question_texts[3] if len(default_question_texts) > 3 else None),
-            custom_question_5=custom_question_5 or (default_question_texts[4] if len(default_question_texts) > 4 else None),
-            custom_question_6=custom_question_6 or (default_question_texts[5] if len(default_question_texts) > 5 else None),
-            custom_question_7=custom_question_7 or (default_question_texts[6] if len(default_question_texts) > 6 else None),
-            custom_question_8=custom_question_8 or (default_question_texts[7] if len(default_question_texts) > 7 else None),
-            custom_question_9=custom_question_9 or (default_question_texts[8] if len(default_question_texts) > 8 else None),
-            custom_question_10=custom_question_10 or (default_question_texts[9] if len(default_question_texts) > 9 else None),
-            user_id=current_user.id
-        )
+        # Define date increment based on recurrence pattern
+        def get_next_date(current_date, pattern):
+            if pattern == 'daily':
+                return current_date + timedelta(days=1)
+            elif pattern == 'weekly':
+                return current_date + timedelta(weeks=1)
+            elif pattern == 'monthly':
+                return current_date + timedelta(weeks=4)  # Approximate monthly interval
+            return current_date  # No recurrence
 
-        db.session.add(new_event)
-        db.session.commit()
+        # Handle image upload
+        image_url = None
+        file = request.files.get('image_url')
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER_EVENTS'], filename)
+            file.save(file_path)
+            image_url = file_path  # Store relative path or URL as needed
 
-        flash('Event created successfully!')
+        # Create each event occurrence
+        current_date = date
+        for i in range(occurrences):
+            # Create event instance with custom and default questions
+            event = Event(
+                user_id=current_user.id,
+                name=name,
+                date=current_date,
+                start_time=start_time,
+                end_time=end_time,
+                location=location,
+                description=description,
+                ticket_quantity=total_ticket_quantity,
+                enforce_individual_ticket_limits=enforce_limits,
+                image_url=image_url,  # Store the image URL in the event record
+                custom_question_1=custom_questions[0] or (default_question_texts[0] if len(default_question_texts) > 0 else None),
+                custom_question_2=custom_questions[1] or (default_question_texts[1] if len(default_question_texts) > 1 else None),
+                # Continue for other custom questions...
+            )
+            db.session.add(event)
+            db.session.commit()
+
+            # Add ticket types for this event
+            for t_name, t_price, t_quantity in zip(ticket_names, ticket_prices, ticket_quantities):
+                if t_name and t_price:
+                    ticket_type = TicketType(
+                        event_id=event.id,
+                        name=t_name,
+                        price=float(t_price),
+                        quantity=int(t_quantity) if enforce_limits and t_quantity else None
+                    )
+                    db.session.add(ticket_type)
+            db.session.commit()
+
+            # Update current_date for next recurrence
+            current_date = get_next_date(current_date, recurrence)
+
+        flash(f'{occurrences} occurrences of the event created successfully!')
         return redirect(url_for('dashboard'))
 
-    # Pass the default questions to the form so they can be displayed
+    # Fetch and pass default questions for display in form
     default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
     return render_template('create_event.html', default_questions=default_questions)
 
 
 
-"""
+
+
+
 @app.route('/reset_db')
 def reset_db():
     try:
@@ -471,7 +606,7 @@ def reset_db():
     except Exception as e:
         return f"An error occurred during reset: {str(e)}"
 
-"""
+
 
 from markupsafe import escape
 
@@ -742,8 +877,7 @@ def embed_events(unique_id):
 def cancel():
     return "Payment canceled. You can try again."
 
-if __name__ == "__main__":
-    app.run(debug=True)
+
 
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
@@ -759,7 +893,7 @@ def manage_default_questions():
     user = User.query.get(current_user.id)
 
     if request.method == 'POST':
-        # Collect form data
+        # Collect form data for user profile updates
         first_name = request.form.get('first_name').strip()
         last_name = request.form.get('last_name').strip()
         phone_number = request.form.get('phone_number').strip()
@@ -797,10 +931,17 @@ def manage_default_questions():
         if terms_link.lower() == 'none' or not terms_link:
             user.terms = 'none'
         else:
-            # Add https:// if missing
             if not re.match(r'^https?://', terms_link):
                 terms_link = 'https://' + terms_link
             user.terms = terms_link
+
+        # Handle the logo file upload
+        logo_file = request.files.get('business_logo')
+        if logo_file and allowed_file(logo_file.filename):
+            filename = secure_filename(logo_file.filename)
+            logo_path = os.path.join(app.config['UPLOAD_FOLDER_LOGOS'], filename)
+            logo_file.save(logo_path)
+            user.business_logo_url = logo_path  # Store the relative path in the user record
 
         # Process default questions
         questions = request.form.getlist('questions[]')
@@ -812,7 +953,6 @@ def manage_default_questions():
             if i < len(existing_questions):
                 existing_questions[i].question = question_text
             else:
-                # Add new questions if any
                 if question_text:
                     new_question = DefaultQuestion(user_id=user.id, question=question_text)
                     db.session.add(new_question)
@@ -824,16 +964,12 @@ def manage_default_questions():
 
         # Commit changes to the database
         db.session.commit()
-
-        # Flash success message and redirect to dashboard
         flash('Account settings successfully updated.')
         return redirect(url_for('dashboard'))
 
-    # GET request
-    # Render the settings page
+    # GET request - render the form
     questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
     return render_template('manage_default_questions.html', user=user, questions=questions)
-
 
 
 
@@ -864,13 +1000,19 @@ def calculate_total_charge_and_booking_fee(n_tickets, ticket_price_gbp):
 
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
 def purchase(event_id):
-    # Fetch the event and organizer
-    event = Event.query.get(event_id)
-    if not event:
-        return "Event not found", 404
+    event = Event.query.get_or_404(event_id)
+    print(f"Event ID: {event.id}, Ticket Quantity: {event.ticket_quantity}")
     organizer = User.query.get(event.user_id)
     if not organizer:
         return "Event organizer not found", 404
+    
+        # Initialize variables
+    attendees = []
+    total_amount = 0  # Total amount in pence
+    line_items = []
+    booking_fee_pence = 0  # Initialize booking fee
+    total_tickets_requested = 0
+    total_tickets_sold = 0  # Initialize to 0
 
     # Collect questions
     default_questions = DefaultQuestion.query.filter_by(user_id=organizer.id).order_by(DefaultQuestion.id).all()
@@ -878,106 +1020,186 @@ def purchase(event_id):
     custom_questions = [getattr(event, f'custom_question_{i}') for i in range(1, 11) if getattr(event, f'custom_question_{i}', None)]
     all_questions = default_question_texts + [q for q in custom_questions if q not in default_question_texts]
 
+    # Fetch ticket types
+    ticket_types = event.ticket_types
+
     if request.method == 'POST':
         session_id = str(uuid4())
         full_name = request.form.get('full_name')
         email = request.form.get('email')
         phone_number = request.form.get('phone_number')
-        number_of_tickets = int(request.form.get('number_of_tickets', 1))
 
+        # Validate required fields
         if not all([full_name, email, phone_number]):
             flash('Please fill in all required fields.')
             return redirect(url_for('purchase', event_id=event_id))
 
-        if number_of_tickets > event.ticket_quantity:
-            flash('Requested number of tickets exceeds available tickets.')
-            return redirect(url_for('purchase', event_id=event_id))
-
         if organizer.terms and organizer.terms.lower() != 'none':
             if not request.form.get('accept_organizer_terms'):
-                flash('You must accept the event organizer\'s Terms and Conditions.')
+                flash("You must accept the event organizer's Terms and Conditions.")
                 return redirect(url_for('purchase', event_id=event_id))
 
         if not request.form.get('accept_platform_terms'):
-            flash('You must accept the platform\'s Terms and Conditions.')
+            flash("You must accept the platform's Terms and Conditions.")
             return redirect(url_for('purchase', event_id=event_id))
 
-        # Loop to create an `Attendee` entry for each ticket
+        # Initialize variables
         attendees = []
-        for i in range(number_of_tickets):
-            ticket_answers = {}
-            for q_index, question in enumerate(all_questions):
-                answer_key = f'ticket_{i}_question_{q_index}'
-                answer = request.form.get(answer_key)
-                if not answer:
-                    flash(f'Please answer all questions for Ticket {i + 1}.')
-                    return redirect(url_for('purchase', event_id=event_id))
-                ticket_answers[question] = answer
+        total_amount = 0  # Total amount in pence
+        line_items = []
+        booking_fee_pence = 0  # Initialize booking fee
+        total_tickets_requested = 0
 
-            attendee = Attendee(
-                event_id=event_id,
-                ticket_answers=json.dumps(ticket_answers),
-                payment_status='pending',
-                full_name=full_name,
-                email=email,
-                phone_number=phone_number,
-                tickets_purchased=1,
-                ticket_price_at_purchase=event.ticket_price,
-                session_id=session_id,
-                created_at=datetime.utcnow()
-            )
-            db.session.add(attendee)
-            attendees.append(attendee)
+        # Collect quantities for each ticket type
+        quantities = {}
+        for ticket_type in ticket_types:
+            quantity_str = request.form.get(f'quantity_{ticket_type.id}', '0')
+            quantity = int(quantity_str)
+            quantities[ticket_type.id] = quantity
+            if quantity > 0:
+                total_tickets_requested += quantity
+
+                if event.enforce_individual_ticket_limits and ticket_type.quantity is not None:
+                    # Check if requested quantity exceeds available tickets for this type
+                    tickets_sold_type = Attendee.query.filter_by(
+                        event_id=event.id,
+                        ticket_type_id=ticket_type.id,
+                        payment_status='succeeded'
+                    ).count()
+                    tickets_remaining = ticket_type.quantity - tickets_sold_type
+                    if quantity > tickets_remaining:
+                        flash(f"Cannot purchase {quantity} tickets for {ticket_type.name}. Only {tickets_remaining} tickets are available.")
+                        return redirect(url_for('purchase', event_id=event_id))
+                else:
+                    # Will check total capacity later
+                    pass
+
+        # If individual ticket limits are not enforced, check total event capacity
+        if not event.enforce_individual_ticket_limits:
+            total_tickets_sold = db.session.query(
+                func.sum(Attendee.tickets_purchased)
+            ).filter_by(event_id=event.id, payment_status='succeeded').scalar() or 0
+            tickets_available = event.ticket_quantity - total_tickets_sold
+            if total_tickets_requested > tickets_available:
+                flash(f"Cannot purchase {total_tickets_requested} tickets. Only {tickets_available} tickets are available.")
+                return redirect(url_for('purchase', event_id=event_id))
+        else:
+            # When individual ticket limits are enforced, tickets_available isn't used in the same way
+            tickets_available = None  # Or handle accordingly
+
+        # Collect custom questions
+        questions = all_questions
+        attendee_answers = {}
+
+        # Collect answers for each ticket
+        for ticket_type in ticket_types:
+            quantity = quantities[ticket_type.id]
+            for i in range(quantity):
+                answers = {}
+                for q_index, question in enumerate(questions):
+                    answer_key = f'ticket_{ticket_type.id}_{i}_question_{q_index}'
+                    answer = request.form.get(answer_key)
+                    if not answer:
+                        flash(f'Please answer all questions for {ticket_type.name} Ticket {i + 1}.')
+                        return redirect(url_for('purchase', event_id=event_id))
+                    answers[question] = answer
+                attendee_answers[(ticket_type.id, i)] = answers
+
+        # Create Attendee entries and calculate amounts
+        for ticket_type in ticket_types:
+            quantity = quantities[ticket_type.id]
+            if quantity > 0:
+                for i in range(quantity):
+                    ticket_number = generate_unique_ticket_number()
+                    answers = attendee_answers.get((ticket_type.id, i), {})
+
+                    attendee = Attendee(
+                        event_id=event.id,
+                        ticket_type_id=ticket_type.id,
+                        ticket_answers=json.dumps(answers),
+                        payment_status='pending',
+                        full_name=full_name,
+                        email=email,
+                        phone_number=phone_number,
+                        tickets_purchased=1,
+                        ticket_price_at_purchase=ticket_type.price,
+                        session_id=session_id,
+                        created_at=datetime.now(timezone.utc),
+                        ticket_number=ticket_number
+                    )
+                    db.session.add(attendee)
+                    attendees.append(attendee)
+
+                # Calculate total amount
+                total_amount += quantity * ticket_type.price * 100  # Convert to pence
+
+                # Add line item for Stripe checkout if price > 0
+                if ticket_type.price > 0:
+                    line_items.append({
+                        'price_data': {
+                            'currency': 'gbp',
+                            'product_data': {'name': f"{event.name} - {ticket_type.name}"},
+                            'unit_amount': int(ticket_type.price * 100),  # price in pence
+                        },
+                        'quantity': quantity,
+                    })
+
+                    # Calculate booking fee (e.g., 5% per ticket)
+                    booking_fee_per_ticket = int(ticket_type.price * 100 * 0.05)
+                    booking_fee_pence += booking_fee_per_ticket * quantity
+
+        if not attendees:
+            flash('Please select at least one ticket.')
+            return redirect(url_for('purchase', event_id=event_id))
 
         db.session.commit()
 
-        if event.ticket_price == 0:
+        # Handle free tickets
+        if total_amount == 0:
             for attendee in attendees:
-                attendee.payment_status = 'succeeded'
+                attendee.payment_status = 'succeeded'  # Mark as paid for free tickets
             db.session.commit()
-            billing_details = {'name': full_name, 'email': email, 'phone': phone_number, 'address': {}}
-            send_confirmation_email_to_attendee(attendees[0], billing_details)
+
+            # Set up billing details for the confirmation email
+            billing_details = {'name': full_name, 'email': email, 'phone': phone_number}
+
+            # Send confirmation emails for free tickets
+            send_confirmation_email_to_attendee(attendees, billing_details)
             send_confirmation_email_to_organizer(organizer, attendees, billing_details, event)
+
             flash('Your free ticket(s) have been booked successfully!')
             return redirect(url_for('success', session_id=session_id))
 
         else:
-            # Calculate fees and total amount in pence
-            ticket_total = number_of_tickets * event.ticket_price * 100  # Ticket price in pence
-            platform_fee_pence = 30 * number_of_tickets  # Platform fee (30p per ticket)
-            transaction_fee_pence = 20  # Flat 20p transaction fee
-            stripe_fee_pence = int((ticket_total + platform_fee_pence) * 0.029) + transaction_fee_pence
-            booking_fee_pence = platform_fee_pence + stripe_fee_pence
-            total_charge_pence = ticket_total + booking_fee_pence
-
+            # Paid ticket logic with Stripe integration
+            # Calculate Stripe fees, booking fees, total amount, etc.
             # Adjust platform fee to cover Stripe’s processing cut
-            adjusted_platform_fee = int(platform_fee_pence / 0.971)  # Adjusted to counter 2.9% Stripe fee
+            platform_fee_pence = booking_fee_pence
+            transaction_fee_pence = 20  # Flat 20p transaction fee
+            stripe_fee_pence = int((total_amount + platform_fee_pence) * 0.014) + transaction_fee_pence  # Assuming 1.4% + 20p
+            total_booking_fee_pence = platform_fee_pence + stripe_fee_pence
+            total_charge_pence = total_amount + total_booking_fee_pence
+
+            adjusted_platform_fee = int(platform_fee_pence / 0.971)  # Adjusted to counter Stripe fee
+
+            # Add booking fee as a separate line item
+            line_items.append({
+                'price_data': {
+                    'currency': 'gbp',
+                    'product_data': {
+                        'name': 'Booking Fee',
+                        'description': ' ',
+                    },
+                    'unit_amount': total_booking_fee_pence,
+                },
+                'quantity': 1,
+            })
 
             # Stripe checkout session
             try:
                 checkout_session = stripe.checkout.Session.create(
                     payment_method_types=['card'],
-                    line_items=[
-                        {
-                            'price_data': {
-                                'currency': 'gbp',
-                                'product_data': {'name': event.name},
-                                'unit_amount': int(event.ticket_price * 100),
-                            },
-                            'quantity': number_of_tickets,
-                        },
-                        {
-                            'price_data': {
-                                'currency': 'gbp',
-                                'product_data': {
-                                    'name': 'Booking Fee',
-                                    'description': ' ',
-                                },
-                                'unit_amount': booking_fee_pence,
-                            },
-                            'quantity': 1,
-                        }
-                    ],
+                    line_items=line_items,
                     mode='payment',
                     success_url=url_for('success', session_id=session_id, _external=True),
                     cancel_url=url_for('cancel', _external=True),
@@ -993,6 +1215,12 @@ def purchase(event_id):
                     customer_email=email
                 )
 
+                # Update attendees with the session ID
+                for attendee in attendees:
+                    attendee.session_id = checkout_session.id
+
+                db.session.commit()
+
                 return redirect(checkout_session.url)
 
             except Exception as e:
@@ -1004,15 +1232,29 @@ def purchase(event_id):
         platform_terms_link = 'https://your-platform-domain.com/terms-and-conditions'
         organizer_terms_link = organizer.terms if organizer.terms and organizer.terms.lower() != 'none' else None
 
+        # Prepare the custom questions
+        questions = all_questions
+
+        # Calculate tickets available for total capacity events
+        if not event.enforce_individual_ticket_limits:
+            total_tickets_sold = db.session.query(
+                func.sum(Attendee.tickets_purchased)
+            ).filter_by(event_id=event.id, payment_status='succeeded').scalar() or 0
+            tickets_available = event.ticket_quantity - total_tickets_sold
+        else:
+            tickets_available = None
+
         return render_template(
             'purchase.html',
             event=event,
             organizer=organizer,
-            questions=all_questions,
+            questions=questions,
             organizer_terms_link=organizer_terms_link,
-            platform_terms_link=platform_terms_link
+            platform_terms_link=platform_terms_link,
+            ticket_types=ticket_types,
+            enforce_individual_ticket_limits=event.enforce_individual_ticket_limits,
+            tickets_available=tickets_available
         )
-
 
 
 
@@ -1090,20 +1332,18 @@ def send_confirmation_email_to_attendee(attendees, billing_details):
         # Use the first attendee to gather common details
         first_attendee = attendees[0]
 
-        # Fetch event and organizer (user) details
+        # Fetch event and organizer details
         event = Event.query.get(first_attendee.event_id)
         organizer = User.query.get(event.user_id)
 
-        # Calculate the total tickets and total price
+        # Calculate total tickets and total price
         total_tickets = sum(attendee.tickets_purchased for attendee in attendees)
         total_price = sum(attendee.ticket_price_at_purchase * attendee.tickets_purchased for attendee in attendees)
 
-        # Generate "Add to Calendar" links (Google Calendar and iOS .ics file)
-        start_time = event.start_time.replace(':', '')  # Assuming time is 'HH:MM'
-        end_time = event.end_time.replace(':', '')  # End time in the same format
-        event_date = event.date.replace('-', '')  # Assuming date is 'YYYY-MM-DD'
-
-        # Google Calendar link
+        # Generate calendar links
+        start_time = event.start_time.replace(':', '')
+        end_time = event.end_time.replace(':', '')
+        event_date = event.date.replace('-', '')
         google_calendar_url = (
             f"https://www.google.com/calendar/render?"
             f"action=TEMPLATE&text={urllib.parse.quote(event.name)}"
@@ -1112,39 +1352,43 @@ def send_confirmation_email_to_attendee(attendees, billing_details):
             f"&location={urllib.parse.quote(event.location)}"
             f"&sf=true&output=xml"
         )
-
-        # iOS/ICS Calendar file link
         ics_file_url = url_for('download_ics', event_id=event.id, _external=True)
 
-        # Prepare the organizer details section
+        # Organizer details section
         organizer_details = f"""
         <p>
             <strong>Business:</strong> {organizer.business_name}<br>
             <strong>Website:</strong> <a href="{organizer.website_url or '#'}" style="color: #ff0000;">{organizer.website_url or 'No website provided'}</a><br>
         """
-
         if organizer.terms and organizer.terms.lower() != 'none':
             organizer_details += f"""
-            <strong>Organiser's Terms (Please Read):</strong> <a href="{organizer.terms}" style="color: #ff0000;">{organizer.terms}</a>
+            <strong>Organiser's Terms:</strong> <a href="{organizer.terms}" style="color: #ff0000;">{organizer.terms}</a>
             """
-
         organizer_details += "</p>"
 
-        # Prepare the email body with inline CSS and logo
+        # Generate QR codes for each ticket and label by ticket type
+        qr_code_images = []
+        for attendee in attendees:
+            qr_data = attendee.ticket_number
+            qr_img = qrcode.make(qr_data)
+            buffer = BytesIO()
+            qr_img.save(buffer, format="PNG")
+            qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+            ticket_type_label = attendee.ticket_type.name if attendee.ticket_type else "General Admission"
+            qr_code_images.append((ticket_type_label, qr_base64))
+
+        # Construct email body with QR codes and details
         body = f"""
         <html>
         <body style="background-color: #ffffff; color: #000000; font-family: Arial, sans-serif; padding: 20px;">
-            <!-- Include Logo -->
             <div style="text-align: center; margin-bottom: 20px;">
                 <img src="http://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Logo.png" alt="Ticket Rush Logo" style="max-width: 200px;">
             </div>
 
             <h2 style="color: #ff0000;">Hello {first_attendee.full_name},</h2>
-
             <p>Thank you for purchasing tickets for the event <strong>'{event.name}'</strong>. Below are your details:</p>
 
             <hr style="border: 1px solid #ff0000;">
-            
             <h3 style="color: #ff0000;">Event Information:</h3>
             <p>
                 <strong>Event:</strong> {event.name}<br>
@@ -1152,7 +1396,7 @@ def send_confirmation_email_to_attendee(attendees, billing_details):
                 <strong>Time:</strong> {event.start_time} - {event.end_time}<br>
                 <strong>Location:</strong> {event.location}
             </p>
-            
+
             <h3 style="color: #ff0000;">Your Details:</h3>
             <p>
                 <strong>Full Name:</strong> {first_attendee.full_name}<br>
@@ -1162,52 +1406,59 @@ def send_confirmation_email_to_attendee(attendees, billing_details):
                 <strong>Amount Paid:</strong> £{total_price:.2f}<br>
                 <strong>Billing Address:</strong> {billing_details.get('address', {}).get('line1')}, {billing_details.get('address', {}).get('city')}
             </p>
-            
+
             <hr style="border: 1px solid #ff0000;">
-            
             <h3 style="color: #ff0000;">Add to Calendar:</h3>
             <div style="margin-bottom: 20px;">
-                <a href="{ics_file_url}" style="display: inline-block; background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Click here to add to Apple/iOS or other Calendar</a>
+                <a href="{ics_file_url}" style="display: inline-block; background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Apple/iOS Calendar</a>
+                <a href="{google_calendar_url}" style="display: inline-block; background-color: #ff0000; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Google Calendar</a>
             </div>
-            
+
             <hr style="border: 1px solid #ff0000;">
-            
+            <h3 style="color: #ff0000;">Your QR Code(s) for Event Entry:</h3>
+            <p>Please present the following QR code(s) at the event entrance:</p>
+            <div style="display: flex; flex-wrap: wrap;">
+        """
+
+        # Add each QR code image to the email body with the ticket type label
+        for label, qr_base64 in qr_code_images:
+            body += f"""
+            <div style="text-align: center; margin: 10px;">
+                <p><strong>{label}</strong></p>
+                <img src="data:image/png;base64,{qr_base64}" alt="QR Code" style="width: 150px; height: 150px;">
+            </div>
+            """
+
+        # Finish the email body
+        body += f"""
+            </div>
+            <hr style="border: 1px solid #ff0000;">
             <h3 style="color: #ff0000;">Organiser Details:</h3>
             {organizer_details}
 
             <hr style="border: 1px solid #ff0000;">
-
-            <!-- New Need Help Section -->
             <h3 style="color: #ff0000;">Need Help?</h3>
             <p>
-                If you have any issues or questions about the event, please reach out directly to  
-                {organizer.business_name}, at <a href="mailto:{organizer.email}" style="color: #ff0000;">{organizer.email}</a>.
+                For questions about the event, reach out directly to {organizer.business_name} at <a href="mailto:{organizer.email}" style="color: #ff0000;">{organizer.email}</a>.
             </p>
-
-            <hr style="border: 1px solid #ff0000;">
 
             <p style="color: #ff0000;"><strong>Powered by TicketRush</strong></p>
         </body>
         </html>
         """
 
-        # Create and send the email using Flask-Mail
+        # Send the email
         msg = Message(
             subject=f"Your Ticket Confirmation for {event.name}",
             recipients=[first_attendee.email],
             body=body,
-            html=body  # Render the email as HTML to support links and styling
+            html=body  # HTML body for rich content
         )
         mail.send(msg)
         print(f"Confirmation email sent to attendee {first_attendee.email}.")
 
     except Exception as e:
         print(f"Failed to send confirmation email to attendee. Error: {str(e)}")
-
-
-
-
-
 
 
 def send_confirmation_email_to_organizer(organizer, attendees, billing_details, event):
@@ -1315,6 +1566,7 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
         print(f"Failed to send confirmation email to organizer {organizer.email}. Error: {str(e)}")
 
 
+# Update handle_checkout_session to generate QR codes
 def handle_checkout_session(session):
     session_id = session.get('metadata', {}).get('session_id')
     if not session_id:
@@ -1322,7 +1574,7 @@ def handle_checkout_session(session):
         return
 
     # Retrieve all attendees for this session ID
-    attendees = Attendee.query.filter_by(session_id=session_id).all()  # Ensuring we have a list of attendees
+    attendees = Attendee.query.filter_by(session_id=session_id).all()
 
     if not attendees:
         print(f"No attendees found for session ID {session_id}.")
@@ -1339,29 +1591,42 @@ def handle_checkout_session(session):
         print("No billing details found for this session.")
         return
 
-    # Update all attendee rows with billing details and payment status
+    # Update attendee records and generate QR codes
     for attendee in attendees:
         attendee.billing_details = json.dumps(billing_details)
         attendee.stripe_charge_id = charge.id
         attendee.payment_status = 'succeeded'
-    
+        
+        # Generate ticket number if it is None
+        if attendee.ticket_number is None:
+            attendee.ticket_number = generate_unique_ticket_number()
+        
+        # Generate QR code for the ticket number
+        qr_code = qrcode.make(attendee.ticket_number)
+        
+        # Save the QR code to an in-memory file
+        qr_image_path = f'static/qr_codes/{attendee.ticket_number}.png'
+        qr_code.save(qr_image_path)
+        
+        # Save the path to the attendee object
+        attendee.qr_image_path = qr_image_path
+
     db.session.commit()  # Commit all updates after the loop
 
-    print(f"Updated {len(attendees)} attendees with payment details.")
-
-    # Send confirmation email to the attendees (pass the list of attendees)
+    # Send confirmation emails
     send_confirmation_email_to_attendee(attendees, billing_details)
-
-    # Retrieve the event organizer (seller) details
-    event = Event.query.get(attendees[0].event_id)  # Use the first attendee's event_id to get the event
+    event = Event.query.get(attendees[0].event_id)
     organizer = User.query.get(event.user_id)
-    
     if organizer:
-        # Send email to the event organizer
         send_confirmation_email_to_organizer(organizer, attendees, billing_details, event)
 
 
 
+
+
+from flask import render_template, redirect, url_for, flash
+from flask_login import login_required, current_user
+from datetime import datetime
 
 @app.route('/view_attendees/<int:event_id>')
 @login_required
@@ -1386,33 +1651,56 @@ def view_attendees(event_id):
 
     all_questions = default_question_texts + custom_questions
 
-    # Fetch attendees and parse ticket_answers and billing_details JSON
+    # Fetch attendees
     attendees = Attendee.query.filter_by(event_id=event_id).all()
-    for attendee in attendees:
-        if attendee.ticket_answers:
-            try:
-                attendee.ticket_answers = json.loads(attendee.ticket_answers)
-            except json.JSONDecodeError:
-                attendee.ticket_answers = {}
-        else:
-            attendee.ticket_answers = {}
 
-        if attendee.billing_details:
-            try:
-                attendee.billing_details = json.loads(attendee.billing_details)
-            except json.JSONDecodeError:
-                attendee.billing_details = {}
-        else:
-            attendee.billing_details = {}
+    # Initialize ticket type data and total tickets sold
+    ticket_types = event.ticket_types
+    ticket_type_data = {}
+    tickets_sold_total = 0  # Total tickets sold across all types
 
-    # Calculate tickets sold
-    tickets_sold = sum([attendee.tickets_purchased for attendee in attendees])
+    if event.enforce_individual_ticket_limits:
+        # When individual ticket type limits are enforced
+        for ticket_type in ticket_types:
+            tickets_sold_type = Attendee.query.filter_by(
+                event_id=event.id,
+                ticket_type_id=ticket_type.id,
+                payment_status='succeeded'
+            ).count()
+            tickets_remaining_type = (ticket_type.quantity or 0) - tickets_sold_type
+            tickets_sold_total += tickets_sold_type
 
-    # Total ticket quantity for the event
-    total_quantity = event.ticket_quantity
+            ticket_type_data[ticket_type.id] = {
+                'name': ticket_type.name,
+                'price': ticket_type.price,
+                'quantity': ticket_type.quantity,
+                'tickets_sold': tickets_sold_type,
+                'tickets_remaining': tickets_remaining_type
+            }
+        total_quantity = sum(
+            tt.quantity for tt in ticket_types if tt.quantity is not None
+        )
+        tickets_available = total_quantity - tickets_sold_total
 
-    # Tickets available
-    tickets_available = total_quantity - tickets_sold
+    else:
+        # When total event capacity is enforced
+        for ticket_type in ticket_types:
+            tickets_sold_type = Attendee.query.filter_by(
+                event_id=event.id,
+                ticket_type_id=ticket_type.id,
+                payment_status='succeeded'
+            ).count()
+            tickets_sold_total += tickets_sold_type
+
+            ticket_type_data[ticket_type.id] = {
+                'name': ticket_type.name,
+                'price': ticket_type.price,
+                'quantity': "N/A",  # Indicate not applicable
+                'tickets_sold': tickets_sold_type,
+                'tickets_remaining': None  # Do not calculate remaining
+            }
+        total_quantity = event.ticket_quantity
+        tickets_available = total_quantity - tickets_sold_total
 
     # Format the event date as dd-mm-yyyy
     event_date = datetime.strptime(event.date, '%Y-%m-%d').strftime('%d-%m-%Y')
@@ -1422,11 +1710,16 @@ def view_attendees(event_id):
         event=event,
         attendees=attendees,
         questions=all_questions,
-        tickets_sold=tickets_sold,
+        tickets_sold=tickets_sold_total,
         tickets_available=tickets_available,
         total_quantity=total_quantity,
-        event_date=event_date
+        event_date=event_date,
+        ticket_type_data=ticket_type_data  # Pass ticket type data to template
     )
+
+
+
+
 
 
 @app.route('/delete_event/<int:event_id>', methods=['POST'])
@@ -1452,30 +1745,135 @@ def delete_event(event_id):
 def edit_event(event_id):
     event = Event.query.get_or_404(event_id)
 
+    # Ensure the user has permission to edit the event
+    if event.user_id != current_user.id:
+        flash("You don't have permission to edit this event.")
+        return redirect(url_for('dashboard'))
+
     if request.method == 'POST':
+        # Update basic event details
         event.name = request.form['name']
         event.date = request.form['date']
+        event.start_time = request.form.get('start_time')
+        event.end_time = request.form.get('end_time')
         event.location = request.form['location']
-        event.ticket_quantity = request.form['ticket_quantity']
-        event.ticket_price = request.form['ticket_price']
+        event.description = request.form.get('description')
+
+        # Determine if individual ticket limits are enforced
+        enforce_limits = request.form.get('enforce_individual_ticket_limits') == 'on'
+        event.enforce_individual_ticket_limits = enforce_limits
+
+        if enforce_limits:
+            # Enforce individual ticket type limits
+            event.ticket_quantity = None  # Reset total event capacity
+
+            # Process existing ticket types with limits
+            existing_ticket_type_ids = request.form.getlist('existing_ticket_type_id')
+            existing_ids_set = set(existing_ticket_type_ids)
+
+            for ticket_type in list(event.ticket_types):
+                if str(ticket_type.id) in existing_ids_set:
+                    # Update existing ticket type
+                    ticket_type.name = request.form.get(f'name_{ticket_type.id}')
+                    ticket_type.price = float(request.form.get(f'price_{ticket_type.id}', 0))
+                    quantity_str = request.form.get(f'quantity_{ticket_type.id}')
+                    ticket_type.quantity = int(quantity_str) if quantity_str else 0
+
+                    # Check if delete checkbox is checked
+                    if request.form.get(f'delete_{ticket_type.id}') == 'on':
+                        db.session.delete(ticket_type)
+                else:
+                    # Ticket type not present in form; delete it
+                    db.session.delete(ticket_type)
+
+            # Process new ticket types with limits
+            new_ticket_names = request.form.getlist('new_ticket_name')
+            new_ticket_prices = request.form.getlist('new_ticket_price')
+            new_ticket_quantities = request.form.getlist('new_ticket_quantity')
+            for name, price, quantity in zip(new_ticket_names, new_ticket_prices, new_ticket_quantities):
+                if name and price and quantity:
+                    new_ticket_type = TicketType(
+                        event_id=event.id,
+                        name=name,
+                        price=float(price),
+                        quantity=int(quantity)
+                    )
+                    db.session.add(new_ticket_type)
+        else:
+            # Enforce total event capacity
+            total_capacity = request.form.get('total_ticket_quantity', type=int)
+            event.ticket_quantity = total_capacity
+
+            # Process existing ticket types without limits
+            existing_ticket_type_ids_no_limit = request.form.getlist('existing_ticket_type_id_no_limit')
+            existing_ids_no_limit_set = set(existing_ticket_type_ids_no_limit)
+
+            for ticket_type in list(event.ticket_types):
+                if str(ticket_type.id) in existing_ids_no_limit_set:
+                    # Update existing ticket type without quantity
+                    ticket_type.name = request.form.get(f'name_no_limit_{ticket_type.id}')
+                    ticket_type.price = float(request.form.get(f'price_no_limit_{ticket_type.id}', 0))
+                    # No quantity to set
+
+                    # Check if delete checkbox is checked
+                    if request.form.get(f'delete_no_limit_{ticket_type.id}') == 'on':
+                        db.session.delete(ticket_type)
+                else:
+                    # Ticket type not present in form; delete it
+                    db.session.delete(ticket_type)
+
+            # Process new ticket types without limits
+            new_ticket_names_no_limit = request.form.getlist('new_ticket_name_no_limit')
+            new_ticket_prices_no_limit = request.form.getlist('new_ticket_price_no_limit')
+            for name, price in zip(new_ticket_names_no_limit, new_ticket_prices_no_limit):
+                if name and price:
+                    new_ticket_type = TicketType(
+                        event_id=event.id,
+                        name=name,
+                        price=float(price),
+                        quantity=None  # No individual limit
+                    )
+                    db.session.add(new_ticket_type)
 
         # Update custom questions conditionally
         for i in range(1, 11):
             question_key = f'custom_question_{i}'
             question_value = request.form.get(question_key)
-            # Only update if there’s content; clear if left blank
             setattr(event, question_key, question_value if question_value else None)
 
-        db.session.commit()
-        flash('Event updated successfully!')
-        return redirect(url_for('dashboard'))
+        # Commit all changes
+        try:
+            db.session.commit()
+            flash('Event updated successfully!')
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while updating the event. Please try again.')
+            # Optionally, log the error for debugging
+            # app.logger.error(f"Error updating event {event_id}: {e}")
 
     # Prepare custom questions with empty strings as default values if None
-    custom_questions = {f'custom_question_{i}': getattr(event, f'custom_question_{i}', '') or '' for i in range(1, 11)}
+    custom_questions = {
+        f'custom_question_{i}': getattr(event, f'custom_question_{i}', '') or ''
+        for i in range(1, 11)
+    }
 
-    return render_template('edit_event.html', event=event, custom_questions=custom_questions)
+    # Separate ticket types based on enforcement
+    ticket_types_with_limits = []
+    ticket_types_no_limits = []
+    for ticket_type in event.ticket_types:
+        if event.enforce_individual_ticket_limits and ticket_type.quantity is not None:
+            ticket_types_with_limits.append(ticket_type)
+        elif not event.enforce_individual_ticket_limits:
+            ticket_types_no_limits.append(ticket_type)
 
-
+    return render_template(
+        'edit_event.html',
+        event=event,
+        custom_questions=custom_questions,
+        ticket_types_with_limits=ticket_types_with_limits,
+        ticket_types_no_limits=ticket_types_no_limits
+    )
 
 
 
@@ -1789,12 +2187,13 @@ def datetimeformat(value):
         return datetime.strptime(value, '%Y-%m-%d').strftime('%d-%m-%Y')
     return ""
 
+from flask import render_template, request, redirect, url_for
+import qrcode
+import base64
+from io import BytesIO
+
 @app.route('/success')
 def success():
-    # Retrieve the attendee based on session or other identifier
-    # Since we don't have a user session, we'll need to find a way to identify the attendee
-    # One common method is to pass the session_id as a query parameter during the redirect
-    
     session_id = request.args.get('session_id')
     if not session_id:
         return "Invalid session. Unable to retrieve booking details.", 400
@@ -1811,15 +2210,29 @@ def success():
     # Calculate total tickets purchased
     total_tickets = len(attendees)
 
+    # Generate QR codes for each ticket
+    qr_codes = []
+    for attendee in attendees:
+        qr_data = attendee.ticket_number  # Data for QR code (the unique ticket number)
+        qr_img = qrcode.make(qr_data)
+
+        # Convert the QR code image to base64 to embed in HTML
+        buffer = BytesIO()
+        qr_img.save(buffer, format="PNG")
+        qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        qr_codes.append(qr_base64)  # Append each QR code to the list
+
     # Prepare data to pass to the template
     context = {
         'event': event,
         'organizer': organizer,
-        'attendee': attendees[0],  # Assuming the buyer's details are the same
-        'total_tickets': total_tickets
+        'attendee': attendees[0],  # Assumes buyer's details are the same
+        'total_tickets': total_tickets,
+        'qr_codes': qr_codes  # Pass the list of QR codes as base64 strings
     }
 
     return render_template('success.html', **context)
+
 
 
 def send_welcome_email(user):
@@ -2138,3 +2551,48 @@ def send_webpage_request_email(event, additional_text, attachments):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def generate_unique_ticket_number():
+    characters = string.ascii_uppercase + string.digits
+    while True:
+        ticket_number = ''.join(random.choice(characters) for _ in range(20))
+        existing_ticket = Attendee.query.filter_by(ticket_number=ticket_number).first()
+        if not existing_ticket:
+            return ticket_number
+
+
+
+
+@app.route('/resend_ticket/<int:attendee_id>', methods=['POST'])
+@login_required
+def resend_ticket(attendee_id):
+    attendee = Attendee.query.get_or_404(attendee_id)
+    event = Event.query.get(attendee.event_id)
+
+    # Ensure the user has permission to resend tickets
+    if event.user_id != current_user.id:
+        flash("You don't have permission to resend tickets for this attendee.")
+        return redirect(url_for('dashboard'))
+
+    # Fetch organizer and billing details
+    organizer = User.query.get(event.user_id)
+    billing_details = json.loads(attendee.billing_details) if attendee.billing_details else {}
+
+    # Resend the confirmation email
+    send_confirmation_email_to_attendee([attendee], billing_details)
+
+    flash(f"Ticket has been resent to {attendee.email}.")
+    return redirect(url_for('view_attendees', event_id=event.id))
+
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+    

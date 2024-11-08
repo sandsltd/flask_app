@@ -1,4 +1,6 @@
+
 {% extends "partials/base.html" %}
+
 
 {% block content %}
 <div class="purchase-container">
@@ -8,11 +10,9 @@
 
         <!-- Event Details -->
         <div class="event-details">
-            <p><strong>Date:</strong> {{ event.date[8:10] }}/{{ event.date[5:7] }}/{{ event.date[0:4] }}</p>
+            <p><strong>Date:</strong> {{ event.date | datetimeformat }}</p>
             <p><strong>Time:</strong> {{ event.start_time }} - {{ event.end_time }}</p>
             <p><strong>Location:</strong> {{ event.location }}</p>
-            <p><strong>Price per ticket:</strong> £{{ "{:.2f}".format(event.ticket_price) }}</p>
-            <p><strong>Tickets Available:</strong> {{ event.ticket_quantity }}</p>
         </div>
 
         <!-- Organizer Details -->
@@ -26,27 +26,14 @@
             {% endif %}
         </div>
 
+        {% if enforce_individual_ticket_limits %}
+            <p>Please select the number of tickets for each ticket type (limited availability):</p>
+        {% else %}
+            <p>Total Tickets Available: {{ tickets_available }}</p>
+            <p>Please select the number of tickets for each ticket type:</p>
+        {% endif %}
+
         <form method="POST">
-            <!-- Number of Tickets -->
-            <div class="form-group">
-                <label for="number_of_tickets">Number of Tickets:</label>
-                <input
-                    type="number"
-                    id="number_of_tickets"
-                    name="number_of_tickets"
-                    min="1"
-                    max="{{ event.ticket_quantity }}"
-                    value="1"
-                    required
-                >
-            </div>
-
-            <!-- Total Price -->
-            <div class="form-group">
-                <label>Total Price:</label>
-                <p id="total_price">£{{ event.ticket_price }}</p>
-            </div>
-
             <!-- Buyer Information -->
             <h2>Your Information</h2>
 
@@ -63,6 +50,45 @@
             <div class="form-group">
                 <label for="phone_number">Telephone Number:</label>
                 <input type="tel" id="phone_number" name="phone_number" required>
+            </div>
+
+            <!-- Ticket Selection -->
+            <h2>Select Tickets</h2>
+            <div id="ticket_selection">
+                {% for ticket_type in ticket_types %}
+                    <div class="ticket-type">
+                        <label>{{ ticket_type.name }} (£{{ "{:.2f}".format(ticket_type.price) }})</label>
+                        {% if enforce_individual_ticket_limits %}
+                            {% set tickets_sold_type = ticket_type.attendees | selectattr('payment_status', 'equalto', 'succeeded') | list | length %}
+                            {% set tickets_remaining = ticket_type.quantity - tickets_sold_type %}
+                            <p>Tickets Available: {{ tickets_remaining }}</p>
+                            <input
+                                type="number"
+                                name="quantity_{{ ticket_type.id }}"
+                                min="0"
+                                max="{{ tickets_remaining }}"
+                                value="0"
+                                data-ticket-type-id="{{ ticket_type.id }}"
+                                data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
+                            >
+                        {% else %}
+                            <input
+                                type="number"
+                                name="quantity_{{ ticket_type.id }}"
+                                min="0"
+                                value="0"
+                                data-ticket-type-id="{{ ticket_type.id }}"
+                                data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
+                            >
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Total Price -->
+            <div class="form-group">
+                <label>Total Price:</label>
+                <p id="total_price">£0.00</p>
             </div>
 
             <!-- Attendee Information -->
@@ -84,19 +110,18 @@
             <div class="form-group checkbox-group">
                 <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
                 <label for="accept_platform_terms">
-                    I accept the <a href="https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Terms-of-Service-25th-October-2024.pdf" target="_blank">platform's Terms and Conditions</a>.
+                    I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>.
                 </label>
             </div>
 
-                <input type="submit" value="Proceed to Payment" class="submit-btn">
-            </form>
+            <input type="submit" value="Proceed to Payment" class="submit-btn">
+        </form>
 
-            {% if error %}
-                <p class="error-msg">{{ error }}</p>
-            {% endif %}
-            </div>
-        </div>
-
+        {% if error %}
+            <p class="error-msg">{{ error }}</p>
+        {% endif %}
+    </div>
+</div>
 
 <!-- Include your JavaScript code after the form -->
 <script type="application/json" id="questions-data">
@@ -109,49 +134,63 @@
     var questions = JSON.parse(questionsDataElement.textContent);
 
     function updateQuestionForms() {
-        var numberOfTickets = document.getElementById('number_of_tickets').value;
+        var ticketInputs = document.querySelectorAll('input[name^="quantity_"]');
         var formsContainer = document.getElementById('question_forms');
         formsContainer.innerHTML = '';
 
+        var totalPrice = 0;
+
+        ticketInputs.forEach(function(input) {
+            var quantity = parseInt(input.value) || 0;
+            var ticketTypeId = input.getAttribute('data-ticket-type-id');
+            var ticketTypePrice = parseFloat(input.getAttribute('data-ticket-price'));
+
+            totalPrice += quantity * ticketTypePrice;
+
+            for (var i = 0; i < quantity; i++) {
+                var ticketDiv = document.createElement('div');
+                ticketDiv.classList.add('attendee-group');
+
+                var attendeeHeader = document.createElement('h3');
+                attendeeHeader.textContent = 'Ticket Type: ' + input.previousElementSibling.textContent + ' - Ticket ' + (i + 1);
+                ticketDiv.appendChild(attendeeHeader);
+
+                for (var j = 0; j < questions.length; j++) {
+                    var formGroup = document.createElement('div');
+                    formGroup.classList.add('form-group');
+
+                    var label = document.createElement('label');
+                    label.setAttribute('for', 'ticket_' + ticketTypeId + '_' + i + '_question_' + j);
+                    label.textContent = questions[j];
+
+                    var inputField = document.createElement('input');
+                    inputField.type = 'text';
+                    inputField.name = 'ticket_' + ticketTypeId + '_' + i + '_question_' + j;
+                    inputField.required = true;
+
+                    formGroup.appendChild(label);
+                    formGroup.appendChild(inputField);
+                    ticketDiv.appendChild(formGroup);
+                }
+
+                formsContainer.appendChild(ticketDiv);
+            }
+        });
+
         // Update total price
         var totalPriceElement = document.getElementById('total_price');
-        var ticketPrice = parseFloat("{{ event.ticket_price }}");  // Corrected line
-        var totalPrice = (numberOfTickets * ticketPrice).toFixed(2);
-        totalPriceElement.textContent = '£' + totalPrice;
-
-        for (var i = 0; i < numberOfTickets; i++) {
-            var ticketDiv = document.createElement('div');
-            ticketDiv.classList.add('attendee-group');
-
-            var attendeeHeader = document.createElement('h3');
-            attendeeHeader.textContent = 'Attendee ' + (i + 1);
-            ticketDiv.appendChild(attendeeHeader);
-
-            for (var j = 0; j < questions.length; j++) {
-                var formGroup = document.createElement('div');
-                formGroup.classList.add('form-group');
-
-                var label = document.createElement('label');
-                label.setAttribute('for', 'ticket_' + i + '_question_' + j);
-                label.textContent = questions[j];
-
-                var input = document.createElement('input');
-                input.type = 'text';
-                input.name = 'ticket_' + i + '_question_' + j;
-                input.required = true;
-
-                formGroup.appendChild(label);
-                formGroup.appendChild(input);
-                ticketDiv.appendChild(formGroup);
-            }
-
-            formsContainer.appendChild(ticketDiv);
-        }
+        totalPriceElement.textContent = '£' + totalPrice.toFixed(2);
     }
 
-    document.addEventListener('DOMContentLoaded', updateQuestionForms);
-    document.getElementById('number_of_tickets').addEventListener('change', updateQuestionForms);
-    document.getElementById('number_of_tickets').addEventListener('input', updateQuestionForms);
+    document.addEventListener('DOMContentLoaded', function() {
+        updateQuestionForms();
+
+        var ticketInputs = document.querySelectorAll('input[name^="quantity_"]');
+        ticketInputs.forEach(function(input) {
+            input.addEventListener('change', updateQuestionForms);
+            input.addEventListener('input', updateQuestionForms);
+        });
+    });
 </script>
 
 <style>
@@ -254,7 +293,28 @@
         color: #ff0000;
         margin-bottom: 10px;
     }
+
+    .ticket-type {
+        margin-bottom: 15px;
+    }
+
+    .ticket-type label {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .ticket-type input[type="number"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+
+    /* Additional styles for the total price */
+    #total_price {
+        font-size: 1.2em;
+        font-weight: bold;
+    }
 </style>
 
 {% endblock %}
- 
