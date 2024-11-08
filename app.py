@@ -1892,6 +1892,8 @@ def edit_event(event_id):
         event.location = request.form['location']
         event.description = request.form.get('description')
 
+    if request.method == 'POST':
+        # Update event image if a new one is uploaded
         image_file = request.files.get('event_image')
         if image_file and allowed_file(image_file.filename):
             original_filename = secure_filename(image_file.filename)
@@ -1901,13 +1903,21 @@ def edit_event(event_id):
             
             try:
                 image_file.save(image_path)
-                # Update the `image_url` with the new file path
-                event.image_url = f"/static/uploads/events/{filename}"
-                print("Image saved successfully:", event.image_url)  # Debugging line
+                event.image_url = f"/static/uploads/events/{filename}"  # Update URL in database
+                print("Updated event image URL:", event.image_url)  # Debugging
             except Exception as e:
                 flash("Error saving the event image. Please try again.", "danger")
                 print(f"Error: {e}")
-                
+        
+        # Commit changes to the database
+        try:
+            db.session.commit()
+            flash('Event updated successfully!')
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while updating the event. Please try again.')
+            print(f"Database commit error: {e}")  # Debugging     
 
         # Determine if individual ticket limits are enforced
         enforce_limits = request.form.get('enforce_individual_ticket_limits') == 'on'
