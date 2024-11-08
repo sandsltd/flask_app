@@ -1052,30 +1052,31 @@ def manage_default_questions():
                     terms_link = 'https://' + terms_link
                 user.terms = terms_link
 
-            # Handle the logo file upload
-            logo_file = request.files.get('business_logo')
-            if logo_file:
-                print(f"Received file: {logo_file.filename}")
-            else:
-                print("No file received for 'business_logo'.")
+            if request.method == 'POST':
+                # Handle the logo file upload
+                logo_file = request.files.get('business_logo')
+                logo_url = None
 
-            if logo_file and allowed_file(logo_file.filename):
-                original_filename = secure_filename(logo_file.filename)
-                unique_suffix = uuid.uuid4().hex  # Generate a unique suffix
-                filename = f"{unique_suffix}_{original_filename}"  # Prevent filename collisions
-                logo_path = os.path.join(app.config['UPLOAD_FOLDER_LOGOS'], filename)
-                try:
-                    logo_file.save(logo_path)
-                    print(f"File saved to {logo_path}")
-                    # Store the relative URL instead of the absolute file path
-                    user.business_logo_url = f"/static/uploads/logos/{filename}"
-                except Exception as e:
-                    print(f"Error saving file: {e}")
-                    flash("There was an error saving your business logo. Please try again.", "danger")
-            else:
                 if logo_file:
-                    print("File type not allowed.")
-                    flash('Unsupported file type for business logo. Please upload a PNG, JPG, JPEG, or GIF image.', 'danger')
+                    print(f"Received file: {logo_file.filename}")
+
+                    if allowed_file(logo_file.filename):
+                        # Upload the file to S3 and save the URL
+                        logo_url = upload_to_s3(logo_file, "business-logos")
+                        
+                        if logo_url:
+                            # Update the user's business logo URL in the database
+                            current_user.business_logo_url = logo_url
+                            db.session.add(current_user)
+                            db.session.commit()
+                            flash("Business logo uploaded successfully!", "success")
+                        else:
+                            flash("There was an error uploading your business logo to S3. Please try again.", "danger")
+                    else:
+                        print("File type not allowed.")
+                        flash('Unsupported file type for business logo. Please upload a PNG, JPG, JPEG, or GIF image.', 'danger')
+                else:
+                    print("No file received for 'business_logo'.")
 
             # Process default questions
             questions = request.form.getlist('questions[]')
