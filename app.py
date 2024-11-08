@@ -793,14 +793,24 @@ def embed_events(unique_id):
             tickets_sold = sum([attendee.tickets_purchased for attendee in succeeded_attendees])
 
             # Calculate tickets available
-            tickets_available = event.ticket_quantity - tickets_sold
+            tickets_available = event.ticket_quantity - tickets_sold if event.ticket_quantity else "Unlimited"
 
             # Format the event date to 'Monday 12th October 2024'
             event_date = datetime.strptime(event.date, '%Y-%m-%d')
             formatted_date = event_date.strftime('%A %d %B %Y')
 
-            # Format the ticket price
-            ticket_price = "Free" if event.ticket_price == 0 else f"£{event.ticket_price:.2f}"
+            # Fetch all ticket types for the event
+            ticket_types = TicketType.query.filter_by(event_id=event.id).all()
+
+            if not ticket_types:
+                # If no ticket types are defined, assume the event is free
+                ticket_info = "Free"
+            else:
+                # Generate a list of ticket types and their prices
+                ticket_info = ""
+                for tt in ticket_types:
+                    price_display = "Free" if tt.price == 0 else f"£{tt.price:.2f}"
+                    ticket_info += f"{tt.name}: {price_display}<br>"
 
             # Escape special characters and prepare descriptions
             event_name = escape(event.name)
@@ -817,7 +827,7 @@ def embed_events(unique_id):
                         <strong>Date:</strong> {formatted_date}<br>
                         <strong>Time:</strong> {event.start_time} - {event.end_time}<br>
                         <strong>Location:</strong> {event_location}<br>
-                        <strong>Price:</strong> {ticket_price}
+                        <strong>Price:</strong> {ticket_info}
                     </p>
                     <p class="event-description">
                         <span id="short-desc-{event.id}">{short_description}</span>
@@ -843,10 +853,16 @@ def embed_events(unique_id):
             '''
 
             # Show ticket status
-            if tickets_available > 0:
+            if tickets_available == "Unlimited" or tickets_available > 0:
+                # If tickets_available is "Unlimited", there's no limit
+                if tickets_available == "Unlimited":
+                    tickets_available_display = "Unlimited"
+                else:
+                    tickets_available_display = tickets_available
+
                 events_html += f'''
                     <p class="ticket-status">
-                        <span style="color: #28a745; font-weight: bold;">Tickets Available: {tickets_available}</span>
+                        <span style="color: #28a745; font-weight: bold;">Tickets Available: {tickets_available_display}</span>
                     </p>
                     <a href="https://bookings.ticketrush.io/purchase/{event.id}" target="_blank" class="event-button">Book Tickets</a>
                 '''
@@ -870,8 +886,9 @@ def embed_events(unique_id):
     </div>
     '''
 
+    # Wrap the HTML in a JavaScript document.write call
     response = f"document.write(`{events_html}`);"
-    return response, 200, {'Content-Type': 'application/javascript'}
+    return Response(response, mimetype='application/javascript')
 
 @app.route('/cancel')
 def cancel():
