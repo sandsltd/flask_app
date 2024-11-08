@@ -1137,6 +1137,8 @@ def purchase(event_id):
     if not organizer:
         return "Event organizer not found", 404
     
+        # Assign the business logo URL to logo_url
+    organizer.logo_url = organizer.business_logo_url
         # Initialize variables
     attendees = []
     total_amount = 0  # Total amount in pence
