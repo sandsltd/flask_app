@@ -1904,20 +1904,12 @@ def edit_event(event_id):
         # Update event image if a new one is uploaded
         image_file = request.files.get('event_image')
         if image_file and allowed_file(image_file.filename):
-            original_filename = secure_filename(image_file.filename)
-            unique_suffix = uuid.uuid4().hex
-            filename = f"{unique_suffix}_{original_filename}"
-            image_path = os.path.join(app.config['UPLOAD_FOLDER_EVENTS'], filename)
-            
-            print("Saving image at path:", image_path)  # Debugging
-            try:
-                image_file.save(image_path)
-                event.image_url = f"/static/uploads/events/{filename}"  # Update URL in database
-                print("Updated event image URL:", event.image_url)  # Debugging
-            except Exception as e:
-                flash("Error saving the event image. Please try again.", "danger")
-                print(f"Error saving image: {e}")
-        
+            image_url = upload_to_s3(image_file, 'events')
+            if image_url:
+                event.image_url = image_url
+            else:
+                flash("Error uploading the event image. Please try again.", "danger")
+
         # Determine if individual ticket limits are enforced
         enforce_limits = request.form.get('enforce_individual_ticket_limits') == 'on'
         event.enforce_individual_ticket_limits = enforce_limits

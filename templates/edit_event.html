@@ -133,11 +133,6 @@
         <label for="event_image">Choose an image file</label>
         <input type="file" id="event_image" name="event_image" accept="image/*" title="Upload an image file for the event. Max size 5MB.">
         
-        <!-- Other form fields can be added here -->
-    
-  
-    
-        
         <!-- Event Details -->
         <label for="name">Event Name:</label>
         <input type="text" id="name" name="name" value="{{ event.name }}" required>
@@ -156,6 +151,7 @@
 
         <label for="description">Description:</label>
         <textarea id="description" name="description">{{ event.description }}</textarea>
+
 
         <!-- Option to Enforce Individual Ticket Limits -->
         <div>
