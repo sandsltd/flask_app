@@ -85,7 +85,7 @@
 <div class="create-event-container">
     <h1>Create Event</h1>
 
-    <form method="POST" action="{{ url_for('create_event') }}">
+    <form method="POST" action="{{ url_for('create_event') }}" enctype="multipart/form-data">
         <!-- Event Details -->
         <label for="name">Event Name:</label>
         <input type="text" id="name" name="name" required>
@@ -105,8 +105,8 @@
         <label for="description">Description:</label>
         <textarea id="description" name="description"></textarea>
 
-        <label for="event_image">Event Image:</label>
-        <input type="file" id="event_image" name="event_image" accept="image/*">
+        <label for="image_url">Event Image:</label>
+        <input type="file" id="image_url" name="image_url" accept="image/*">
 
         <!-- Explanation for Ticket Limits -->
         <div class="info-text">
@@ -175,7 +175,6 @@
      <!-- Number of Occurrences -->
      <label for="occurrences">Number of Occurrences:</label>
      <input type="number" name="occurrences" id="occurrences" min="1" placeholder="e.g., 5" />
-
 
      <!-- Reminder Section for Default Questions -->
      <div class="questions-section">
@@ -257,6 +256,7 @@ document.getElementById('add-ticket-type-button').addEventListener('click', func
     const div = document.createElement('div');
     div.classList.add('ticket-type');
     div.innerHTML = `
+        <hr>
         <label>Ticket Name:</label>
         <input type="text" name="ticket_name[]" required>
 
@@ -281,6 +281,14 @@ document.getElementById('add-ticket-type-button').addEventListener('click', func
 
     // Re-apply the toggle to hide or show quantity fields
     toggleTicketOptions();
+});
+
+// Remove Ticket Type Functionality
+document.querySelectorAll('.remove-ticket-type-button').forEach(function(button) {
+    button.addEventListener('click', function() {
+        const ticketTypeDiv = this.parentElement;
+        ticketTypeDiv.remove();
+    });
 });
 </script>
 
