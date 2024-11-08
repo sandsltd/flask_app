@@ -498,100 +498,200 @@ def register():
 @login_required
 def create_event():
     if request.method == 'POST':
-        # Basic event details
-        name = request.form['name']
-        date = request.form['date']
-        start_time = request.form.get('start_time')
-        end_time = request.form.get('end_time')
-        location = request.form['location']
-        description = request.form.get('description')
+        try:
+            # ------------------------------
+            # 1. Collect and Validate Form Data
+            # ------------------------------
+            
+            # Basic event details
+            name = request.form.get('name', '').strip()
+            date_str = request.form.get('date', '').strip()
+            start_time = request.form.get('start_time', '').strip()
+            end_time = request.form.get('end_time', '').strip()
+            location = request.form.get('location', '').strip()
+            description = request.form.get('description', '').strip()
 
-        # Handle recurrence details
-        recurrence = request.form.get('recurrence')  # Options: 'none', 'daily', 'weekly', 'monthly'
-        occurrences = int(request.form.get('occurrences', 1))  # Default to 1 occurrence if not specified
+            # Validate basic event details
+            if not all([name, date_str, start_time, end_time, location, description]):
+                flash('Please fill in all required fields for the event.', 'danger')
+                return redirect(url_for('create_event'))
 
-        # Enforce individual ticket limits
-        enforce_limits = request.form.get('enforce_individual_ticket_limits') == 'on'
-        total_ticket_quantity = request.form.get('total_ticket_quantity', type=int) if not enforce_limits else None
+            # Parse event date
+            try:
+                event_date = datetime.strptime(date_str, '%Y-%m-%d')
+            except ValueError:
+                flash('Invalid date format. Please use YYYY-MM-DD.', 'danger')
+                return redirect(url_for('create_event'))
 
-        # Process ticket types
-        ticket_names = request.form.getlist('ticket_name[]')
-        ticket_prices = request.form.getlist('ticket_price[]')
-        if enforce_limits:
-            ticket_quantities = request.form.getlist('ticket_quantity[]')
-        else:
-            ticket_quantities = [None] * len(ticket_names)
+            # Handle recurrence details
+            recurrence = request.form.get('recurrence', 'none')  # Default to 'none'
+            occurrences_str = request.form.get('occurrences', '1')  # Get as string
 
-        # Capture custom questions for the event
-        custom_questions = [request.form.get(f'custom_question_{i}') for i in range(1, 11)]
+            if recurrence != 'none':
+                try:
+                    occurrences = int(occurrences_str)
+                    if occurrences < 1:
+                        flash('Number of occurrences must be at least 1.', 'danger')
+                        return redirect(url_for('create_event'))
+                    elif occurrences > 100:
+                        flash('Number of occurrences cannot exceed 100.', 'danger')
+                        return redirect(url_for('create_event'))
+                except ValueError:
+                    flash('Invalid number of occurrences. Please enter a valid integer.', 'danger')
+                    return redirect(url_for('create_event'))
+            else:
+                occurrences = 1  # Default to 1 if no recurrence
 
-        # Fetch default questions from the database
-        default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
-        default_question_texts = [dq.question for dq in default_questions]
+            # Enforce individual ticket limits
+            enforce_limits = request.form.get('enforce_individual_ticket_limits') == 'on'
+            total_ticket_quantity = None
+            if not enforce_limits:
+                total_ticket_quantity = request.form.get('total_ticket_quantity', type=int)
+                if not total_ticket_quantity or total_ticket_quantity < 1:
+                    flash('Total ticket quantity must be a positive integer.', 'danger')
+                    return redirect(url_for('create_event'))
 
-        # Define date increment based on recurrence pattern
-        def get_next_date(current_date, pattern):
-            if pattern == 'daily':
-                return current_date + timedelta(days=1)
-            elif pattern == 'weekly':
-                return current_date + timedelta(weeks=1)
-            elif pattern == 'monthly':
-                return current_date + timedelta(weeks=4)  # Approximate monthly interval
-            return current_date  # No recurrence
+            # Process ticket types
+            ticket_names = request.form.getlist('ticket_name[]')
+            ticket_prices = request.form.getlist('ticket_price[]')
+            ticket_quantities = []
+            if enforce_limits:
+                ticket_quantities = request.form.getlist('ticket_quantity[]')
+                # Validate ticket quantities
+                for qty in ticket_quantities:
+                    if qty:
+                        try:
+                            qty_int = int(qty)
+                            if qty_int < 1:
+                                flash('Ticket quantities must be positive integers.', 'danger')
+                                return redirect(url_for('create_event'))
+                        except ValueError:
+                            flash('Invalid ticket quantity. Please enter valid integers.', 'danger')
+                            return redirect(url_for('create_event'))
+            else:
+                ticket_quantities = [None] * len(ticket_names)  # No individual limits
 
-        # Handle image upload
-        image_url = None
-        file = request.files.get('image_url')
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER_EVENTS'], filename)
-            file.save(file_path)
-            image_url = file_path  # Store relative path or URL as needed
+            # Ensure at least one ticket type is provided
+            if not ticket_names or not any(ticket_names):
+                flash('Please provide at least one ticket type.', 'danger')
+                return redirect(url_for('create_event'))
 
-        # Create each event occurrence
-        current_date = date
-        for i in range(occurrences):
-            # Create event instance with custom and default questions
-            event = Event(
-                user_id=current_user.id,
-                name=name,
-                date=current_date,
-                start_time=start_time,
-                end_time=end_time,
-                location=location,
-                description=description,
-                ticket_quantity=total_ticket_quantity,
-                enforce_individual_ticket_limits=enforce_limits,
-                image_url=image_url,  # Store the image URL in the event record
-                custom_question_1=custom_questions[0] or (default_question_texts[0] if len(default_question_texts) > 0 else None),
-                custom_question_2=custom_questions[1] or (default_question_texts[1] if len(default_question_texts) > 1 else None),
-                # Continue for other custom questions...
-            )
-            db.session.add(event)
-            db.session.commit()
+            # Capture custom questions for the event
+            custom_questions = [request.form.get(f'custom_question_{i}') for i in range(1, 11)]
 
-            # Add ticket types for this event
-            for t_name, t_price, t_quantity in zip(ticket_names, ticket_prices, ticket_quantities):
-                if t_name and t_price:
-                    ticket_type = TicketType(
-                        event_id=event.id,
-                        name=t_name,
-                        price=float(t_price),
-                        quantity=int(t_quantity) if enforce_limits and t_quantity else None
-                    )
-                    db.session.add(ticket_type)
-            db.session.commit()
+            # Fetch default questions from the database
+            default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
+            default_question_texts = [dq.question for dq in default_questions]
 
-            # Update current_date for next recurrence
-            current_date = get_next_date(current_date, recurrence)
+            # ------------------------------
+            # 2. Define Date Increment Based on Recurrence
+            # ------------------------------
+            
+            def get_next_date(current_date, pattern):
+                if pattern == 'daily':
+                    return current_date + timedelta(days=1)
+                elif pattern == 'weekly':
+                    return current_date + timedelta(weeks=1)
+                elif pattern == 'monthly':
+                    # Properly handle month increments, accounting for year changes and varying month lengths
+                    month = current_date.month
+                    year = current_date.year
+                    if month == 12:
+                        month = 1
+                        year += 1
+                    else:
+                        month += 1
+                    # Handle day overflow (e.g., February 30th)
+                    day = min(current_date.day, [31,
+                        29 if (year % 4 == 0 and not year % 100 == 0) or (year % 400 == 0) else 28,
+                        31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1])
+                    return datetime(year, month, day)
+                return current_date  # No recurrence
 
-        flash(f'{occurrences} occurrences of the event created successfully!')
-        return redirect(url_for('dashboard'))
+            # ------------------------------
+            # 3. Handle Image Upload
+            # ------------------------------
+            
+            image_url = None
+            file = request.files.get('image_url')
+            if file and allowed_file(file.filename):
+                original_filename = secure_filename(file.filename)
+                unique_suffix = uuid.uuid4().hex  # Generate a unique suffix
+                filename = f"{unique_suffix}_{original_filename}"  # Prevent filename collisions
+                file_path = os.path.join(app.config['UPLOAD_FOLDER_EVENTS'], filename)
+                try:
+                    file.save(file_path)
+                    image_url = f"/static/uploads/events/{filename}"  # Store relative path or URL
+                except Exception as e:
+                    print(f"Error saving event image: {e}")
+                    flash("There was an error uploading the event image. Please try again.", "danger")
+                    return redirect(url_for('create_event'))
+
+            # ------------------------------
+            # 4. Create Each Event Occurrence
+            # ------------------------------
+            
+            current_date = event_date
+            for i in range(occurrences):
+                # Create event instance with custom and default questions
+                event = Event(
+                    user_id=current_user.id,
+                    name=name,
+                    date=current_date.strftime('%Y-%m-%d'),  # Store as string
+                    start_time=start_time,
+                    end_time=end_time,
+                    location=location,
+                    description=description,
+                    ticket_quantity=total_ticket_quantity,
+                    enforce_individual_ticket_limits=enforce_limits,
+                    image_url=image_url,  # Store the image URL in the event record
+                    custom_question_1=custom_questions[0] or (default_question_texts[0] if len(default_question_texts) > 0 else None),
+                    custom_question_2=custom_questions[1] or (default_question_texts[1] if len(default_question_texts) > 1 else None),
+                    custom_question_3=custom_questions[2] or (default_question_texts[2] if len(default_question_texts) > 2 else None),
+                    custom_question_4=custom_questions[3] or (default_question_texts[3] if len(default_question_texts) > 3 else None),
+                    custom_question_5=custom_questions[4] or (default_question_texts[4] if len(default_question_texts) > 4 else None),
+                    custom_question_6=custom_questions[5] or (default_question_texts[5] if len(default_question_texts) > 5 else None),
+                    custom_question_7=custom_questions[6] or (default_question_texts[6] if len(default_question_texts) > 6 else None),
+                    custom_question_8=custom_questions[7] or (default_question_texts[7] if len(default_question_texts) > 7 else None),
+                    custom_question_9=custom_questions[8] or (default_question_texts[8] if len(default_question_texts) > 8 else None),
+                    custom_question_10=custom_questions[9] or (default_question_texts[9] if len(default_question_texts) > 9 else None),
+                )
+                db.session.add(event)
+                db.session.commit()
+
+                # Add ticket types for this event
+                for t_name, t_price, t_quantity in zip(ticket_names, ticket_prices, ticket_quantities):
+                    if t_name and t_price:
+                        try:
+                            ticket_type = TicketType(
+                                event_id=event.id,
+                                name=t_name,
+                                price=float(t_price),
+                                quantity=int(t_quantity) if enforce_limits and t_quantity else None
+                            )
+                            db.session.add(ticket_type)
+                        except ValueError:
+                            flash('Invalid ticket price or quantity. Please ensure they are valid numbers.', 'danger')
+                            db.session.rollback()
+                            return redirect(url_for('create_event'))
+                db.session.commit()
+
+                # Update current_date for next recurrence
+                if i < occurrences - 1:
+                    current_date = get_next_date(current_date, recurrence)
+
+            flash(f'{occurrences} occurrence(s) of the event "{name}" created successfully!', 'success')
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            # Log the exception details for debugging
+            print(f"An unexpected error occurred: {e}")
+            flash('An unexpected error occurred while creating the event. Please try again.', 'danger')
+            return redirect(url_for('create_event'))
 
     # Fetch and pass default questions for display in form
     default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
     return render_template('create_event.html', default_questions=default_questions)
-
 
 
 
