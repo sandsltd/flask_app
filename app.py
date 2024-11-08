@@ -2670,11 +2670,17 @@ def resend_ticket(attendee_id):
 
 @app.route('/upload-image', methods=['GET', 'POST'])
 def upload_image():
+    upload_folder = '/var/data/images'  # Path where images are stored
+    os.makedirs(upload_folder, exist_ok=True)  # Ensure the directory exists
+
     if request.method == 'POST':
         file = request.files['file']
+        # Check if the file has the correct filename
         if file and file.filename in ['event-placeholder.png', 'logo-placeholder.png']:
-            file.save(os.path.join('/var/data/images', file.filename))
-        return redirect(url_for('upload_image'))
+            file_path = os.path.join(upload_folder, file.filename)
+            file.save(file_path)
+            return redirect(url_for('upload_image'))
+    
     return '''
     <!doctype html>
     <title>Upload an image</title>
@@ -2684,9 +2690,6 @@ def upload_image():
         <input type=submit value=Upload>
     </form>
     '''
-
-
-
 
 
 
