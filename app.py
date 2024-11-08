@@ -958,7 +958,9 @@ def manage_default_questions():
             filename = secure_filename(logo_file.filename)
             logo_path = os.path.join(app.config['UPLOAD_FOLDER_LOGOS'], filename)
             logo_file.save(logo_path)
-            user.business_logo_url = logo_path  # Store the relative path in the user record
+
+            # Store the relative URL instead of the absolute file path
+            user.business_logo_url = f"/static/uploads/logos/{filename}"
 
         # Process default questions
         questions = request.form.getlist('questions[]')
