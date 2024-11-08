@@ -2664,7 +2664,22 @@ def resend_ticket(attendee_id):
     return redirect(url_for('view_attendees', event_id=event.id))
 
 
-
+@app.route('/upload-image', methods=['GET', 'POST'])
+def upload_image():
+    if request.method == 'POST':
+        file = request.files['file']
+        if file and file.filename in ['event-placeholder.png', 'logo-placeholder.png']:
+            file.save(os.path.join('/var/data/images', file.filename))
+        return redirect(url_for('upload_image'))
+    return '''
+    <!doctype html>
+    <title>Upload an image</title>
+    <h1>Upload a backup image</h1>
+    <form method=post enctype=multipart/form-data>
+        <input type=file name=file>
+        <input type=submit value=Upload>
+    </form>
+    '''
 
 
 
