@@ -2674,26 +2674,23 @@ def resend_ticket(attendee_id):
 
 
 
-def upload_to_s3(file, folder_prefix):
-    # Generate a unique filename to avoid conflicts
+def upload_to_s3(file, folder_prefix="event-logos"):
     unique_suffix = uuid.uuid4().hex
     filename = f"{unique_suffix}_{secure_filename(file.filename)}"
-    s3_filename = f"{folder_prefix}/{filename}"  # Folder structure in S3
+    s3_filename = f"{folder_prefix}/{filename}"
 
     try:
-        # Upload the file to S3
+        # Remove the "ACL" parameter
         s3.upload_fileobj(
             file,
             S3_BUCKET_NAME,
             s3_filename,
-            ExtraArgs={"ACL": "public-read", "ContentType": file.content_type}
+            ExtraArgs={"ContentType": file.content_type}  # Only specify ContentType
         )
-        # Return the public URL of the uploaded file
-        return f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{s3_filename}"
+        return f"https://{S3_BUCKET_NAME}.s3.{os.getenv('AWS_REGION')}.amazonaws.com/{s3_filename}"
     except NoCredentialsError:
-        print("Credentials not available for S3 upload.")
+        print("S3 credentials not available")
         return None
-
 
 
 
