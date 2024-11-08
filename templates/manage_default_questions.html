@@ -94,6 +94,12 @@
                 </div>
             {% endfor %}
 
+            {% if user.business_logo_url %}
+                <div class="current-logo">
+                    <h3>Current Business Logo:</h3>
+                    <img src="{{ user.business_logo_url }}" alt="Business Logo" style="max-width: 200px;">
+                </div>
+            {% endif %}
             <!-- Business Logo Upload -->
             <h2>Upload Your Business Logo</h2>
             <p>Recommended size: 300x300px. Maximum file size: 5MB.</p>
