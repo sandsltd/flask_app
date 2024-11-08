@@ -627,11 +627,10 @@ def create_event():
             # ------------------------------
             
 
-            # Handle event image upload
             image_url = None
             event_image = request.files.get('event_image')
             if event_image and event_image.filename != '':
-                image_url = upload_to_s3(event_image)
+                image_url = upload_to_s3(event_image, "event-logos")  # Specify the folder prefix here
                 if not image_url:
                     flash("Failed to upload event image to S3", "danger")
                     return redirect(url_for('create_event'))
