@@ -1,31 +1,39 @@
-
 {% extends "partials/base.html" %}
-
 
 {% block content %}
 <div class="purchase-container">
-    <div class="purchase-form">
-        <h1>Purchase Tickets for {{ event.name }}</h1>
-        <p>{{ event.description }}</p>
-
-        <!-- Event Details -->
-        <div class="event-details">
-            <p><strong>Date:</strong> {{ event.date | datetimeformat }}</p>
-            <p><strong>Time:</strong> {{ event.start_time }} - {{ event.end_time }}</p>
-            <p><strong>Location:</strong> {{ event.location }}</p>
-        </div>
-
-        <!-- Organizer Details -->
-        <div class="organizer-details">
-            <h2>Organised By</h2>
-            <p><strong>Business Name:</strong> {{ organizer.business_name }}</p>
-            <p><strong>Organiser Name:</strong> {{ organizer.first_name }} {{ organizer.last_name }}</p>
-            <p><strong>Contact Email:</strong> <a href="mailto:{{ organizer.email }}">{{ organizer.email }}</a></p>
-            {% if organizer.website_url %}
-                <p><strong>Website:</strong> <a href="{{ organizer.website_url }}" target="_blank">{{ organizer.website_url }}</a></p>
+    <!-- Event Header Section with Image and Organizer Logo -->
+    <div class="event-header">
+        {% if event.image_url %}
+            <img src="{{ event.image_url }}" alt="Event Image" class="event-image">
+        {% else %}
+            <img src="{{ url_for('static', filename='images/event-placeholder.png') }}" alt="Event Image" class="event-image">
+        {% endif %}
+        <div class="event-info">
+            {% if organizer.logo_url %}
+                <img src="{{ organizer.logo_url }}" alt="Organizer Logo" class="organizer-logo">
+            {% else %}
+                <img src="{{ url_for('static', filename='images/logo-placeholder.png') }}" alt="Organizer Logo" class="organizer-logo">
             {% endif %}
+            <h1>{{ event.name }}</h1>
+            <p>{{ event.description }}</p>
+            <div class="event-details">
+                <p><strong>Date:</strong> {{ event.date | datetimeformat }}</p>
+                <p><strong>Time:</strong> {{ event.start_time }} - {{ event.end_time }}</p>
+                <p><strong>Location:</strong> {{ event.location }}</p>
+            </div>
+            <!-- Organizer Contact Links -->
+            <div class="organizer-contact">
+                <p><strong>Contact Email:</strong> <a href="mailto:{{ organizer.email }}">{{ organizer.email }}</a></p>
+                {% if organizer.website_url %}
+                    <p><strong>Website:</strong> <a href="{{ organizer.website_url }}" target="_blank">{{ organizer.website_url }}</a></p>
+                {% endif %}
+            </div>
         </div>
+    </div>
 
+    <!-- Purchase Form -->
+    <div class="purchase-form">
         {% if enforce_individual_ticket_limits %}
             <p>Please select the number of tickets for each ticket type (limited availability):</p>
         {% else %}
@@ -70,6 +78,7 @@
                                 value="0"
                                 data-ticket-type-id="{{ ticket_type.id }}"
                                 data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
+                                class="ticket-input"
                             >
                         {% else %}
                             <input
@@ -79,6 +88,7 @@
                                 value="0"
                                 data-ticket-type-id="{{ ticket_type.id }}"
                                 data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
+                                class="ticket-input"
                             >
                         {% endif %}
                     </div>
@@ -134,7 +144,7 @@
     var questions = JSON.parse(questionsDataElement.textContent);
 
     function updateQuestionForms() {
-        var ticketInputs = document.querySelectorAll('input[name^="quantity_"]');
+        var ticketInputs = document.querySelectorAll('.ticket-input');
         var formsContainer = document.getElementById('question_forms');
         formsContainer.innerHTML = '';
 
@@ -185,7 +195,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         updateQuestionForms();
 
-        var ticketInputs = document.querySelectorAll('input[name^="quantity_"]');
+        var ticketInputs = document.querySelectorAll('.ticket-input');
         ticketInputs.forEach(function(input) {
             input.addEventListener('change', updateQuestionForms);
             input.addEventListener('input', updateQuestionForms);
@@ -201,21 +211,65 @@
         flex-direction: column;
         align-items: center;
         margin: 50px auto;
-        max-width: 800px;
+        max-width: 1200px;
         padding: 20px;
         background-color: white;
         border-radius: 10px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
 
+    .event-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 30px;
+    }
+
+    .event-image {
+        width: 100%;
+        max-height: 400px;
+        object-fit: cover;
+        border-radius: 10px;
+    }
+
+    .event-info {
+        width: 100%;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .organizer-logo {
+        width: 100px;
+        height: 100px;
+        object-fit: contain;
+        border-radius: 50%;
+        margin-bottom: 15px;
+    }
+
+    .event-details, .organizer-contact {
+        margin-top: 10px;
+    }
+
+    .organizer-contact a {
+        color: #ff0000;
+        text-decoration: none;
+    }
+
+    .organizer-contact a:hover {
+        text-decoration: underline;
+    }
+
     .purchase-form {
         width: 100%;
         padding: 20px;
-        background-color: white;
+        background-color: #f9f9f9;
+        border-radius: 10px;
     }
 
     .purchase-form h1 {
-        color: #ff0000; /* Red for your brand */
+        color: #ff0000;
+        text-align: center;
         margin-bottom: 20px;
     }
 
@@ -243,12 +297,14 @@
     .form-group input[type="text"],
     .form-group input[type="email"],
     .form-group input[type="tel"],
-    .form-group input[type="number"] {
+    .form-group input[type="number"],
+    .form-group textarea {
         width: 100%;
         padding: 10px;
         border: 1px solid #ddd;
         border-radius: 5px;
-        background-color: #f5f5f5;
+        background-color: #fff;
+        box-sizing: border-box;
     }
 
     .checkbox-group {
@@ -264,17 +320,18 @@
     .submit-btn {
         width: 100%;
         padding: 15px;
-        background-color: #ff0000; /* Red for your brand */
+        background-color: #ff0000;
         color: white;
         font-weight: bold;
         border: none;
         border-radius: 5px;
         cursor: pointer;
         margin-top: 20px;
+        transition: background-color 0.3s ease;
     }
 
     .submit-btn:hover {
-        background-color: #cc0000; /* Darker red for hover */
+        background-color: #cc0000;
     }
 
     .error-msg {
@@ -287,6 +344,7 @@
         padding: 15px;
         margin-bottom: 20px;
         border-radius: 5px;
+        background-color: #fff;
     }
 
     .attendee-group h3 {
@@ -314,6 +372,26 @@
     #total_price {
         font-size: 1.2em;
         font-weight: bold;
+        color: #333;
+    }
+
+    /* Responsive Design */
+    @media (min-width: 768px) {
+        .event-header {
+            flex-direction: row;
+            align-items: flex-start;
+        }
+
+        .event-image {
+            width: 60%;
+            max-height: 400px;
+        }
+
+        .event-info {
+            width: 40%;
+            padding: 20px;
+            text-align: left;
+        }
     }
 </style>
 
