@@ -72,8 +72,8 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')  # Default 
 app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 5 MB limit
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 # Set the upload folder in the configuration
-app.config['UPLOAD_FOLDER_EVENTS'] = 'static/uploads/events'
-app.config['UPLOAD_FOLDER_LOGOS'] = 'static/uploads/logos'
+app.config['UPLOAD_FOLDER_EVENTS'] = '/var/data/uploads/events'
+app.config['UPLOAD_FOLDER_LOGOS'] = '/var/data/uploads/logos'
 
 os.makedirs(app.config['UPLOAD_FOLDER_EVENTS'], exist_ok=True)
 os.makedirs(app.config['UPLOAD_FOLDER_LOGOS'], exist_ok=True)
