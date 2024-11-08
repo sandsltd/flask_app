@@ -75,8 +75,12 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER_EVENTS'] = '/var/data/uploads/events'
 app.config['UPLOAD_FOLDER_LOGOS'] = '/var/data/uploads/logos'
 
-os.makedirs(app.config['UPLOAD_FOLDER_EVENTS'], exist_ok=True)
-os.makedirs(app.config['UPLOAD_FOLDER_LOGOS'], exist_ok=True)
+# Attempt to create the directories in case they don't exist yet
+try:
+    os.makedirs(app.config['UPLOAD_FOLDER_EVENTS'], exist_ok=True)
+    os.makedirs(app.config['UPLOAD_FOLDER_LOGOS'], exist_ok=True)
+except OSError as e:
+    print(f"Error creating directories: {e}")
 
 mail = Mail(app)
 
