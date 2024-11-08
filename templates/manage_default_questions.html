@@ -94,16 +94,26 @@
                 </div>
             {% endfor %}
 
-            {% if user.business_logo_url %}
-                <div class="current-logo">
-                    <h3>Current Business Logo:</h3>
-                    <img src="{{ user.business_logo_url }}" alt="Business Logo" style="max-width: 200px;">
-                </div>
-            {% endif %}
+
             <!-- Business Logo Upload -->
             <h2>Upload Your Business Logo</h2>
             <p>Recommended size: 300x300px. Maximum file size: 5MB.</p>
-            <input type="file" id="business_logo" name="business_logo" accept="image/*">
+
+            <div class="form-group">
+                <!-- Show current business logo if it exists -->
+                {% if user.business_logo_url %}
+                    <div>
+                        <h3>Current Logo:</h3>
+                        <img src="{{ user.business_logo_url }}" alt="Current Business Logo" style="max-width: 150px; max-height: 150px; border: 1px solid #ddd; margin-bottom: 10px;">
+                    </div>
+                {% else %}
+                    <p>No custom logo uploaded. Using default logo.</p>
+                    <img src="{{ url_for('static', filename='images/logo-placeholder.png') }}" alt="Default Business Logo" style="max-width: 150px; max-height: 150px; border: 1px solid #ddd; margin-bottom: 10px;">
+                {% endif %}
+                
+                <label for="business_logo">Choose a new logo file</label>
+                <input type="file" id="business_logo" name="business_logo" accept="image/*">
+            </div>
 
 
             <input type="submit" value="Save Changes" class="submit-btn">
