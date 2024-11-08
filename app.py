@@ -895,96 +895,108 @@ def cancel():
     return "Payment canceled. You can try again."
 
 
-
-from flask import render_template, request, redirect, url_for, flash
-from flask_login import login_required, current_user
-import re
-
-from flask import render_template, request, redirect, url_for, flash
-from flask_login import login_required, current_user
-import re
-
 @app.route('/manage-default-questions', methods=['GET', 'POST'])
 @login_required
 def manage_default_questions():
     user = User.query.get(current_user.id)
 
     if request.method == 'POST':
-        # Collect form data for user profile updates
-        first_name = request.form.get('first_name').strip()
-        last_name = request.form.get('last_name').strip()
-        phone_number = request.form.get('phone_number').strip()
-        business_name = request.form.get('business_name').strip()
-        website_url = request.form.get('website_url', '').strip()
-        vat_number = request.form.get('vat_number', '').strip()
-        house_name_or_number = request.form.get('house_name_or_number').strip()
-        street = request.form.get('street').strip()
-        locality = request.form.get('locality', '').strip()
-        town = request.form.get('town').strip()
-        postcode = request.form.get('postcode').strip()
-        terms_link = request.form.get('terms_link', '').strip()
+        try:
+            # Collect form data for user profile updates
+            first_name = request.form.get('first_name').strip()
+            last_name = request.form.get('last_name').strip()
+            phone_number = request.form.get('phone_number').strip()
+            business_name = request.form.get('business_name').strip()
+            website_url = request.form.get('website_url', '').strip()
+            vat_number = request.form.get('vat_number', '').strip()
+            house_name_or_number = request.form.get('house_name_or_number').strip()
+            street = request.form.get('street').strip()
+            locality = request.form.get('locality', '').strip()
+            town = request.form.get('town').strip()
+            postcode = request.form.get('postcode').strip()
+            terms_link = request.form.get('terms_link', '').strip()
 
-        # Update user information
-        user.first_name = first_name
-        user.last_name = last_name
-        user.phone_number = phone_number
-        user.business_name = business_name
-        user.vat_number = vat_number
-        user.house_name_or_number = house_name_or_number
-        user.street = street
-        user.locality = locality
-        user.town = town
-        user.postcode = postcode
+            # Update user information
+            user.first_name = first_name
+            user.last_name = last_name
+            user.phone_number = phone_number
+            user.business_name = business_name
+            user.vat_number = vat_number
+            user.house_name_or_number = house_name_or_number
+            user.street = street
+            user.locality = locality
+            user.town = town
+            user.postcode = postcode
 
-        # Process website URL
-        if website_url:
-            if not re.match(r'^https?://', website_url):
-                website_url = 'https://' + website_url
-            user.website_url = website_url
-        else:
-            user.website_url = None
-
-        # Process terms link
-        if terms_link.lower() == 'none' or not terms_link:
-            user.terms = 'none'
-        else:
-            if not re.match(r'^https?://', terms_link):
-                terms_link = 'https://' + terms_link
-            user.terms = terms_link
-
-        # Handle the logo file upload
-        logo_file = request.files.get('business_logo')
-        if logo_file and allowed_file(logo_file.filename):
-            filename = secure_filename(logo_file.filename)
-            logo_path = os.path.join(app.config['UPLOAD_FOLDER_LOGOS'], filename)
-            logo_file.save(logo_path)
-
-            # Store the relative URL instead of the absolute file path
-            user.business_logo_url = f"/static/uploads/logos/{filename}"
-
-        # Process default questions
-        questions = request.form.getlist('questions[]')
-        existing_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
-
-        # Update existing questions
-        for i, question_text in enumerate(questions):
-            question_text = question_text.strip()
-            if i < len(existing_questions):
-                existing_questions[i].question = question_text
+            # Process website URL
+            if website_url:
+                if not re.match(r'^https?://', website_url):
+                    website_url = 'https://' + website_url
+                user.website_url = website_url
             else:
-                if question_text:
-                    new_question = DefaultQuestion(user_id=user.id, question=question_text)
-                    db.session.add(new_question)
+                user.website_url = None
 
-        # Remove extra questions if fewer are submitted
-        if len(questions) < len(existing_questions):
-            for q in existing_questions[len(questions):]:
-                db.session.delete(q)
+            # Process terms link
+            if terms_link.lower() == 'none' or not terms_link:
+                user.terms = 'none'
+            else:
+                if not re.match(r'^https?://', terms_link):
+                    terms_link = 'https://' + terms_link
+                user.terms = terms_link
 
-        # Commit changes to the database
-        db.session.commit()
-        flash('Account settings successfully updated.')
-        return redirect(url_for('dashboard'))
+            # Handle the logo file upload
+            logo_file = request.files.get('business_logo')
+            if logo_file:
+                print(f"Received file: {logo_file.filename}")
+            else:
+                print("No file received for 'business_logo'.")
+
+            if logo_file and allowed_file(logo_file.filename):
+                original_filename = secure_filename(logo_file.filename)
+                unique_suffix = uuid.uuid4().hex  # Generate a unique suffix
+                filename = f"{unique_suffix}_{original_filename}"  # Prevent filename collisions
+                logo_path = os.path.join(app.config['UPLOAD_FOLDER_LOGOS'], filename)
+                try:
+                    logo_file.save(logo_path)
+                    print(f"File saved to {logo_path}")
+                    # Store the relative URL instead of the absolute file path
+                    user.business_logo_url = f"/static/uploads/logos/{filename}"
+                except Exception as e:
+                    print(f"Error saving file: {e}")
+                    flash("There was an error saving your business logo. Please try again.", "danger")
+            else:
+                if logo_file:
+                    print("File type not allowed.")
+                    flash('Unsupported file type for business logo. Please upload a PNG, JPG, JPEG, or GIF image.', 'danger')
+
+            # Process default questions
+            questions = request.form.getlist('questions[]')
+            existing_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
+
+            # Update existing questions
+            for i, question_text in enumerate(questions):
+                question_text = question_text.strip()
+                if i < len(existing_questions):
+                    existing_questions[i].question = question_text
+                else:
+                    if question_text:
+                        new_question = DefaultQuestion(user_id=user.id, question=question_text)
+                        db.session.add(new_question)
+
+            # Remove extra questions if fewer are submitted
+            if len(questions) < len(existing_questions):
+                for q in existing_questions[len(questions):]:
+                    db.session.delete(q)
+
+            # Commit changes to the database
+            db.session.commit()
+            flash('Account settings successfully updated.', 'success')
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error during POST request: {e}")
+            flash('An error occurred while updating your account settings. Please try again.', 'danger')
 
     # GET request - render the form
     questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
