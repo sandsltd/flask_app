@@ -41,7 +41,7 @@
             <p>Please select the number of tickets for each ticket type:</p>
         {% endif %}
 
-        <form method="POST">
+        <form method="POST" action="{{ url_for('purchase', event_id=event.id) }}" enctype="multipart/form-data">
             <!-- Buyer Information -->
             <h2>Your Information</h2>
 
