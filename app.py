@@ -2571,6 +2571,7 @@ def send_webpage_request_email(event, additional_text, attachments):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
 def generate_unique_ticket_number():
     characters = string.ascii_uppercase + string.digits
     while True:
