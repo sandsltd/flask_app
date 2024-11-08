@@ -1371,7 +1371,7 @@ def purchase(event_id):
                 return redirect(url_for('purchase', event_id=event_id))
 
     else:
-        platform_terms_link = 'https://your-platform-domain.com/terms-and-conditions'
+        platform_terms_link = 'https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Terms-of-Service-25th-October-2024.pdf'
         organizer_terms_link = organizer.terms if organizer.terms and organizer.terms.lower() != 'none' else None
 
         # Prepare the custom questions
