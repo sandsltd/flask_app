@@ -1900,6 +1900,7 @@ def edit_event(event_id):
             filename = f"{unique_suffix}_{original_filename}"
             image_path = os.path.join(app.config['UPLOAD_FOLDER_EVENTS'], filename)
             
+            print("Saving image at path:", image_path)  # Debugging
             try:
                 image_file.save(image_path)
                 event.image_url = f"/static/uploads/events/{filename}"  # Update URL in database
