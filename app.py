@@ -75,7 +75,7 @@ STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-print("Database URI:", app.config['SQLALCHEMY_DATABASE_URI'])
+
 
 # Configuration for Flask-Mail
 app.config['MAIL_SERVER'] = 'mail.ticketrush.io'
@@ -373,6 +373,7 @@ def serve_dashboard():
 @app.route('/static/<path:path>')
 def static_proxy(path):
     return send_from_directory('frontend/build/static', path)
+
 
 
 @app.route('/api/dashboard', methods=['GET'])
