@@ -42,6 +42,7 @@ from werkzeug.utils import secure_filename
 import boto3
 from botocore.exceptions import NoCredentialsError
 from flask import jsonify
+from flask import send_from_directory
 
 load_dotenv()
 
@@ -316,6 +317,14 @@ def login():
     return render_template('login.html')
 
 
+@app.route('/dashboard')
+@login_required
+def serve_dashboard():
+    return send_from_directory('frontend/build', 'index.html')
+
+@app.route('/static/<path:path>')
+def static_proxy(path):
+    return send_from_directory('frontend/build/static', path)
 
 
 @app.route('/api/dashboard', methods=['GET'])
