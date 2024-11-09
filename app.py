@@ -365,13 +365,11 @@ def get_events():
     return jsonify(event_data)
 
 
-@app.route('/dashboard')
-@login_required
 def serve_dashboard():
     return send_from_directory('frontend/build', 'index.html')
 
 @app.route('/static/<path:path>')
-def static_proxy(path):
+def serve_static(path):
     return send_from_directory('frontend/build/static', path)
 
 @app.route('/manifest.json')
