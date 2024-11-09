@@ -41,8 +41,6 @@ import requests
 from werkzeug.utils import secure_filename
 import boto3
 from botocore.exceptions import NoCredentialsError
-from flask import jsonify
-from flask import send_from_directory
 
 load_dotenv()
 
@@ -75,7 +73,7 @@ STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-
+print("Database URI:", app.config['SQLALCHEMY_DATABASE_URI'])
 
 # Configuration for Flask-Mail
 app.config['MAIL_SERVER'] = 'mail.ticketrush.io'
@@ -317,71 +315,11 @@ def login():
     return render_template('login.html')
 
 
-@app.route('/api/events', methods=['GET'])
+
+
+@app.route('/dashboard')
 @login_required
-def get_events():
-    user_events = Event.query.filter_by(user_id=current_user.id).all()
-    event_data = []
-
-    for event in user_events:
-        # Convert event.date (string) to a datetime object for comparison
-        try:
-            event_date = datetime.strptime(event.date, '%Y-%m-%d')  # Adjust the format if needed
-        except ValueError:
-            # Handle the case where the date format is invalid
-            continue
-
-        succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
-        tickets_sold = len(succeeded_attendees)
-        total_ticket_quantity = sum([ticket_type.quantity or 0 for ticket_type in event.ticket_types]) if event.enforce_individual_ticket_limits else event.ticket_quantity or 0
-        
-        # Prepare the ticket breakdown
-        ticket_breakdown = [
-            {
-                "name": ticket_type.name,
-                "price": ticket_type.price,
-                "tickets_sold": Attendee.query.filter_by(event_id=event.id, ticket_type_id=ticket_type.id, payment_status='succeeded').count(),
-                "tickets_remaining": (ticket_type.quantity or 0) - tickets_sold if event.enforce_individual_ticket_limits else total_ticket_quantity - tickets_sold,
-                "total_quantity": ticket_type.quantity or total_ticket_quantity
-            } for ticket_type in event.ticket_types
-        ]
-        
-        # Determine the event status based on the parsed date
-        event_status = "upcoming" if event_date.date() >= datetime.now().date() else "past"
-
-        # Add event data to the response
-        event_data.append({
-            "id": event.id,
-            "name": event.name,
-            "date": event.date,
-            "location": event.location,
-            "tickets_sold": tickets_sold,
-            "ticket_quantity": total_ticket_quantity,
-            "total_revenue": sum([attendee.ticket_price_at_purchase for attendee in succeeded_attendees]),
-            "status": event_status,
-            "ticket_breakdown": ticket_breakdown
-        })
-    
-    return jsonify(event_data)
-
-
-def serve_dashboard():
-    return send_from_directory('frontend/build', 'index.html')
-
-@app.route('/static/<path:path>')
-def serve_static(path):
-    return send_from_directory('frontend/build/static', path)
-
-@app.route('/manifest.json')
-def manifest():
-    return send_from_directory('frontend/build', 'manifest.json')
-
-
-
-
-@app.route('/api/dashboard', methods=['GET'])
-@login_required
-def get_dashboard_data():
+def dashboard():
     filter_value = request.args.get('filter', 'upcoming')  # Set 'upcoming' as the default filter
     user_events = Event.query.filter_by(user_id=current_user.id).all()
 
@@ -429,6 +367,7 @@ def get_dashboard_data():
                 tickets_remaining_type = (ticket_type.quantity or 0) - tickets_sold_type
                 total_quantity = ticket_type.quantity
             else:
+                # When individual limits are not enforced, total_quantity is the event's total capacity
                 tickets_remaining_type = (total_ticket_quantity or 0) - tickets_sold
                 total_quantity = total_ticket_quantity
 
@@ -462,16 +401,15 @@ def get_dashboard_data():
             'total_revenue': event_revenue,
             'status': event_status,
             'id': event.id,
-            'ticket_breakdown': ticket_breakdown,
-            'enforce_individual_ticket_limits': event.enforce_individual_ticket_limits
+            'ticket_breakdown': ticket_breakdown,  # Include ticket breakdown
+            'enforce_individual_ticket_limits': event.enforce_individual_ticket_limits  # Pass the flag
         })
 
-    response_data = {
-        'events': event_data,
-        'total_revenue': total_revenue,
-        'total_tickets_sold': total_tickets_sold
-    }
-    return jsonify(response_data)
+    return render_template('dashboard.html', 
+                           events=event_data, 
+                           total_revenue=total_revenue, 
+                           total_tickets_sold=total_tickets_sold, 
+                           user=current_user)
 
 
 
