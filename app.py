@@ -2690,20 +2690,48 @@ def upload_to_s3(file, folder_prefix="event-logos"):
 @app.route('/api/events', methods=['GET'])
 @login_required
 def get_events():
-    # Fetch events for the current user (this is a simplified example)
     user_events = Event.query.filter_by(user_id=current_user.id).all()
     event_data = []
+
     for event in user_events:
+        # Convert event.date (string) to a datetime object for comparison
+        try:
+            event_date = datetime.strptime(event.date, '%Y-%m-%d')  # Adjust the format if needed
+        except ValueError:
+            # Handle the case where the date format is invalid
+            continue
+
+        succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
+        tickets_sold = len(succeeded_attendees)
+        total_ticket_quantity = sum([ticket_type.quantity or 0 for ticket_type in event.ticket_types]) if event.enforce_individual_ticket_limits else event.ticket_quantity or 0
+        
+        # Prepare the ticket breakdown
+        ticket_breakdown = [
+            {
+                "name": ticket_type.name,
+                "price": ticket_type.price,
+                "tickets_sold": Attendee.query.filter_by(event_id=event.id, ticket_type_id=ticket_type.id, payment_status='succeeded').count(),
+                "tickets_remaining": (ticket_type.quantity or 0) - tickets_sold if event.enforce_individual_ticket_limits else total_ticket_quantity - tickets_sold,
+                "total_quantity": ticket_type.quantity or total_ticket_quantity
+            } for ticket_type in event.ticket_types
+        ]
+        
+        # Determine the event status based on the parsed date
+        event_status = "upcoming" if event_date.date() >= datetime.now().date() else "past"
+
+        # Add event data to the response
         event_data.append({
             "id": event.id,
             "name": event.name,
             "date": event.date,
             "location": event.location,
-            "tickets_sold": 100,  # Example data, replace with actual calculation
-            "ticket_quantity": 200,  # Example data, replace with actual calculation
-            "total_revenue": 500.00,  # Example data, replace with actual calculation
-            "status": "upcoming" if event.date >= datetime.now().date() else "past"
+            "tickets_sold": tickets_sold,
+            "ticket_quantity": total_ticket_quantity,
+            "total_revenue": sum([attendee.ticket_price_at_purchase for attendee in succeeded_attendees]),
+            "status": event_status,
+            "ticket_breakdown": ticket_breakdown
         })
+    
     return jsonify(event_data)
 
 if __name__ == "__main__":
