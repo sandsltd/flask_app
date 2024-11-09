@@ -318,9 +318,9 @@ def login():
 
 
 
-@app.route('/dashboard')
+@app.route('/api/dashboard', methods=['GET'])
 @login_required
-def dashboard():
+def get_dashboard_data():
     filter_value = request.args.get('filter', 'upcoming')  # Set 'upcoming' as the default filter
     user_events = Event.query.filter_by(user_id=current_user.id).all()
 
@@ -368,7 +368,6 @@ def dashboard():
                 tickets_remaining_type = (ticket_type.quantity or 0) - tickets_sold_type
                 total_quantity = ticket_type.quantity
             else:
-                # When individual limits are not enforced, total_quantity is the event's total capacity
                 tickets_remaining_type = (total_ticket_quantity or 0) - tickets_sold
                 total_quantity = total_ticket_quantity
 
@@ -402,15 +401,16 @@ def dashboard():
             'total_revenue': event_revenue,
             'status': event_status,
             'id': event.id,
-            'ticket_breakdown': ticket_breakdown,  # Include ticket breakdown
-            'enforce_individual_ticket_limits': event.enforce_individual_ticket_limits  # Pass the flag
+            'ticket_breakdown': ticket_breakdown,
+            'enforce_individual_ticket_limits': event.enforce_individual_ticket_limits
         })
 
-    return render_template('dashboard.html', 
-                           events=event_data, 
-                           total_revenue=total_revenue, 
-                           total_tickets_sold=total_tickets_sold, 
-                           user=current_user)
+    response_data = {
+        'events': event_data,
+        'total_revenue': total_revenue,
+        'total_tickets_sold': total_tickets_sold
+    }
+    return jsonify(response_data)
 
 
 

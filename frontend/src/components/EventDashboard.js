@@ -12,7 +12,7 @@ const EventDashboard = () => {
 
   // Fetch events from Flask API on component mount
   useEffect(() => {
-    fetch('https://bookings.ticketrush.io/api/events')
+    fetch('https://bookings.ticketrush.io/api/dashboard')
       .then(response => response.json())
       .then(data => setEvents(data))
       .catch(error => console.error('Error fetching events:', error));
