@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Calendar, Clock, MapPin, Users, PoundSterling, ChevronDown, ChevronUp } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 const EventDashboard = () => {
   const [events, setEvents] = useState([]);
@@ -14,11 +13,14 @@ const EventDashboard = () => {
   useEffect(() => {
     fetch('https://bookings.ticketrush.io/api/dashboard')
       .then(response => response.json())
-      .then(data => setEvents(data))
+      .then(data => {
+        console.log(data);  // Log the data to the console
+        setEvents(data.events || []);  // Use data.events if `events` is part of the JSON structure
+      })
       .catch(error => console.error('Error fetching events:', error));
   }, []);
 
-  // Filter and sort functions (existing code remains the same)
+  // Filter and sort functions
   const filteredEvents = events
     .filter(event => {
       const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase()) || event.location.toLowerCase().includes(searchTerm.toLowerCase());
@@ -96,15 +98,13 @@ const EventDashboard = () => {
           </button>
         </div>
       </div>
-  
+
       {/* Events Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredEvents.map(event => (
-          <Card key={event.id} className="overflow-hidden">
-            <CardHeader className="bg-red-50">
-              <CardTitle className="text-xl font-bold text-red-600">{event.name}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
+          <div key={event.id} className="overflow-hidden border rounded-lg p-4 bg-white shadow">
+            <h2 className="text-xl font-bold text-red-600">{event.name}</h2>
+            <div className="p-4 space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-500" />
@@ -127,7 +127,7 @@ const EventDashboard = () => {
                   <span className="capitalize">{event.status}</span>
                 </div>
               </div>
-  
+
               {/* Expandable Ticket Breakdown */}
               <div>
                 <button
@@ -154,7 +154,7 @@ const EventDashboard = () => {
                   </div>
                 )}
               </div>
-  
+
               {/* Action Buttons */}
               <div className="flex gap-2 pt-4">
                 <a href={`/view_attendees/${event.id}`} className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg text-center hover:bg-blue-600">
@@ -164,8 +164,8 @@ const EventDashboard = () => {
                   Edit
                 </a>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
     </div>
