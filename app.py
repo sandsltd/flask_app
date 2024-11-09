@@ -374,6 +374,11 @@ def serve_dashboard():
 def static_proxy(path):
     return send_from_directory('frontend/build/static', path)
 
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory('frontend/build', 'manifest.json')
+
+
 
 
 @app.route('/api/dashboard', methods=['GET'])
