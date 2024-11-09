@@ -41,6 +41,7 @@ import requests
 from werkzeug.utils import secure_filename
 import boto3
 from botocore.exceptions import NoCredentialsError
+from sqlalchemy import cast, Date
 
 load_dotenv()
 
@@ -331,12 +332,13 @@ def dashboard():
         except ValueError:
             return None
 
-    # Query and filter events based on user and date
+    # Query and filter events based on user and date, casting `event.date` as Date for comparison
     events_query = Event.query.filter_by(user_id=current_user.id)
     if filter_value == 'upcoming':
-        events_query = events_query.filter(Event.date >= datetime.now().date())
+        events_query = events_query.filter(cast(Event.date, Date) >= datetime.now().date())
     elif filter_value == 'past':
-        events_query = events_query.filter(Event.date < datetime.now().date())
+        events_query = events_query.filter(cast(Event.date, Date) < datetime.now().date())
+
 
     # Paginate events (10 per page, adjust as needed)
     pagination = events_query.order_by(Event.date.asc()).paginate(page=page, per_page=10, error_out=False)
