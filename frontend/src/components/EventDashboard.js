@@ -14,11 +14,12 @@ const EventDashboard = () => {
     fetch('https://bookings.ticketrush.io/api/dashboard')
       .then(response => response.json())
       .then(data => {
-        console.log(data);  // Log the data to the console
-        setEvents(data.events || []);  // Use data.events if `events` is part of the JSON structure
+        console.log("Fetched data:", data);  // Log to verify data
+        setEvents(data.events || []);
       })
       .catch(error => console.error('Error fetching events:', error));
   }, []);
+  
 
   // Filter and sort functions
   const filteredEvents = events
