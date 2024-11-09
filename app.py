@@ -41,10 +41,14 @@ import requests
 from werkzeug.utils import secure_filename
 import boto3
 from botocore.exceptions import NoCredentialsError
+from flask import Flask, send_from_directory
+from flask import jsonify
+
+
 
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
 
 # Enable CORS for all routes and origins
 CORS(app)  # This will allow all origins by default, but you can restrict it if needed.
@@ -315,101 +319,16 @@ def login():
     return render_template('login.html')
 
 
-
+@app.route('/<path:path>')
+def serve_vue_app(path):
+    if path != "" and os.path.exists("static/frontend/" + path):
+        return send_from_directory("static/frontend", path)
+    else:
+        return send_from_directory("static/frontend", "index.html")
 
 @app.route('/dashboard')
-@login_required
-def dashboard():
-    filter_value = request.args.get('filter', 'upcoming')  # Set 'upcoming' as the default filter
-    user_events = Event.query.filter_by(user_id=current_user.id).all()
-
-    # Helper function to convert string dates to datetime for comparison
-    def str_to_date(date_str):
-        try:
-            return datetime.strptime(date_str, '%Y-%m-%d')  # Adjust the format if your date strings differ
-        except ValueError:
-            return None
-
-    # Filter and sort events based on the filter value
-    if filter_value == 'upcoming':
-        user_events = [event for event in user_events if str_to_date(event.date) and str_to_date(event.date) >= datetime.now()]
-    elif filter_value == 'past':
-        user_events = [event for event in user_events if str_to_date(event.date) and str_to_date(event.date) < datetime.now()]
-
-    # Sort events by date
-    user_events.sort(key=lambda event: str_to_date(event.date) or datetime.max)
-
-    total_tickets_sold = 0
-    total_revenue = 0
-
-    event_data = []
-    for event in user_events:
-        # Calculate total tickets sold and revenue for the event
-        succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
-        tickets_sold = len(succeeded_attendees)
-
-        # Adjust total ticket quantity calculation based on enforcement setting
-        if event.enforce_individual_ticket_limits:
-            total_ticket_quantity = sum([ticket_type.quantity or 0 for ticket_type in event.ticket_types])
-        else:
-            total_ticket_quantity = event.ticket_quantity or 0
-
-        # Calculate tickets sold and remaining per ticket type
-        ticket_breakdown = []
-        for ticket_type in event.ticket_types:
-            # Count the number of attendees for this ticket type
-            tickets_sold_type = Attendee.query.filter_by(
-                event_id=event.id,
-                ticket_type_id=ticket_type.id,
-                payment_status='succeeded'
-            ).count()
-            if event.enforce_individual_ticket_limits:
-                tickets_remaining_type = (ticket_type.quantity or 0) - tickets_sold_type
-                total_quantity = ticket_type.quantity
-            else:
-                # When individual limits are not enforced, total_quantity is the event's total capacity
-                tickets_remaining_type = (total_ticket_quantity or 0) - tickets_sold
-                total_quantity = total_ticket_quantity
-
-            ticket_breakdown.append({
-                'name': ticket_type.name,
-                'price': ticket_type.price,
-                'tickets_sold': tickets_sold_type,
-                'tickets_remaining': tickets_remaining_type,
-                'total_quantity': total_quantity
-            })
-
-        # Calculate overall tickets remaining
-        tickets_remaining = total_ticket_quantity - tickets_sold
-
-        # Calculate total revenue for the event
-        event_revenue = sum([attendee.ticket_price_at_purchase for attendee in succeeded_attendees])
-
-        total_tickets_sold += tickets_sold
-        total_revenue += event_revenue
-
-        event_date = str_to_date(event.date) if event.date else None
-        event_status = "Upcoming" if event_date and event_date >= datetime.now() else "Past"
-
-        event_data.append({
-            'name': event.name,
-            'date': event.date,
-            'location': event.location,
-            'tickets_sold': tickets_sold,
-            'ticket_quantity': total_ticket_quantity,
-            'tickets_remaining': tickets_remaining,
-            'total_revenue': event_revenue,
-            'status': event_status,
-            'id': event.id,
-            'ticket_breakdown': ticket_breakdown,  # Include ticket breakdown
-            'enforce_individual_ticket_limits': event.enforce_individual_ticket_limits  # Pass the flag
-        })
-
-    return render_template('dashboard.html', 
-                           events=event_data, 
-                           total_revenue=total_revenue, 
-                           total_tickets_sold=total_tickets_sold, 
-                           user=current_user)
+def serve_dashboard():
+    return app.send_static_file('frontend/index.html')
 
 
 
@@ -2684,6 +2603,97 @@ def upload_to_s3(file, folder_prefix="event-logos"):
     except NoCredentialsError:
         print("S3 credentials not available")
         return None
+
+
+@app.route('/api/dashboard')
+@login_required
+def api_dashboard():
+    filter_value = request.args.get('filter', 'upcoming')
+    user_events = Event.query.filter_by(user_id=current_user.id).all()
+
+    def str_to_date(date_str):
+        try:
+            return datetime.strptime(date_str, '%Y-%m-%d')
+        except ValueError:
+            return None
+
+    # Filter and sort events based on filter value
+    if filter_value == 'upcoming':
+        user_events = [event for event in user_events if str_to_date(event.date) and str_to_date(event.date) >= datetime.now()]
+    elif filter_value == 'past':
+        user_events = [event for event in user_events if str_to_date(event.date) and str_to_date(event.date) < datetime.now()]
+
+    user_events.sort(key=lambda event: str_to_date(event.date) or datetime.max)
+
+    total_tickets_sold = 0
+    total_revenue = 0
+    event_data = []
+
+    for event in user_events:
+        succeeded_attendees = Attendee.query.filter_by(event_id=event.id, payment_status='succeeded').all()
+        tickets_sold = len(succeeded_attendees)
+
+        if event.enforce_individual_ticket_limits:
+            total_ticket_quantity = sum([ticket_type.quantity or 0 for ticket_type in event.ticket_types])
+        else:
+            total_ticket_quantity = event.ticket_quantity or 0
+
+        ticket_breakdown = []
+        for ticket_type in event.ticket_types:
+            tickets_sold_type = Attendee.query.filter_by(
+                event_id=event.id,
+                ticket_type_id=ticket_type.id,
+                payment_status='succeeded'
+            ).count()
+
+            if event.enforce_individual_ticket_limits:
+                tickets_remaining_type = (ticket_type.quantity or 0) - tickets_sold_type
+                total_quantity = ticket_type.quantity
+            else:
+                tickets_remaining_type = (total_ticket_quantity or 0) - tickets_sold
+                total_quantity = total_ticket_quantity
+
+            ticket_breakdown.append({
+                'name': ticket_type.name,
+                'price': ticket_type.price,
+                'tickets_sold': tickets_sold_type,
+                'tickets_remaining': tickets_remaining_type,
+                'total_quantity': total_quantity
+            })
+
+        tickets_remaining = total_ticket_quantity - tickets_sold
+        event_revenue = sum([attendee.ticket_price_at_purchase for attendee in succeeded_attendees])
+
+        total_tickets_sold += tickets_sold
+        total_revenue += event_revenue
+
+        event_date = str_to_date(event.date) if event.date else None
+        event_status = "Upcoming" if event_date and event_date >= datetime.now() else "Past"
+
+        event_data.append({
+            'name': event.name,
+            'date': event.date,
+            'location': event.location,
+            'tickets_sold': tickets_sold,
+            'ticket_quantity': total_ticket_quantity,
+            'tickets_remaining': tickets_remaining,
+            'total_revenue': event_revenue,
+            'status': event_status,
+            'id': event.id,
+            'ticket_breakdown': ticket_breakdown,
+            'enforce_individual_ticket_limits': event.enforce_individual_ticket_limits
+        })
+
+    response = {
+        'events': event_data,
+        'total_revenue': total_revenue,
+        'total_tickets_sold': total_tickets_sold,
+        'user': {
+            'business_name': current_user.business_name,
+            'business_logo_url': current_user.business_logo_url
+        }
+    }
+    return jsonify(response)
 
 
 
