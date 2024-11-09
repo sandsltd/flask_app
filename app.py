@@ -41,6 +41,7 @@ import requests
 from werkzeug.utils import secure_filename
 import boto3
 from botocore.exceptions import NoCredentialsError
+from flask import jsonify
 
 load_dotenv()
 
@@ -2686,6 +2687,24 @@ def upload_to_s3(file, folder_prefix="event-logos"):
         return None
 
 
+@app.route('/api/events', methods=['GET'])
+@login_required
+def get_events():
+    # Fetch events for the current user (this is a simplified example)
+    user_events = Event.query.filter_by(user_id=current_user.id).all()
+    event_data = []
+    for event in user_events:
+        event_data.append({
+            "id": event.id,
+            "name": event.name,
+            "date": event.date,
+            "location": event.location,
+            "tickets_sold": 100,  # Example data, replace with actual calculation
+            "ticket_quantity": 200,  # Example data, replace with actual calculation
+            "total_revenue": 500.00,  # Example data, replace with actual calculation
+            "status": "upcoming" if event.date >= datetime.now().date() else "past"
+        })
+    return jsonify(event_data)
 
 if __name__ == "__main__":
     app.run(debug=True)
