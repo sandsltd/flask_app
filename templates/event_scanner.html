@@ -275,6 +275,7 @@
 }
 </style>
 
+<script src="https://unpkg.com/html5-qrcode"></script>
 <script>
 let isProcessing = false;
 let currentFilter = 'all';
@@ -307,7 +308,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function filterLog(status) {
+    window.filterLog = function(status) {
         currentFilter = status;
         const buttons = document.querySelectorAll('.log-filters button');
         buttons.forEach(btn => btn.classList.remove('active'));
@@ -322,7 +323,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    window.filterLog = filterLog;
 
     function processTicket(decodedText) {
         if (isProcessing) return;
@@ -389,6 +389,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     html5QrcodeScanner.render(onScanSuccess, onScanError);
 
+    // Add the dismiss function to the window object
     window.dismissScanResult = function() {
         document.getElementById('scan-result').classList.add('hidden');
         isProcessing = false;
