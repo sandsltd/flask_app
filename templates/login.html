@@ -2,12 +2,18 @@
 
 {% block content %}
 <div class="login-container">
-    <div class="login-background">
-        <div class="animated-shapes">
-            <div class="shape shape-1"></div>
-            <div class="shape shape-2"></div>
-            <div class="shape shape-3"></div>
+    <!-- Animated Background Elements -->
+    <div class="animated-background">
+        {% for i in range(15) %}
+        <div class="floating-ticket ticket-{{ i }}">
+            <i class="fas fa-ticket-alt"></i>
         </div>
+        {% endfor %}
+        
+        <!-- Animated gradient circles -->
+        <div class="gradient-circle circle-1"></div>
+        <div class="gradient-circle circle-2"></div>
+        <div class="gradient-circle circle-3"></div>
     </div>
 
     <div class="login-card">
@@ -64,242 +70,242 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f8fafc;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
     position: relative;
     overflow: hidden;
 }
 
-.login-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1;
-}
-
-.animated-shapes {
+.animated-background {
     position: absolute;
     width: 100%;
     height: 100%;
+    top: 0;
+    left: 0;
 }
 
-.shape {
+.floating-ticket {
+    position: absolute;
+    color: rgba(255, 255, 255, 0.1);
+    font-size: 2rem;
+    z-index: 1;
+}
+
+@keyframes floatTicket {
+    0% {
+        transform: translateY(110vh) rotate(0deg);
+        opacity: 0;
+    }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% {
+        transform: translateY(-10vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+.gradient-circle {
     position: absolute;
     border-radius: 50%;
-    animation: float 20s infinite;
-    opacity: 0.1;
+    filter: blur(60px);
+    opacity: 0.3;
+    animation: pulseGlow 8s ease-in-out infinite;
 }
 
-.shape-1 {
+.circle-1 {
     width: 300px;
     height: 300px;
-    background: linear-gradient(45deg, #2563eb, #3b82f6);
-    top: -150px;
-    left: -150px;
-    animation-delay: -5s;
+    background: radial-gradient(circle, #ff0000 0%, transparent 70%);
+    top: 20%;
+    left: 20%;
+    animation-delay: 0s;
 }
 
-.shape-2 {
+.circle-2 {
     width: 400px;
     height: 400px;
-    background: linear-gradient(45deg, #059669, #10b981);
-    bottom: -200px;
-    right: -200px;
-    animation-delay: -10s;
+    background: radial-gradient(circle, #ff4d4d 0%, transparent 70%);
+    bottom: 10%;
+    right: 20%;
+    animation-delay: 2s;
 }
 
-.shape-3 {
-    width: 200px;
-    height: 200px;
-    background: linear-gradient(45deg, #dc2626, #ef4444);
+.circle-3 {
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, #ff8080 0%, transparent 70%);
     top: 50%;
-    left: 50%;
-    animation-delay: -15s;
+    right: 30%;
+    animation-delay: 4s;
 }
 
-@keyframes float {
+@keyframes pulseGlow {
     0%, 100% {
-        transform: translate(0, 0) rotate(0deg);
-    }
-    25% {
-        transform: translate(50px, 50px) rotate(90deg);
+        transform: scale(1);
+        opacity: 0.3;
     }
     50% {
-        transform: translate(0, 100px) rotate(180deg);
-    }
-    75% {
-        transform: translate(-50px, 50px) rotate(270deg);
+        transform: scale(1.2);
+        opacity: 0.4;
     }
 }
 
 .login-card {
-    background: white;
+    background: rgba(255, 255, 255, 0.95);
     padding: 40px;
     border-radius: 20px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
     width: 100%;
     max-width: 420px;
     position: relative;
     z-index: 2;
     animation: cardAppear 0.6s ease-out;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-@keyframes cardAppear {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.login-header {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-.login-logo {
-    width: 180px;
-    margin-bottom: 20px;
-    animation: logoSpin 20s linear infinite;
-}
-
-@keyframes logoSpin {
-    from {
-        transform: rotateY(0deg);
-    }
-    to {
-        transform: rotateY(360deg);
-    }
-}
-
-.login-header h1 {
-    font-size: 24px;
-    color: #1f2937;
-    margin: 0;
-}
-
-.subtitle {
-    color: #6b7280;
-    margin-top: 5px;
-}
-
-.form-group {
-    margin-bottom: 20px;
-    position: relative;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: #4b5563;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
+/* Keep existing styles but update form elements for modern look */
 .form-group input {
     width: 100%;
     padding: 12px;
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.9);
     transition: all 0.3s ease;
-    font-size: 16px;
 }
 
 .form-group input:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    outline: none;
-}
-
-.forgot-password {
-    position: absolute;
-    right: 0;
-    top: 0;
-    color: #2563eb;
-    text-decoration: none;
-    font-size: 14px;
-}
-
-.forgot-password:hover {
-    text-decoration: underline;
+    border-color: #ff0000;
+    box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.1);
+    transform: translateY(-2px);
 }
 
 .login-button {
-    width: 100%;
-    padding: 12px;
-    background: #2563eb;
+    background: linear-gradient(45deg, #ff0000, #ff4d4d);
     color: white;
     border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 500;
+    border-radius: 10px;
+    padding: 15px;
+    width: 100%;
+    font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .login-button:hover {
-    background: #1d4ed8;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 0, 0, 0.3);
 }
 
-.alert {
-    background: #fee2e2;
-    color: #991b1b;
-    padding: 12px;
-    border-radius: 8px;
-    margin-top: 20px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    animation: alertAppear 0.3s ease-out;
+/* Add hover effect to floating tickets */
+.floating-ticket:hover {
+    color: rgba(255, 0, 0, 0.3);
+    transform: scale(1.2);
 }
 
-@keyframes alertAppear {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+/* Keep other existing styles... */
+</style>
 
-.login-footer {
-    text-align: center;
-    margin-top: 30px;
-    color: #6b7280;
-}
-
-.login-footer a {
-    color: #2563eb;
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.login-footer a:hover {
-    text-decoration: underline;
-}
-
-@media (max-width: 640px) {
-    .login-card {
-        padding: 30px;
-        margin: 20px;
-    }
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Generate random positions and animations for tickets
+    const tickets = document.querySelectorAll('.floating-ticket');
     
-    .shape {
-        display: none;
+    tickets.forEach((ticket, index) => {
+        // Random starting position
+        const randomX = Math.random() * 100;
+        ticket.style.left = `${randomX}%`;
+        
+        // Random size
+        const randomSize = Math.random() * (40 - 20) + 20;
+        ticket.style.fontSize = `${randomSize}px`;
+        
+        // Random animation duration and delay
+        const duration = Math.random() * (20 - 10) + 10;
+        const delay = Math.random() * 10;
+        
+        ticket.style.animation = `floatTicket ${duration}s linear ${delay}s infinite`;
+        
+        // Add hover pause effect
+        ticket.addEventListener('mouseover', function() {
+            this.style.animationPlayState = 'paused';
+            this.style.color = 'rgba(255, 0, 0, 0.3)';
+            this.style.transform = 'scale(1.2)';
+            this.style.transition = 'color 0.3s, transform 0.3s';
+        });
+        
+        ticket.addEventListener('mouseout', function() {
+            this.style.animationPlayState = 'running';
+            this.style.color = 'rgba(255, 255, 255, 0.1)';
+            this.style.transform = 'scale(1)';
+        });
+    });
+
+    // Add some extra visual effects
+    const loginCard = document.querySelector('.login-card');
+    
+    // Subtle hover effect on the card
+    loginCard.addEventListener('mousemove', function(e) {
+        const rect = this.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        
+        const angleX = (y - centerY) / 30;
+        const angleY = (centerX - x) / 30;
+        
+        this.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg)`;
+    });
+    
+    loginCard.addEventListener('mouseleave', function() {
+        this.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
+    });
+
+    // Add particle effect for more visual interest
+    const createParticle = () => {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + 'vw';
+        particle.style.animationDuration = Math.random() * 3 + 2 + 's';
+        document.querySelector('.animated-background').appendChild(particle);
+        
+        setTimeout(() => {
+            particle.remove();
+        }, 5000);
+    };
+
+    setInterval(createParticle, 200);
+});
+</script>
+
+<style>
+/* Add particle styling */
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: particleFloat linear forwards;
+}
+
+@keyframes particleFloat {
+    0% {
+        transform: translateY(100vh) scale(0);
+        opacity: 0;
+    }
+    20% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-20vh) scale(1);
+        opacity: 0;
     }
 }
 </style>
