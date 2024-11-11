@@ -1368,18 +1368,34 @@ def purchase(event_id, promo_code=None):
                 return redirect(url_for('purchase', event_id=event_id))
 
         else:
-            # Get discount rules for the event
-            discount_rules = DiscountRule.query.filter_by(
-                event_id=event_id,
-                discount_type='bulk'
-            ).first()
-
-            # Format discount configuration for frontend
-            discount_config = {
-                'type': discount_rules.apply_to if discount_rules else 'additional',
-                'percentage': float(discount_rules.discount_percent) if discount_rules else 10,
-                'minTickets': discount_rules.min_tickets if discount_rules else 2
-            }
+            # Get active discount rules
+            discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
+            active_discount = None
+            
+            for rule in discount_rules:
+                if rule.discount_type == 'early_bird':
+                    if rule.valid_until and datetime.now() < rule.valid_until:
+                        active_discount = {
+                            'type': 'early_bird',
+                            'percentage': rule.discount_percent,
+                            'valid_until': rule.valid_until.isoformat(),
+                            'max_tickets': rule.max_tickets
+                        }
+                        break
+                elif rule.discount_type == 'bulk':
+                    active_discount = {
+                        'type': 'bulk',
+                        'percentage': rule.discount_percent,
+                        'minTickets': rule.min_tickets,
+                        'apply_to': rule.apply_to
+                    }
+                    break
+                elif rule.discount_type == 'promo_code':
+                    active_discount = {
+                        'type': 'promo_code',
+                        'percentage': rule.discount_percent
+                    }
+                    break
 
             platform_terms_link = 'https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Terms-of-Service-25th-October-2024.pdf'
             organizer_terms_link = organizer.terms if organizer.terms and organizer.terms.lower() != 'none' else None
@@ -1403,7 +1419,7 @@ def purchase(event_id, promo_code=None):
                 ticket_types=ticket_types,
                 enforce_individual_ticket_limits=event.enforce_individual_ticket_limits,
                 tickets_available=tickets_available,
-                discount_config=discount_config
+                discount_config=active_discount
             )
 
     except Exception as e:
