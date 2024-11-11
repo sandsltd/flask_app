@@ -199,6 +199,69 @@
            {% endfor %}
         </div>
 
+        <!-- Add this after the ticket types section -->
+        <div class="discount-rules-section">
+            <h3>Ticket Discount Rules</h3>
+            <div class="info-text">
+                <p>Set up automatic discounts for your tickets. Choose from different discount types:</p>
+                <ul>
+                    <li>Bulk Purchase: Discount for buying multiple tickets</li>
+                    <li>Early Bird: Discount for early purchases</li>
+                    <li>Promo Code: Custom discount codes</li>
+                </ul>
+            </div>
+
+            <div id="discount-rules-container">
+                <div class="discount-rule">
+                    <label>Discount Type:</label>
+                    <select name="discount_type[]" class="discount-type-select" required>
+                        <option value="bulk">Bulk Purchase Discount</option>
+                        <option value="early_bird">Early Bird Discount</option>
+                        <option value="promo_code">Promo Code</option>
+                    </select>
+
+                    <div class="bulk-options discount-options">
+                        <label>Minimum Tickets:</label>
+                        <input type="number" name="min_tickets[]" min="2">
+                        
+                        <label>Discount Amount (%):</label>
+                        <input type="number" name="discount_percent[]" min="0" max="100">
+                        
+                        <label>Apply to:</label>
+                        <select name="discount_apply_to[]">
+                            <option value="all">All Tickets</option>
+                            <option value="additional">Additional Tickets Only</option>
+                        </select>
+                    </div>
+
+                    <div class="early-bird-options discount-options" style="display: none;">
+                        <label>Available Until:</label>
+                        <input type="datetime-local" name="valid_until[]">
+                        
+                        <label>Discount Amount (%):</label>
+                        <input type="number" name="early_bird_discount[]" min="0" max="100">
+                        
+                        <label>Maximum Tickets:</label>
+                        <input type="number" name="max_early_bird_tickets[]" min="1">
+                    </div>
+
+                    <div class="promo-code-options discount-options" style="display: none;">
+                        <label>Promo Code:</label>
+                        <input type="text" name="promo_code[]">
+                        
+                        <label>Discount Amount (%):</label>
+                        <input type="number" name="promo_discount[]" min="0" max="100">
+                        
+                        <label>Maximum Uses:</label>
+                        <input type="number" name="max_uses[]" min="1">
+                    </div>
+
+                    <button type="button" class="remove-discount-rule">Remove Rule</button>
+                </div>
+            </div>
+            <button type="button" id="add-discount-rule">Add Discount Rule</button>
+        </div>
+
         <button type="submit">Create Event</button>
     </form>
 </div>
@@ -288,6 +351,59 @@ document.querySelectorAll('.remove-ticket-type-button').forEach(function(button)
     button.addEventListener('click', function() {
         const ticketTypeDiv = this.parentElement;
         ticketTypeDiv.remove();
+    });
+});
+
+// Add this JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle discount type selection
+    document.body.addEventListener('change', function(e) {
+        if (e.target.classList.contains('discount-type-select')) {
+            const ruleDiv = e.target.closest('.discount-rule');
+            const options = ruleDiv.querySelectorAll('.discount-options');
+            options.forEach(opt => opt.style.display = 'none');
+            
+            switch(e.target.value) {
+                case 'bulk':
+                    ruleDiv.querySelector('.bulk-options').style.display = 'block';
+                    break;
+                case 'early_bird':
+                    ruleDiv.querySelector('.early-bird-options').style.display = 'block';
+                    break;
+                case 'promo_code':
+                    ruleDiv.querySelector('.promo-code-options').style.display = 'block';
+                    break;
+            }
+        }
+    });
+
+    // Add new discount rule
+    document.getElementById('add-discount-rule').addEventListener('click', function() {
+        const container = document.getElementById('discount-rules-container');
+        const ruleTemplate = container.querySelector('.discount-rule').cloneNode(true);
+        
+        // Clear input values
+        ruleTemplate.querySelectorAll('input').forEach(input => input.value = '');
+        
+        // Reset select values
+        ruleTemplate.querySelectorAll('select').forEach(select => {
+            select.selectedIndex = 0;
+            select.dispatchEvent(new Event('change'));
+        });
+        
+        container.appendChild(ruleTemplate);
+    });
+
+    // Remove discount rule
+    document.body.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-discount-rule')) {
+            const rulesContainer = document.getElementById('discount-rules-container');
+            if (rulesContainer.children.length > 1) {
+                e.target.closest('.discount-rule').remove();
+            } else {
+                alert('You must have at least one discount rule section.');
+            }
+        }
     });
 });
 </script>
