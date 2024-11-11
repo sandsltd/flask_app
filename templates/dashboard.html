@@ -133,7 +133,13 @@
                                 </div>
                                 <div class="info-group">
                                     <label><i class="fas fa-info-circle"></i> Description</label>
-                                    <p class="description">{{ event_data.description[:150] }}...</p>
+                                    <p class="description">
+                                        {% if event_data.description %}
+                                            {{ event_data.description[:150] }}{% if event_data.description|length > 150 %}...{% endif %}
+                                        {% else %}
+                                            No description available
+                                        {% endif %}
+                                    </p>
                                 </div>
                             </div>
 

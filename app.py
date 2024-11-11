@@ -398,14 +398,15 @@ def dashboard():
             'name': event.name,
             'date': event.date,
             'location': event.location,
+            'description': event.description,  # Add this line
             'tickets_sold': tickets_sold,
             'ticket_quantity': total_ticket_quantity,
             'tickets_remaining': tickets_remaining,
             'total_revenue': event_revenue,
             'status': event_status,
             'id': event.id,
-            'ticket_breakdown': ticket_breakdown,  # Include ticket breakdown
-            'enforce_individual_ticket_limits': event.enforce_individual_ticket_limits  # Pass the flag
+            'ticket_breakdown': ticket_breakdown,
+            'enforce_individual_ticket_limits': event.enforce_individual_ticket_limits
         })
 
     return render_template('dashboard.html', 

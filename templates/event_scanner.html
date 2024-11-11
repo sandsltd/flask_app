@@ -377,6 +377,9 @@ let html5QrcodeScanner;
 let lastScannedTicket = null;
 let lastScanTime = 0;
 
+const successSound = new Audio('https://bookings.ticketrush.io/static/scan-beep.mp3');
+const errorSound = new Audio('https://bookings.ticketrush.io/static/error-beep.mp3');
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize QR Scanner
     html5QrcodeScanner = new Html5QrcodeScanner(
@@ -438,15 +441,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const data = await response.json();
             
-            // Play appropriate sound
-            try {
-                const audio = new Audio(data.status === 'success' ? 
-                    "{{ url_for('static', filename='.static/scan-beep.mp3') }}" : 
-                    "{{ url_for('static', filename='.static/error-beep.mp3') }}"
-                );
-                await audio.play();
-            } catch (soundError) {
-                console.warn('Sound playback failed:', soundError);
+            // Play appropriate sound based on status
+            if (data.status === 'success') {
+                successSound.play();
+            } else {
+                errorSound.play();
             }
 
             // Show result popup
@@ -480,12 +479,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } catch (error) {
             console.error('Error:', error);
-            try {
-                const errorSound = new Audio("{{ url_for('static', filename='sounds/error-beep.mp3') }}");
-                await errorSound.play();
-            } catch (soundError) {
-                console.warn('Error sound playback failed:', soundError);
-            }
+            errorSound.play();  // Play error sound for network/other errors
             
             const resultDiv = document.getElementById('scan-result');
             resultDiv.className = 'scan-result error';
