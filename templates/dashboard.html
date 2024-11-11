@@ -442,6 +442,7 @@
     display: flex;
     gap: 10px;
     margin-bottom: 15px;
+    flex-wrap: wrap;
 }
 
 .action-button {
@@ -453,6 +454,9 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9em;
 }
 
 .action-button.delete {
@@ -481,6 +485,18 @@
     font-size: 0.9em;
     background-color: white;
     color: #666;
+}
+
+/* Scanner Button */
+.scanner-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.scanner-button:hover {
+    background-color: #218838;
 }
 </style>
 
