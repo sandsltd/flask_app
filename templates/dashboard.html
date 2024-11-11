@@ -147,9 +147,10 @@
                             <div class="details-column">
                                 <h4>Ticket Sales</h4>
                                 <div class="sales-progress">
-                                    {% set percentage = (event_data.tickets_sold / event_data.ticket_quantity * 100)|round|int %}
+                                    {% set percentage = (event_data.tickets_sold / event_data.ticket_quantity * 100)|round|int if event_data.ticket_quantity > 0 else 0 %}
+                                    {% set progress_class = 'progress-danger' if percentage < 25 else 'progress-warning' if percentage < 50 else 'progress-info' if percentage < 75 else 'progress-success' %}
                                     <div class="progress-bar">
-                                        <div class="progress" data-percentage="{{ percentage }}"></div>
+                                        <div class="progress {{ progress_class }}" data-width="{{ percentage }}"></div>
                                     </div>
                                     <span class="progress-text">{{ percentage }}% Sold</span>
                                 </div>
@@ -173,18 +174,23 @@
 
                         <!-- Action Buttons -->
                         <div class="event-actions">
-                            <a href="/event/{{ event_data.id }}/edit" class="action-btn edit">
+                            <a href="{{ url_for('edit_event', event_id=event_data.id) }}" class="action-btn edit">
                                 <i class="fas fa-edit"></i> Edit Event
                             </a>
-                            <a href="/event/{{ event_data.id }}/attendees" class="action-btn attendees">
+                            <a href="{{ url_for('view_attendees', event_id=event_data.id) }}" class="action-btn attendees">
                                 <i class="fas fa-users"></i> View Attendees
                             </a>
-                            <a href="/event/{{ event_data.id }}/scanner" class="action-btn scanner">
+                            <a href="{{ url_for('start_event_scanner', event_id=event_data.id) }}" class="action-btn scanner">
                                 <i class="fas fa-qrcode"></i> Scanner
                             </a>
-                            <button onclick="copyEventUrl('{{ event_data.id }}')" class="action-btn copy">
-                                <i class="fas fa-link"></i> Copy Booking Link
-                            </button>
+                            <div class="booking-url">
+                                <div class="url-container">
+                                    <input type="text" id="event-url-{{ event_data.id }}" value="{{ url_for('purchase', event_id=event_data.id, _external=True) }}" readonly>
+                                    <button onclick="copyEventUrl('{{ event_data.id }}')" class="action-btn copy">
+                                        <i class="fas fa-copy"></i> Copy Link
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -261,28 +267,32 @@
 }
 
 /* Button Styles */
-.primary-button, .secondary-button, .text-button {
+.primary-button, .secondary-button, .text-button, .action-btn {
     padding: 10px 20px;
-    border-radius: 5px;
+    border-radius: 6px;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 8px;
     font-weight: 500;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
 }
 
 .primary-button {
-    background: #ff0000;
+    background: #2563eb;
     color: white;
 }
 
 .secondary-button {
-    background: #f5f5f5;
-    color: #333;
+    background: #f3f4f6;
+    color: #4b5563;
 }
 
 .text-button {
-    color: #666;
+    color: #4b5563;
+    background: transparent;
 }
 
 /* Stats Section */
@@ -448,9 +458,8 @@
 
 /* Booking URL */
 .booking-url {
-    background: #f8f8f8;
-    padding: 15px;
-    border-radius: 5px;
+    flex-basis: 100%;
+    margin-top: 10px;
 }
 
 .url-container {
@@ -461,12 +470,18 @@
 
 .url-container input {
     flex: 1;
-    padding: 8px;
+    padding: 8px 12px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 0.9em;
-    background-color: white;
-    color: #666;
+    background-color: #f8f9fa;
+    color: #495057;
+}
+
+.url-container input:focus {
+    outline: none;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
 }
 
 /* Scanner Button */
@@ -666,20 +681,28 @@
     background: #e9ecef;
     border-radius: 4px;
     overflow: hidden;
+    margin-bottom: 5px;
 }
 
 .progress {
     height: 100%;
-    background: #28a745;
-    transition: width 0.3s ease;
+    transition: width 0.3s ease, background-color 0.3s ease;
 }
 
-.progress-text {
-    display: block;
-    text-align: right;
-    color: #666;
-    font-size: 0.9em;
-    margin-top: 5px;
+.progress-danger {
+    background-color: #dc3545;
+}
+
+.progress-warning {
+    background-color: #ffc107;
+}
+
+.progress-info {
+    background-color: #17a2b8;
+}
+
+.progress-success {
+    background-color: #28a745;
 }
 
 .progress-text {
@@ -726,41 +749,44 @@
 }
 
 .action-btn {
-    padding: 10px 20px;
-    border-radius: 6px;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    border: none;
-    cursor: pointer;
+    font-size: 0.9em;
 }
 
 .action-btn.edit { 
-    background: #007bff; 
+    background: #2563eb; 
     color: white; 
 }
 
 .action-btn.attendees { 
-    background: #6c757d; 
-    color: white; 
+    background: #f3f4f6; 
+    color: #4b5563; 
 }
 
 .action-btn.scanner { 
-    background: #28a745; 
+    background: #059669; 
     color: white; 
 }
 
 .action-btn.copy { 
-    background: #17a2b8; 
-    color: white; 
+    background: #f3f4f6; 
+    color: #4b5563; 
 }
 
 .action-btn:hover {
     opacity: 0.9;
     transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.secondary-button:hover,
+.action-btn.attendees:hover,
+.action-btn.copy:hover {
+    background: #e5e7eb;
+    transform: translateY(-1px);
+}
+
+.text-button:hover {
+    color: #1f2937;
 }
 
 /* Responsive Design */
@@ -815,21 +841,27 @@ function toggleEventDetails(eventId) {
     }
 }
 
-function copyEventUrl(eventId) {
+async function copyEventUrl(eventId) {
     const urlInput = document.getElementById(`event-url-${eventId}`);
-    urlInput.select();
-    document.execCommand('copy');
-    
-    // Show feedback
-    const button = document.querySelector(`#event-url-${eventId}`).nextElementSibling;
-    const originalText = button.innerHTML;
-    button.innerHTML = '<i class="fas fa-check"></i> Copied!';
-    button.style.background = '#28a745';
-    
-    setTimeout(() => {
-        button.innerHTML = originalText;
-        button.style.background = '';
-    }, 2000);
+    try {
+        await navigator.clipboard.writeText(urlInput.value);
+        
+        // Show feedback
+        const button = urlInput.nextElementSibling;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        button.style.background = '#28a745';
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.style.background = '';
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy:', err);
+        // Fallback to old method
+        urlInput.select();
+        document.execCommand('copy');
+    }
 }
 
 function copyEmbedCode() {
@@ -862,6 +894,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 toggleEventDetails(eventId);
             }
         });
+    });
+
+    // Initialize progress bars
+    document.querySelectorAll('.progress[data-width]').forEach(progress => {
+        progress.style.width = progress.dataset.width + '%';
     });
 });
 </script>
