@@ -1357,8 +1357,22 @@ def purchase(event_id, promo_code=None):
                     return redirect(url_for('success', session_id=session_id))
 
                 else:
-                    # Calculate the final price in cents (Stripe requires integers)
-                    final_price = int(total_amount)  # Already in pence
+                    # Calculate total amount after discounts
+                    total_amount = total_amount - total_discount_pence  # This should already be in pence
+
+                    # Prepare ticket and attendee data for Stripe metadata
+                    ticket_data = {
+                        'quantities': quantities,
+                        'total_tickets': total_tickets_requested,
+                        'total_amount': total_amount
+                    }
+
+                    attendee_data = {
+                        'full_name': full_name,
+                        'email': email,
+                        'phone_number': phone_number,
+                        'answers': attendee_answers
+                    }
 
                     # Create Stripe checkout session
                     checkout_session = stripe.checkout.Session.create(
@@ -1366,7 +1380,7 @@ def purchase(event_id, promo_code=None):
                         line_items=[{
                             'price_data': {
                                 'currency': 'gbp',
-                                'unit_amount': final_price,
+                                'unit_amount': total_amount,  # Changed from final_price to total_amount
                                 'product_data': {
                                     'name': f'Tickets for {event.name}',
                                 },
@@ -1374,8 +1388,13 @@ def purchase(event_id, promo_code=None):
                             'quantity': 1,
                         }],
                         mode='payment',
-                        success_url=url_for('payment_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
-                        cancel_url=url_for('payment_cancel', _external=True),
+                        success_url=url_for('success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+                        cancel_url=url_for('cancel', _external=True),
+                        metadata={
+                            'event_id': event_id,
+                            'ticket_data': json.dumps(ticket_data),
+                            'attendee_data': json.dumps(attendee_data)
+                        }
                     )
 
                     return redirect(checkout_session.url)
