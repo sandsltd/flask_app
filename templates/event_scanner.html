@@ -9,7 +9,19 @@
         <div class="stats-grid">
             <div class="stat-box">
                 <span class="stat-label">Event Capacity</span>
-                <span class="stat-value">{{ event.ticket_quantity }}</span>
+                <span class="stat-value">
+                    {% if event.enforce_individual_ticket_limits %}
+                        {% set total_capacity = 0 %}
+                        {% for ticket_type in event.ticket_types %}
+                            {% if ticket_type.quantity %}
+                                {% set total_capacity = total_capacity + ticket_type.quantity %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ total_capacity }}
+                    {% else %}
+                        {{ event.ticket_quantity }}
+                    {% endif %}
+                </span>
             </div>
             <div class="stat-box">
                 <span class="stat-label">Total Booked</span>
@@ -17,7 +29,19 @@
             </div>
             <div class="stat-box">
                 <span class="stat-label">Tickets Available</span>
-                <span class="stat-value">{{ event.ticket_quantity - total_attendees }}</span>
+                <span class="stat-value">
+                    {% if event.enforce_individual_ticket_limits %}
+                        {% set total_capacity = 0 %}
+                        {% for ticket_type in event.ticket_types %}
+                            {% if ticket_type.quantity %}
+                                {% set total_capacity = total_capacity + ticket_type.quantity %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ total_capacity - total_attendees }}
+                    {% else %}
+                        {{ event.ticket_quantity - total_attendees }}
+                    {% endif %}
+                </span>
             </div>
             <div class="stat-box highlight">
                 <span class="stat-label">Checked In</span>
