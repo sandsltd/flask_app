@@ -144,17 +144,18 @@
 </div>
 
 <!-- Add this before your main script -->
+<script type="application/json" id="questions-data">
+    {{ questions | tojson | safe }}
+</script>
+
 <script type="application/json" id="discount-config">
     {{ discount_config | tojson | safe }}
 </script>
 
 <script>
-    // Parse the discount configuration from the script tag
+    // Parse the configurations from the script tags
     var discountConfig = JSON.parse(document.getElementById('discount-config').textContent);
-
-    // Parse the questions data from the script tag
-    var questionsDataElement = document.getElementById('questions-data');
-    var questions = JSON.parse(questionsDataElement.textContent);
+    var questions = JSON.parse(document.getElementById('questions-data').textContent);
 
     function updateQuestionForms() {
         var ticketInputs = document.querySelectorAll('.ticket-input');
@@ -163,7 +164,6 @@
 
         var totalQuantity = 0;
         var totalPrice = 0;
-        var originalPrice = 0;
 
         // First pass: calculate total quantity for bulk discount determination
         ticketInputs.forEach(function(input) {
@@ -176,24 +176,18 @@
             var ticketTypeId = input.getAttribute('data-ticket-type-id');
             var ticketTypePrice = parseFloat(input.getAttribute('data-ticket-price'));
 
-            // Calculate original price before discount
-            originalPrice = quantity * ticketTypePrice;
-
-            // Apply discount based on configuration
+            // Calculate price based on discount configuration
             if (totalQuantity >= discountConfig.minTickets) {
                 if (discountConfig.type === 'additional') {
                     // First ticket at full price, rest discounted
                     totalPrice += ticketTypePrice + 
                         (quantity - 1) * (ticketTypePrice * (1 - discountConfig.percentage/100));
-                } else if (discountConfig.type === 'all') {
-                    // All tickets discounted
-                    totalPrice += quantity * (ticketTypePrice * (1 - discountConfig.percentage/100));
                 } else {
-                    // No discount
-                    totalPrice += originalPrice;
+                    // All tickets discounted
+                    totalPrice += quantity * ticketTypePrice;
                 }
             } else {
-                totalPrice += originalPrice;
+                totalPrice += quantity * ticketTypePrice;
             }
 
             // Create question forms for each ticket
@@ -205,13 +199,13 @@
                 attendeeHeader.textContent = 'Ticket Type: ' + input.previousElementSibling.textContent + ' - Ticket ' + (i + 1);
                 ticketDiv.appendChild(attendeeHeader);
 
-                for (var j = 0; j < questions.length; j++) {
+                questions.forEach(function(question, j) {
                     var formGroup = document.createElement('div');
                     formGroup.classList.add('form-group');
 
                     var label = document.createElement('label');
                     label.setAttribute('for', 'ticket_' + ticketTypeId + '_' + i + '_question_' + j);
-                    label.textContent = questions[j];
+                    label.textContent = question;
 
                     var inputField = document.createElement('input');
                     inputField.type = 'text';
@@ -221,7 +215,7 @@
                     formGroup.appendChild(label);
                     formGroup.appendChild(inputField);
                     ticketDiv.appendChild(formGroup);
-                }
+                });
 
                 formsContainer.appendChild(ticketDiv);
             }
@@ -232,6 +226,7 @@
         totalPriceElement.textContent = '£' + totalPrice.toFixed(2);
     }
 
+    // Initialize the form when the DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
         updateQuestionForms();
 
