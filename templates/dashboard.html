@@ -103,16 +103,16 @@
                         </div>
                         <div class="quick-stats">
                             <div class="stat">
-                                <i class="fas fa-ticket-alt"></i>
-                                <span>{{ event_data.tickets_sold }}/{{ event_data.ticket_quantity }}</span>
+                                <label>Tickets Sold:</label>
+                                <span><i class="fas fa-ticket-alt"></i> {{ event_data.tickets_sold }}/{{ event_data.ticket_quantity }}</span>
                             </div>
                             <div class="stat">
-                                <i class="fas fa-calendar"></i>
-                                <span>{{ event_data.date | datetimeformat }}</span>
+                                <label>Event Date:</label>
+                                <span><i class="fas fa-calendar"></i> {{ event_data.date | datetimeformat }}</span>
                             </div>
                             <div class="stat">
-                                <i class="fas fa-pound-sign"></i>
-                                <span>£{{ "{:.2f}".format(event_data.total_revenue) }}</span>
+                                <label>Revenue:</label>
+                                <span><i class="fas fa-pound-sign"></i> £{{ "{:.2f}".format(event_data.total_revenue) }}</span>
                             </div>
                         </div>
                     </div>
@@ -343,10 +343,12 @@
 }
 
 .event-card {
-    border: 1px solid #eee;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
 .event-header {
@@ -529,6 +531,7 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     overflow: hidden;
     transition: all 0.3s ease;
+    cursor: pointer;
 }
 
 .event-status {
@@ -578,27 +581,47 @@
 .expand-button {
     background: none;
     border: none;
-    color: #666;
     cursor: pointer;
     padding: 8px;
     border-radius: 50%;
-    transition: all 0.3s ease;
+    transition: background-color 0.3s;
 }
 
 .expand-button:hover {
-    background: #f5f5f5;
+    background-color: #f0f0f0;
 }
 
 .quick-stats {
-    display: flex;
-    gap: 20px;
-    color: #666;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
 }
 
-.stat {
+.quick-stats .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.quick-stats .stat label {
+    font-size: 0.8em;
+    color: #666;
+    font-weight: 500;
+}
+
+.quick-stats .stat span {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 5px;
+    color: #333;
+    font-weight: 500;
+}
+
+.quick-stats .stat i {
+    color: #666;
 }
 
 /* Expanded Details Styles */
@@ -769,6 +792,19 @@ function toggleEventDetails(eventId) {
     const card = document.getElementById(`event-card-${eventId}`);
     
     if (details.style.display === 'none') {
+        // Close all other open details first
+        document.querySelectorAll('.event-details').forEach(detail => {
+            if (detail.id !== `event-details-${eventId}` && detail.style.display !== 'none') {
+                const otherId = detail.id.replace('event-details-', '');
+                const otherButton = document.querySelector(`#event-card-${otherId} .expand-button i`);
+                const otherCard = document.getElementById(`event-card-${otherId}`);
+                detail.style.display = 'none';
+                otherButton.className = 'fas fa-chevron-down';
+                otherCard.style.transform = 'scale(1)';
+            }
+        });
+        
+        // Open clicked details
         details.style.display = 'block';
         button.className = 'fas fa-chevron-up';
         card.style.transform = 'scale(1.01)';
@@ -818,10 +854,14 @@ function copyEmbedCode() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    const progressBars = document.querySelectorAll('.progress');
-    progressBars.forEach(bar => {
-        const percentage = bar.dataset.percentage;
-        bar.style.width = `${percentage}%`;
+    document.querySelectorAll('.event-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            // Don't trigger if clicking on a button or link
+            if (!e.target.closest('button') && !e.target.closest('a')) {
+                const eventId = this.id.replace('event-card-', '');
+                toggleEventDetails(eventId);
+            }
+        });
     });
 });
 </script>
