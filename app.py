@@ -2020,7 +2020,7 @@ def add_attendee(event_id):
             ticket_answers=json.dumps(ticket_answers),
             ticket_number=ticket_number,
             created_at=datetime.now(timezone.utc)
-
+        )
         db.session.add(attendee)
         db.session.commit()
 
