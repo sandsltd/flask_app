@@ -1964,7 +1964,6 @@ def edit_attendee(attendee_id):
 def add_attendee(event_id):
     event = Event.query.get_or_404(event_id)
     
-    # Ensure the user has permission
     if event.user_id != current_user.id:
         flash("You don't have permission to add attendees to this event.")
         return redirect(url_for('dashboard'))
@@ -1989,67 +1988,25 @@ def add_attendee(event_id):
         full_name = request.form.get('full_name')
         email = request.form.get('email')
         phone_number = request.form.get('phone_number')
-        ticket_type_id = int(request.form.get('ticket_type'))
+        ticket_type_id = request.form.get('ticket_type')
         number_of_tickets = int(request.form.get('number_of_tickets', 1))
 
-        # Get selected ticket type
-        ticket_type = TicketType.query.get_or_404(ticket_type_id)
-        
-        # Check capacity based on event settings
-        if event.enforce_individual_ticket_limits:
-            # Check individual ticket type limit
-            tickets_sold = Attendee.query.filter_by(
-                event_id=event_id,
-                ticket_type_id=ticket_type_id,
-                payment_status='succeeded'
-            ).count()
-            
-            if tickets_sold + number_of_tickets > ticket_type.quantity:
-                flash(f"Cannot add {number_of_tickets} tickets. Only {ticket_type.quantity - tickets_sold} tickets of type {ticket_type.name} are available.")
-                return redirect(url_for('add_attendee', event_id=event_id))
-        else:
-            # Check total event capacity
-            total_tickets_sold = Attendee.query.filter_by(
-                event_id=event_id,
-                payment_status='succeeded'
-            ).count()
-            
-            if total_tickets_sold + number_of_tickets > event.ticket_quantity:
-                flash(f"Cannot add {number_of_tickets} tickets. Only {event.ticket_quantity - total_tickets_sold} tickets remaining for the event.")
-                return redirect(url_for('add_attendee', event_id=event_id))
+        # Collect answers for each ticket
+        ticket_answers = []
+        for ticket_num in range(1, number_of_tickets + 1):
+            answers = {}
+            for q_index, question in enumerate(all_questions, 1):
+                answer = request.form.get(f'ticket_{ticket_num}_question_{q_index}')
+                if not answer:
+                    flash(f'Please answer all questions for Ticket #{ticket_num}')
+                    return redirect(url_for('add_attendee', event_id=event_id))
+                answers[question] = answer
+            ticket_answers.append(answers)
 
-        # Collect answers to ticket questions
-        ticket_answers = {}
-        for idx, question in enumerate(all_questions, start=1):
-            answer = request.form.get(f'answer_{idx}')
-            ticket_answers[question] = answer
-
-        # Collect billing details
-        billing_details = {
-            "name": request.form.get('billing_name'),
-            "email": request.form.get('billing_email'),
-            "phone": request.form.get('billing_phone'),
-            "address": {
-                "line1": request.form.get('billing_address_line1'),
-                "line2": request.form.get('billing_address_line2'),
-                "city": request.form.get('billing_city'),
-                "state": request.form.get('billing_state'),
-                "postal_code": request.form.get('billing_postal_code'),
-                "country": request.form.get('billing_country'),
-            }
-        }
-
-        # Clean up billing details
-        billing_details = {k: v for k, v in billing_details.items() if v}
-        if 'address' in billing_details:
-            billing_details['address'] = {k: v for k, v in billing_details['address'].items() if v}
-            if not billing_details['address']:
-                del billing_details['address']
-
-        # Generate ticket number
+        # Create attendee record
+        ticket_type = TicketType.query.get(ticket_type_id)
         ticket_number = generate_unique_ticket_number()
 
-        # Create attendee
         attendee = Attendee(
             event_id=event_id,
             ticket_type_id=ticket_type_id,
@@ -2061,10 +2018,8 @@ def add_attendee(event_id):
             payment_status='succeeded',
             session_id='MANUAL_ENTRY',
             ticket_answers=json.dumps(ticket_answers),
-            billing_details=json.dumps(billing_details) if billing_details else None,
             ticket_number=ticket_number,
             created_at=datetime.now(timezone.utc)
-        )
 
         db.session.add(attendee)
         db.session.commit()
