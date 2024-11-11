@@ -739,17 +739,42 @@ def embed_events(unique_id):
         future_events = []
         current_date = datetime.now().date()
         
+        def parse_date(date_str):
+            """Try multiple date formats to parse the date string"""
+            formats = [
+                '%Y-%m-%d',  # 2024-01-10
+                '%y-%m-%d',  # 24-01-10
+                '%d-%m-%y',  # 10-01-24
+                '%d-%m-%Y',  # 10-01-2024
+                '%Y/%m/%d',  # 2024/01/10
+                '%d/%m/%Y',  # 10/01/2024
+                '%m-%d-%y',  # 01-10-24
+                '%m-%d-%Y'   # 01-10-2024
+            ]
+            
+            for fmt in formats:
+                try:
+                    return datetime.strptime(date_str, fmt).date()
+                except ValueError:
+                    continue
+            
+            # If no format matches, raise an error
+            raise ValueError(f"Unable to parse date: {date_str}")
+
         for event in user_events:
             try:
-                event_date = datetime.strptime(event.date, '%Y-%m-%d').date()
+                # Try to parse the date with our helper function
+                event_date = parse_date(event.date)
                 if event_date >= current_date:
+                    # Store the parsed date for later use
+                    event.parsed_date = event_date
                     future_events.append(event)
             except (ValueError, TypeError) as e:
                 print(f"Error parsing date for event {event.id}: {e}")
                 continue
 
-        # Sort events by date
-        future_events.sort(key=lambda x: datetime.strptime(x.date, '%Y-%m-%d'))
+        # Sort events by parsed date
+        future_events.sort(key=lambda x: getattr(x, 'parsed_date', datetime.max.date()))
 
         # Begin constructing the HTML
         events_html = '''
@@ -809,9 +834,8 @@ def embed_events(unique_id):
                     else:
                         tickets_available = "Unlimited"
 
-                    # Format date
-                    event_date = datetime.strptime(event.date, '%Y-%m-%d')
-                    formatted_date = event_date.strftime('%A %d %B %Y')
+                    # Format date using the previously parsed date
+                    formatted_date = event.parsed_date.strftime('%A %d %B %Y')
 
                     # Get ticket types
                     ticket_types = TicketType.query.filter_by(event_id=event.id).all()
@@ -2107,7 +2131,6 @@ def stripe_onboarding_complete():
         print("Stripe onboarding failed: Missing account_id or user_id.")
         flash('Stripe onboarding failed. Please try again.')
         return redirect(url_for('register'))
-
 
 
 
