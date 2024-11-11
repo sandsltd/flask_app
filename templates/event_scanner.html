@@ -415,14 +415,11 @@ document.addEventListener('DOMContentLoaded', function() {
     async function processTicket(ticketNumber) {
         if (isProcessing) return;
         isProcessing = true;
+        html5QrcodeScanner.pause(true);
 
         updateStatus('processing', 'Processing ticket...');
 
         try {
-            // Play scan sound
-            const scanSound = new Audio('/static/scan-beep.mp3');
-            await scanSound.play();
-
             const response = await fetch(`/api/check-in/{{ event.id }}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -431,22 +428,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const data = await response.json();
             
+            // Play appropriate sound
+            const audio = new Audio(data.status === 'success' ? '/static/scan-beep.mp3' : '/static/error-beep.mp3');
+            audio.play();
+
             // Show result popup
             const resultDiv = document.getElementById('scan-result');
             resultDiv.className = `scan-result ${data.status}`;
             resultDiv.classList.remove('hidden');
             
-            // Update result content
             const resultCard = resultDiv.querySelector('.result-card');
-            resultCard.className = `result-card ${data.status}`;
-            
-            // Show appropriate icon
-            resultCard.querySelectorAll('.result-header i').forEach(icon => icon.style.display = 'none');
-            resultCard.querySelector(`.${data.status}-icon`).style.display = 'block';
-            
             resultCard.querySelector('.result-title').textContent = 
                 data.status === 'success' ? 'Check-in Successful!' :
                 data.status === 'warning' ? 'Already Checked In' : 'Error';
+            
+            resultCard.querySelector('.result-message').textContent = data.message;
             
             if (data.attendee) {
                 resultCard.querySelector('.attendee-details').innerHTML = `
@@ -458,12 +454,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 addLogEntry(data);
             }
 
-            // Play status sound
-            const resultSound = new Audio(
-                data.status === 'success' ? '/static/scan-beep.mp3' : '/static/error-beep.mp3'
-            );
-            await resultSound.play();
-
             // Update statistics if provided
             if (data.stats) {
                 document.getElementById('checked-in-count').textContent = data.stats.total_checked_in;
@@ -471,10 +461,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     data.stats.total_attendees - data.stats.total_checked_in;
             }
 
+            updateStatus('ready', 'Ready to Scan');
+
         } catch (error) {
             console.error('Error:', error);
             const errorSound = new Audio('/static/error-beep.mp3');
-            await errorSound.play();
+            errorSound.play();
             
             const resultDiv = document.getElementById('scan-result');
             resultDiv.className = 'scan-result error';
@@ -483,11 +475,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const resultCard = resultDiv.querySelector('.result-card');
             resultCard.querySelector('.result-title').textContent = 'Error';
             resultCard.querySelector('.result-message').textContent = 'Failed to process ticket';
+            
+            updateStatus('ready', 'Ready to Scan');
         }
+
+        isProcessing = false;
+        html5QrcodeScanner.resume();
     }
 
+    // Handle successful scan
     function onScanSuccess(decodedText) {
-        processTicket(decodedText);
+        if (!isProcessing) {
+            processTicket(decodedText);
+        }
     }
 
     html5QrcodeScanner.render(onScanSuccess, error => {
@@ -497,9 +497,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize with ready status
     updateStatus('ready', 'Ready to Scan');
 
-    // Add global functions
+    // Global functions
     window.dismissResult = function() {
-        document.getElementById('scan-result').classList.add('hidden');
+        const resultDiv = document.getElementById('scan-result');
+        resultDiv.classList.add('hidden');
         updateStatus('ready', 'Ready to Scan');
         isProcessing = false;
         html5QrcodeScanner.resume();
