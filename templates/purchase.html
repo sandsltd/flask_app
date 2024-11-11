@@ -34,112 +34,122 @@
     </div>
 </div>
 
-
-
-    <!-- Purchase Form -->
-    <div class="purchase-form">
-        {% if enforce_individual_ticket_limits %}
-            <p>Please select the number of tickets for each ticket type (limited availability):</p>
-        {% else %}
-            <p>Total Tickets Available: {{ tickets_available }}</p>
-            <p>Please select the number of tickets for each ticket type:</p>
-        {% endif %}
-
-        <form method="POST" action="{{ url_for('purchase', event_id=event.id) }}" enctype="multipart/form-data">
-            <!-- Buyer Information -->
-            <h2>Your Information</h2>
-
-            <div class="form-group">
-                <label for="full_name">Full Name:</label>
-                <input type="text" id="full_name" name="full_name" required>
-            </div>
-
-            <div class="form-group">
-                <label for="email">Email Address:</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-
-            <div class="form-group">
-                <label for="phone_number">Telephone Number:</label>
-                <input type="tel" id="phone_number" name="phone_number" required>
-            </div>
-
-            <!-- Ticket Selection -->
-            <h2>Select Tickets</h2>
-            <div id="ticket_selection">
-                {% for ticket_type in ticket_types %}
-                    <div class="ticket-type">
-                        <label>{{ ticket_type.name }} (£{{ "{:.2f}".format(ticket_type.price) }})</label>
-                        {% if enforce_individual_ticket_limits %}
-                            {% set tickets_sold_type = ticket_type.attendees | selectattr('payment_status', 'equalto', 'succeeded') | list | length %}
-                            {% set tickets_remaining = ticket_type.quantity - tickets_sold_type %}
-                            <p>Tickets Available: {{ tickets_remaining }}</p>
-                            <input
-                                type="number"
-                                name="quantity_{{ ticket_type.id }}"
-                                min="0"
-                                max="{{ tickets_remaining }}"
-                                value="0"
-                                data-ticket-type-id="{{ ticket_type.id }}"
-                                data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
-                                class="ticket-input"
-                            >
-                        {% else %}
-                            <input
-                                type="number"
-                                name="quantity_{{ ticket_type.id }}"
-                                min="0"
-                                value="0"
-                                data-ticket-type-id="{{ ticket_type.id }}"
-                                data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
-                                class="ticket-input"
-                            >
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </div>
-
-            <!-- Total Price -->
-            <div class="form-group">
-                <label>Total Price:</label>
-                <p id="total_price">£0.00</p>
-            </div>
-
-            <!-- Add this after the total price div -->
-            <div id="question_forms">
-                <!-- Question forms will be dynamically added here -->
-            </div>
-
-            <!-- Terms and Conditions Checkboxes -->
-            <h2>Terms and Conditions</h2>
-            {% if organizer_terms_link %}
-            <div class="form-group checkbox-group">
-                <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
-                <label for="accept_organizer_terms">
-                    I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organiser's Terms and Conditions</a>.
-                </label>
-            </div>
-            {% endif %}
-            <div class="form-group checkbox-group">
-                <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
-                <label for="accept_platform_terms">
-                    I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>.
-                </label>
-            </div>
-
-            <!-- Add this in your form -->
-            <div class="promo-code-section">
-                <label for="promo_code">Promo Code (if applicable):</label>
-                <input type="text" id="promo_code" name="promo_code">
-            </div>
-
-            <input type="submit" value="Proceed to Payment" class="submit-btn">
-        </form>
-
-        {% if error %}
-            <p class="error-msg">{{ error }}</p>
-        {% endif %}
+<!-- Add discount banner here -->
+<div id="discount-banner" class="discount-banner" style="display: none;">
+    <div class="discount-content">
+        <span class="offer-badge">Special Offer</span>
+        <p id="discount-message"></p>
+        <button type="button" class="close-banner">×</button>
     </div>
+</div>
+
+<!-- Purchase Form -->
+<div class="purchase-form">
+    {% if enforce_individual_ticket_limits %}
+        <p>Please select the number of tickets for each ticket type (limited availability):</p>
+    {% else %}
+        <p>Total Tickets Available: {{ tickets_available }}</p>
+        <p>Please select the number of tickets for each ticket type:</p>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('purchase', event_id=event.id) }}" enctype="multipart/form-data">
+        <!-- Buyer Information -->
+        <h2>Your Information</h2>
+
+        <div class="form-group">
+            <label for="full_name">Full Name:</label>
+            <input type="text" id="full_name" name="full_name" required>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email Address:</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+
+        <div class="form-group">
+            <label for="phone_number">Telephone Number:</label>
+            <input type="tel" id="phone_number" name="phone_number" required>
+        </div>
+
+        <!-- Ticket Selection -->
+        <h2>Select Tickets</h2>
+        <div id="ticket_selection">
+            {% for ticket_type in ticket_types %}
+                <div class="ticket-type">
+                    <label>{{ ticket_type.name }}</label>
+                    <div class="ticket-price-display" id="price-display-{{ ticket_type.id }}">
+                        <span class="original-price">£{{ "{:.2f}".format(ticket_type.price) }}</span>
+                        <span class="discounted-price" style="display: none;"></span>
+                    </div>
+                    {% if enforce_individual_ticket_limits %}
+                        {% set tickets_sold_type = ticket_type.attendees | selectattr('payment_status', 'equalto', 'succeeded') | list | length %}
+                        {% set tickets_remaining = ticket_type.quantity - tickets_sold_type %}
+                        <p>Tickets Available: {{ tickets_remaining }}</p>
+                        <input
+                            type="number"
+                            name="quantity_{{ ticket_type.id }}"
+                            min="0"
+                            max="{{ tickets_remaining }}"
+                            value="0"
+                            data-ticket-type-id="{{ ticket_type.id }}"
+                            data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
+                            class="ticket-input"
+                        >
+                    {% else %}
+                        <input
+                            type="number"
+                            name="quantity_{{ ticket_type.id }}"
+                            min="0"
+                            value="0"
+                            data-ticket-type-id="{{ ticket_type.id }}"
+                            data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
+                            class="ticket-input"
+                        >
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Total Price -->
+        <div class="form-group">
+            <label>Total Price:</label>
+            <p id="total_price">£0.00</p>
+        </div>
+
+        <!-- Add this after the total price div -->
+        <div id="question_forms">
+            <!-- Question forms will be dynamically added here -->
+        </div>
+
+        <!-- Terms and Conditions Checkboxes -->
+        <h2>Terms and Conditions</h2>
+        {% if organizer_terms_link %}
+        <div class="form-group checkbox-group">
+            <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
+            <label for="accept_organizer_terms">
+                I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organiser's Terms and Conditions</a>.
+            </label>
+        </div>
+        {% endif %}
+        <div class="form-group checkbox-group">
+            <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
+            <label for="accept_platform_terms">
+                I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>.
+            </label>
+        </div>
+
+        <!-- Add this in your form -->
+        <div class="promo-code-section">
+            <label for="promo_code">Promo Code (if applicable):</label>
+            <input type="text" id="promo_code" name="promo_code">
+        </div>
+
+        <input type="submit" value="Proceed to Payment" class="submit-btn">
+    </form>
+
+    {% if error %}
+        <p class="error-msg">{{ error }}</p>
+    {% endif %}
 </div>
 
 <!-- Add this before your main script -->
@@ -152,10 +162,50 @@
 </script>
 
 <script>
-    // Parse the configurations from the script tags
     var discountConfig = JSON.parse(document.getElementById('discount-config').textContent);
     var questions = JSON.parse(document.getElementById('questions-data').textContent);
 
+    // Show discount banner if bulk discount is available
+    function initializeDiscountBanner() {
+        if (discountConfig.type === 'bulk') {
+            const banner = document.getElementById('discount-banner');
+            const message = document.getElementById('discount-message');
+            message.textContent = `Buy ${discountConfig.minTickets} or more tickets and ${
+                discountConfig.type === 'all' ? 'save' : 'save on additional tickets'
+            } ${discountConfig.percentage}%!`;
+            banner.style.display = 'block';
+
+            document.querySelector('.close-banner').addEventListener('click', function(e) {
+                e.stopPropagation();
+                banner.style.display = 'none';
+            });
+        }
+    }
+
+    function updatePriceDisplays(totalQuantity) {
+        var ticketInputs = document.querySelectorAll('.ticket-input');
+        var applyDiscount = totalQuantity >= discountConfig.minTickets;
+
+        ticketInputs.forEach(function(input) {
+            var ticketTypeId = input.getAttribute('data-ticket-type-id');
+            var originalPrice = parseFloat(input.getAttribute('data-ticket-price'));
+            var priceDisplay = document.getElementById(`price-display-${ticketTypeId}`);
+            var originalPriceSpan = priceDisplay.querySelector('.original-price');
+            var discountedPriceSpan = priceDisplay.querySelector('.discounted-price');
+
+            if (applyDiscount) {
+                var discountedPrice = originalPrice * (1 - discountConfig.percentage/100);
+                originalPriceSpan.classList.add('strikethrough');
+                discountedPriceSpan.textContent = `£${discountedPrice.toFixed(2)}`;
+                discountedPriceSpan.style.display = 'inline';
+            } else {
+                originalPriceSpan.classList.remove('strikethrough');
+                discountedPriceSpan.style.display = 'none';
+            }
+        });
+    }
+
+    // Your existing updateQuestionForms function with added updatePriceDisplays call
     function updateQuestionForms() {
         var ticketInputs = document.querySelectorAll('.ticket-input');
         var formsContainer = document.getElementById('question_forms');
@@ -226,12 +276,33 @@
         // Update total price display
         var totalPriceElement = document.getElementById('total_price');
         totalPriceElement.textContent = '£' + totalPrice.toFixed(2);
+
+        // Add this line after calculating totalQuantity
+        updatePriceDisplays(totalQuantity);
     }
 
-    // Initialize the form when the DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-        updateQuestionForms();
+    // Add form submission handler
+    document.querySelector('form').addEventListener('submit', function(e) {
+        var totalQuantity = Array.from(document.querySelectorAll('.ticket-input'))
+            .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
 
+        if (discountConfig.type === 'bulk' && 
+            totalQuantity > 0 && 
+            totalQuantity < discountConfig.minTickets) {
+            
+            e.preventDefault();
+            
+            if (confirm(`You're just ${discountConfig.minTickets - totalQuantity} ticket(s) away from saving ${discountConfig.percentage}% on ${discountConfig.type === 'all' ? 'all' : 'additional'} tickets! Would you like to add more tickets?`)) {
+                return false;
+            }
+        }
+    });
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeDiscountBanner();
+        updateQuestionForms();
+        
         var ticketInputs = document.querySelectorAll('.ticket-input');
         ticketInputs.forEach(function(input) {
             input.addEventListener('change', updateQuestionForms);
@@ -429,6 +500,60 @@
             padding: 20px;
             text-align: left;
         }
+    }
+
+    /* Add these new styles before your existing ones */
+    .discount-banner {
+        background-color: #ffebee;
+        border: 1px solid #ff0000;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 20px 0;
+        position: relative;
+        cursor: pointer;
+    }
+
+    .discount-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .offer-badge {
+        background-color: #ff0000;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 3px;
+        font-weight: bold;
+    }
+
+    .close-banner {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #666;
+    }
+
+    .ticket-price-display {
+        margin-bottom: 5px;
+    }
+
+    .original-price {
+        color: #666;
+    }
+
+    .original-price.strikethrough {
+        text-decoration: line-through;
+    }
+
+    .discounted-price {
+        color: #ff0000;
+        font-weight: bold;
+        margin-left: 10px;
     }
 </style>
 
