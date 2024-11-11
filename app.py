@@ -742,6 +742,37 @@ def create_event():
                 if i < occurrences - 1:
                     current_date = get_next_date(current_date, recurrence)
 
+            # After creating the event and ticket types, add this section:
+            
+            # Process discount rules
+            discount_types = request.form.getlist('discount_type[]')
+            for i, discount_type in enumerate(discount_types):
+                try:
+                    discount_rule = DiscountRule(
+                        event_id=event.id,
+                        discount_type=discount_type,
+                        discount_percent=float(request.form.getlist('discount_percent[]')[i])
+                    )
+
+                    # Set specific fields based on discount type
+                    if discount_type == 'bulk':
+                        discount_rule.min_tickets = int(request.form.getlist('min_tickets[]')[i])
+                        discount_rule.apply_to = request.form.getlist('discount_apply_to[]')[i]
+                    elif discount_type == 'early_bird':
+                        discount_rule.valid_until = datetime.strptime(request.form.getlist('valid_until[]')[i], '%Y-%m-%dT%H:%M')
+                        discount_rule.max_early_bird_tickets = int(request.form.getlist('max_early_bird_tickets[]')[i])
+                    elif discount_type == 'promo_code':
+                        discount_rule.promo_code = request.form.getlist('promo_code[]')[i]
+                        discount_rule.max_uses = int(request.form.getlist('max_uses[]')[i])
+
+                    db.session.add(discount_rule)
+
+                except (ValueError, IndexError) as e:
+                    print(f"Error processing discount rule: {e}")
+                    continue
+
+            db.session.commit()
+
             flash(f'{occurrences} occurrence(s) of the event "{name}" created successfully!', 'success')
             return redirect(url_for('dashboard'))
 
@@ -1700,6 +1731,7 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
 
     except Exception as e:
         print(f"Failed to send confirmation email to organizer {organizer.email}. Error: {str(e)}")
+
 
 
         # Create and send the email using Flask-Mail
@@ -2705,7 +2737,6 @@ def resend_ticket(attendee_id):
 
     flash(f"Ticket has been resent to {attendee.email}.")
     return redirect(url_for('view_attendees', event_id=event.id))
-
 
 
 
