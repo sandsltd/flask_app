@@ -182,8 +182,11 @@
                     // First ticket at full price, rest discounted
                     totalPrice += ticketTypePrice + 
                         (quantity - 1) * (ticketTypePrice * (1 - discountConfig.percentage/100));
-                } else {
+                } else if (discountConfig.type === 'all') {
                     // All tickets discounted
+                    totalPrice += quantity * (ticketTypePrice * (1 - discountConfig.percentage/100));
+                } else {
+                    // No discount
                     totalPrice += quantity * ticketTypePrice;
                 }
             } else {
