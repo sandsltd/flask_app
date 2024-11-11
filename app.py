@@ -1349,6 +1349,13 @@ def purchase(event_id, promo_code=None):
             platform_terms_link = 'https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Terms-of-Service-25th-October-2024.pdf'
             organizer_terms_link = organizer.terms if organizer.terms and organizer.terms.lower() != 'none' else None
 
+            # Add discount configuration
+            discount_config = {
+                'type': 'additional',  # 'additional' means first ticket full price, rest discounted
+                'percentage': 10,      # 10% discount
+                'minTickets': 2        # Minimum tickets needed for discount
+            }
+
             # Prepare the custom questions
             questions = all_questions
 
@@ -1370,7 +1377,8 @@ def purchase(event_id, promo_code=None):
                 platform_terms_link=platform_terms_link,
                 ticket_types=ticket_types,
                 enforce_individual_ticket_limits=event.enforce_individual_ticket_limits,
-                tickets_available=tickets_available
+                tickets_available=tickets_available,
+                discount_config=discount_config
             )
 
     except Exception as e:

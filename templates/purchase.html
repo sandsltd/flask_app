@@ -143,12 +143,15 @@
     </div>
 </div>
 
-<!-- Include your JavaScript code after the form -->
-<script type="application/json" id="questions-data">
-    {{ questions | tojson }}
+<!-- Add this before your main script -->
+<script type="application/json" id="discount-config">
+    {{ discount_config | tojson | safe }}
 </script>
 
 <script>
+    // Parse the discount configuration from the script tag
+    var discountConfig = JSON.parse(document.getElementById('discount-config').textContent);
+
     // Parse the questions data from the script tag
     var questionsDataElement = document.getElementById('questions-data');
     var questions = JSON.parse(questionsDataElement.textContent);
@@ -176,14 +179,18 @@
             // Calculate original price before discount
             originalPrice = quantity * ticketTypePrice;
 
-            // Apply bulk discount if applicable
-            if (totalQuantity >= 2) { // Minimum tickets threshold
-                if ('additional' === 'additional') {
+            // Apply discount based on configuration
+            if (totalQuantity >= discountConfig.minTickets) {
+                if (discountConfig.type === 'additional') {
                     // First ticket at full price, rest discounted
-                    totalPrice += ticketTypePrice + (quantity - 1) * (ticketTypePrice * 0.9); // 10% discount
-                } else {
+                    totalPrice += ticketTypePrice + 
+                        (quantity - 1) * (ticketTypePrice * (1 - discountConfig.percentage/100));
+                } else if (discountConfig.type === 'all') {
                     // All tickets discounted
-                    totalPrice += quantity * (ticketTypePrice * 0.9); // 10% discount
+                    totalPrice += quantity * (ticketTypePrice * (1 - discountConfig.percentage/100));
+                } else {
+                    // No discount
+                    totalPrice += originalPrice;
                 }
             } else {
                 totalPrice += originalPrice;
