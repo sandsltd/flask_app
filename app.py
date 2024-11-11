@@ -1145,7 +1145,7 @@ def purchase(event_id):
             if quantity > 0:
                 for i in range(quantity):
                     ticket_number = generate_unique_ticket_number()
-                    answers = attendee_answers.get((ticket_type.id, i), {}))
+                    answers = attendee_answers.get((ticket_type.id, i), {})
 
                     attendee = Attendee(
                         event_id=event.id,
