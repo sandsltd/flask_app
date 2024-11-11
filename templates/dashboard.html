@@ -162,11 +162,45 @@
                                         <div class="ticket-type-card">
                                             <h6>{{ ticket.name }}</h6>
                                             <div class="type-stats">
-                                                <span>£{{ "{:.2f}".format(ticket.price) }}</span>
-                                                <span>{{ ticket.tickets_sold }}/{{ ticket.total_quantity }}</span>
+                                                <span class="price">£{{ "{:.2f}".format(ticket.price) }}</span>
+                                                <span class="quantity">
+                                                    {{ ticket.tickets_sold }}/
+                                                    {% if event_data.enforce_individual_ticket_limits %}
+                                                        {{ ticket.total_quantity }}
+                                                    {% else %}
+                                                        {{ event_data.ticket_quantity }}
+                                                    {% endif %}
+                                                </span>
                                             </div>
+                                            {% if not event_data.enforce_individual_ticket_limits %}
+                                            <div class="shared-capacity-note">
+                                                *Shared total capacity
+                                            </div>
+                                            {% endif %}
                                         </div>
                                         {% endfor %}
+                                    </div>
+                                    
+                                    <!-- Add additional event details -->
+                                    <div class="additional-details">
+                                        <div class="detail-item">
+                                            <span class="detail-label">Total Capacity:</span>
+                                            <span class="detail-value">{{ event_data.ticket_quantity }}</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-label">Remaining:</span>
+                                            <span class="detail-value">{{ event_data.ticket_quantity - event_data.tickets_sold }}</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-label">Capacity Type:</span>
+                                            <span class="detail-value">
+                                                {% if event_data.enforce_individual_ticket_limits %}
+                                                Individual limits
+                                                {% else %}
+                                                Shared capacity
+                                                {% endif %}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -715,6 +749,56 @@
 
 .ticket-types {
     margin-top: 20px;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.shared-capacity-note {
+    font-size: 0.8em;
+    color: #666;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+.additional-details {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+}
+
+.detail-label {
+    color: #666;
+}
+
+.detail-value {
+    font-weight: 500;
+    color: #333;
+}
+
+.type-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.type-stats .price {
+    font-weight: 600;
+    color: #2563eb;
+}
+
+.type-stats .quantity {
+    color: #666;
+    font-size: 0.9em;
 }
 
 .types-grid {
@@ -733,12 +817,6 @@
 .ticket-type-card h6 {
     margin: 0 0 10px 0;
     color: #333;
-}
-
-.type-stats {
-    display: flex;
-    justify-content: space-between;
-    color: #666;
 }
 
 .event-actions {
