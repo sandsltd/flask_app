@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request, flash
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -198,6 +198,8 @@ class Attendee(db.Model):
     ticket_price_at_purchase = db.Column(db.Float, nullable=False)
     ticket_number = db.Column(db.String(20), unique=True, nullable=True)  # New ticket_number column
     qr_image_path = db.Column(db.String(255), nullable=True)
+    checked_in = db.Column(db.Boolean, default=False)
+    check_in_time = db.Column(db.DateTime)
 
     ticket_type_id = db.Column(db.Integer, db.ForeignKey('ticket_type.id'), nullable=False)
     
@@ -2137,7 +2139,6 @@ def stripe_onboarding_complete():
 
 
 
-
 @app.route('/stripe_onboarding_refresh')
 def stripe_onboarding_refresh():
     # Optionally, provide logic here to regenerate the onboarding link
@@ -2572,6 +2573,90 @@ def upload_to_s3(file, folder_prefix="event-logos"):
         print("S3 credentials not available")
         return None
 
+@app.route('/event/<int:event_id>/scanner')
+@login_required
+def start_event_scanner(event_id):
+    event = Event.query.get_or_404(event_id)
+    
+    # Check if user owns this event
+    if event.user_id != current_user.id:
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('dashboard'))
+    
+    # Get all attendees for this event
+    attendees = Attendee.query.filter_by(
+        event_id=event_id,
+        payment_status='succeeded'
+    ).all()
+    
+    # Calculate statistics
+    total_attendees = len(attendees)
+    checked_in = sum(1 for a in attendees if getattr(a, 'checked_in', False))
+    
+    return render_template('event_scanner.html',
+                         event=event,
+                         total_attendees=total_attendees,
+                         checked_in=checked_in)
+
+@app.route('/api/check-in/<int:event_id>', methods=['POST'])
+@login_required
+def check_in_attendee(event_id):
+    event = Event.query.get_or_404(event_id)
+    
+    # Check if user owns this event
+    if event.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    ticket_number = request.json.get('ticket_number')
+    if not ticket_number:
+        return jsonify({'error': 'No ticket number provided'}), 400
+        
+    attendee = Attendee.query.filter_by(
+        event_id=event_id,
+        ticket_number=ticket_number,
+        payment_status='succeeded'
+    ).first()
+    
+    if not attendee:
+        return jsonify({
+            'status': 'error',
+            'message': 'Invalid ticket'
+        }), 404
+        
+    if getattr(attendee, 'checked_in', False):
+        return jsonify({
+            'status': 'warning',
+            'message': 'Already checked in',
+            'attendee': {
+                'name': attendee.full_name,
+                'check_in_time': attendee.check_in_time.strftime('%H:%M:%S'),
+                'ticket_type': attendee.ticket_type.name
+            }
+        })
+    
+    # Update check-in status
+    attendee.checked_in = True
+    attendee.check_in_time = datetime.now()
+    db.session.commit()
+    
+    return jsonify({
+        'status': 'success',
+        'message': 'Check-in successful',
+        'attendee': {
+            'name': attendee.full_name,
+            'ticket_type': attendee.ticket_type.name
+        },
+        'stats': {
+            'total_checked_in': Attendee.query.filter_by(
+                event_id=event_id,
+                checked_in=True
+            ).count(),
+            'total_attendees': Attendee.query.filter_by(
+                event_id=event_id,
+                payment_status='succeeded'
+            ).count()
+        }
+    })
 
 
 
