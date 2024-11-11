@@ -1248,6 +1248,12 @@ def purchase(event_id, promo_code=None):
                             db.session.add(attendee)
                             attendees.append(attendee)
 
+                # Get discount rules for the event
+                discount_rules = DiscountRule.query.filter_by(
+                    event_id=event.id,
+                    discount_type='bulk'
+                ).first()
+
                 # Calculate base amount (in pence)
                 base_amount = sum(
                     ticket_types[i].price * quantities[ticket_type_id] * 100
@@ -1255,41 +1261,21 @@ def purchase(event_id, promo_code=None):
                     if quantities[ticket_type_id] > 0
                 )
 
-                # Calculate discount for additional tickets (10% off)
+                # Apply discount if applicable
                 total_tickets = sum(quantities.values())
-                if total_tickets > 1:
-                    # Calculate discount only for additional tickets
-                    additional_tickets = total_tickets - 1
-                    discount_amount = (base_amount / total_tickets) * additional_tickets * 0.1
+                if discount_rules and total_tickets >= discount_rules.min_tickets:
+                    if discount_rules.apply_to == 'all':
+                        # Apply discount to all tickets
+                        discount_amount = base_amount * (discount_rules.discount_percent / 100)
+                    else:  # 'additional'
+                        # Calculate discount only for additional tickets
+                        per_ticket_amount = base_amount / total_tickets
+                        additional_tickets = total_tickets - 1
+                        discount_amount = (per_ticket_amount * additional_tickets) * (discount_rules.discount_percent / 100)
 
-                    # Apply the discount
                     total_amount_pence = int(base_amount - discount_amount)
                 else:
                     total_amount_pence = int(base_amount)
-
-                # Convert quantities dictionary to use string keys
-                quantities_for_stripe = {
-                    str(ticket_type_id): quantity 
-                    for ticket_type_id, quantity in quantities.items()
-                }
-
-                # Prepare ticket and attendee data for Stripe metadata
-                ticket_data = {
-                    'quantities': quantities_for_stripe,
-                    'total_tickets': total_tickets,
-                    'base_amount': base_amount,
-                    'discount_applied': base_amount - total_amount_pence,
-                    'final_amount': total_amount_pence
-                }
-
-                attendee_data = {
-                    'full_name': full_name,
-                    'email': email,
-                    'phone_number': phone_number,
-                    'answers': {
-                        str(k): v for k, v in attendee_answers.items()
-                    }
-                }
 
                 if not attendees:
                     flash('Please select at least one ticket.')
@@ -1323,7 +1309,7 @@ def purchase(event_id, promo_code=None):
                                 'unit_amount': total_amount_pence,
                                 'product_data': {
                                     'name': f'Tickets for {event.name}',
-                                    'description': f'{total_tickets} ticket(s) with multi-ticket discount applied'
+                                    'description': f'{total_tickets} ticket(s) with discount applied'
                                 },
                             },
                             'quantity': 1,
@@ -1333,8 +1319,19 @@ def purchase(event_id, promo_code=None):
                         cancel_url=url_for('cancel', _external=True),
                         metadata={
                             'event_id': str(event_id),
-                            'ticket_data': json.dumps(ticket_data),
-                            'attendee_data': json.dumps(attendee_data)
+                            'ticket_data': json.dumps({
+                                'quantities': {str(k): v for k, v in quantities.items()},
+                                'total_tickets': total_tickets,
+                                'base_amount': base_amount,
+                                'discount_applied': base_amount - total_amount_pence,
+                                'final_amount': total_amount_pence
+                            }),
+                            'attendee_data': json.dumps({
+                                'full_name': full_name,
+                                'email': email,
+                                'phone_number': phone_number,
+                                'answers': {str(k): v for k, v in attendee_answers.items()}
+                            })
                         }
                     )
 
@@ -1346,18 +1343,21 @@ def purchase(event_id, promo_code=None):
                 return redirect(url_for('purchase', event_id=event_id))
 
         else:
-            platform_terms_link = 'https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Terms-of-Service-25th-October-2024.pdf'
-            organizer_terms_link = organizer.terms if organizer.terms and organizer.terms.lower() != 'none' else None
+            # Get discount rules for the event
+            discount_rules = DiscountRule.query.filter_by(
+                event_id=event_id,
+                discount_type='bulk'
+            ).first()
 
-            # Add discount configuration
+            # Format discount configuration for frontend
             discount_config = {
-                'type': 'additional',  # 'additional' means first ticket full price, rest discounted
-                'percentage': 10,      # 10% discount
-                'minTickets': 2        # Minimum tickets needed for discount
+                'type': discount_rules.apply_to if discount_rules else 'additional',
+                'percentage': float(discount_rules.discount_percent) if discount_rules else 10,
+                'minTickets': discount_rules.min_tickets if discount_rules else 2
             }
 
-            # Prepare the custom questions
-            questions = all_questions
+            platform_terms_link = 'https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Terms-of-Service-25th-October-2024.pdf'
+            organizer_terms_link = organizer.terms if organizer.terms and organizer.terms.lower() != 'none' else None
 
             # Calculate tickets available for total capacity events
             if not event.enforce_individual_ticket_limits:
