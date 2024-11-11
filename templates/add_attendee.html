@@ -54,7 +54,8 @@
 
                     <div class="form-group">
                         <label for="number_of_tickets">Number of Tickets</label>
-                        <input type="number" id="number_of_tickets" name="number_of_tickets" value="1" min="1" required>
+                        <input type="number" id="number_of_tickets" name="number_of_tickets" 
+                               value="1" min="1" required onchange="updateQuestionSets(this.value)">
                         {% if not event.enforce_individual_ticket_limits %}
                             <small>Event total capacity: {{ event.ticket_quantity }}</small>
                         {% endif %}
@@ -62,75 +63,24 @@
                 </div>
             </div>
 
-            <!-- Ticket Questions Card -->
-            {% if questions %}
-            <div class="form-card">
-                <div class="card-header">
-                    <i class="fas fa-question-circle"></i>
-                    <h2>Ticket Questions</h2>
-                </div>
-                <div class="form-grid">
-                    {% for question in questions %}
-                    <div class="form-group">
-                        <label for="answer_{{ loop.index }}">{{ question }}</label>
-                        <input type="text" id="answer_{{ loop.index }}" name="answer_{{ loop.index }}" required>
+            <!-- Dynamic Ticket Questions -->
+            <div id="ticket-questions-container">
+                <!-- Initial question set -->
+                <div class="form-card ticket-question-set" data-ticket-number="1">
+                    <div class="card-header">
+                        <i class="fas fa-question-circle"></i>
+                        <h2>Ticket #1 Questions</h2>
                     </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Billing Details Card -->
-            <div class="form-card">
-                <div class="card-header">
-                    <i class="fas fa-file-invoice"></i>
-                    <h2>Billing Details</h2>
-                    <span class="optional-tag">Optional</span>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="billing_name">Billing Name</label>
-                        <input type="text" id="billing_name" name="billing_name">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="billing_email">Billing Email</label>
-                        <input type="email" id="billing_email" name="billing_email">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="billing_phone">Billing Phone</label>
-                        <input type="text" id="billing_phone" name="billing_phone">
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label for="billing_address_line1">Address Line 1</label>
-                        <input type="text" id="billing_address_line1" name="billing_address_line1">
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label for="billing_address_line2">Address Line 2</label>
-                        <input type="text" id="billing_address_line2" name="billing_address_line2">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="billing_city">City</label>
-                        <input type="text" id="billing_city" name="billing_city">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="billing_state">County</label>
-                        <input type="text" id="billing_state" name="billing_state">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="billing_postal_code">Postal Code</label>
-                        <input type="text" id="billing_postal_code" name="billing_postal_code">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="billing_country">Country</label>
-                        <input type="text" id="billing_country" name="billing_country">
+                    <div class="form-grid">
+                        {% for question in questions %}
+                        <div class="form-group">
+                            <label for="ticket_1_question_{{ loop.index }}">{{ question }}</label>
+                            <input type="text" 
+                                   id="ticket_1_question_{{ loop.index }}" 
+                                   name="ticket_1_question_{{ loop.index }}" 
+                                   required>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -150,6 +100,38 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+function updateQuestionSets(numTickets) {
+    const container = document.getElementById('ticket-questions-container');
+    const template = document.querySelector('.ticket-question-set').cloneNode(true);
+    container.innerHTML = ''; // Clear existing question sets
+
+    // Create question sets for each ticket
+    for (let i = 1; i <= numTickets; i++) {
+        const questionSet = template.cloneNode(true);
+        questionSet.setAttribute('data-ticket-number', i);
+        questionSet.querySelector('h2').textContent = `Ticket #${i} Questions`;
+        
+        // Update input IDs and names
+        const inputs = questionSet.querySelectorAll('input');
+        inputs.forEach((input, index) => {
+            const newId = `ticket_${i}_question_${index + 1}`;
+            input.id = newId;
+            input.name = newId;
+            input.value = ''; // Clear any existing values
+            
+            // Update corresponding label
+            const label = input.previousElementSibling;
+            if (label) {
+                label.setAttribute('for', newId);
+            }
+        });
+
+        container.appendChild(questionSet);
+    }
+}
+</script>
 
 <style>
 .dashboard-wrapper {
@@ -331,6 +313,15 @@
         width: 100%;
         justify-content: center;
     }
+}
+
+.ticket-question-set {
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.ticket-question-set:last-child {
+    margin-bottom: 0;
 }
 </style>
 {% endblock %}
