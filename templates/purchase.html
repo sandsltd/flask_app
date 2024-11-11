@@ -189,12 +189,12 @@
 
     // Show discount banner if bulk discount is available
     function initializeDiscountBanner() {
-        if (discountConfig && discountConfig.percentage > 0 && discountConfig.minTickets > 0) {
+        if (discountConfig && discountConfig.percentage > 0) {
             const banner = document.getElementById('discount-banner');
             const message = document.getElementById('discount-message');
             const subtitle = document.querySelector('.discount-subtitle');
             
-            // Get lowest ticket price for better savings example
+            // Get lowest ticket price for savings calculation
             const ticketPrices = Array.from(document.querySelectorAll('.ticket-input'))
                 .map(input => parseFloat(input.getAttribute('data-ticket-price')));
             const lowestPrice = Math.min(...ticketPrices);
@@ -203,25 +203,67 @@
             let mainMessage = '';
             let subtitleMessage = '';
             
-            if (discountConfig.type === 'all') {
-                mainMessage = `🔥 Flash Sale: ${discountConfig.percentage}% OFF Everything!`;
-                subtitleMessage = `Limited Time Offer! Buy ${discountConfig.minTickets}+ tickets and save £${savings} on each ticket - Don't miss out!`;
-            } else {
-                mainMessage = `🎉 Group Discount: Save ${discountConfig.percentage}% on Extra Tickets!`;
-                subtitleMessage = `Bring your friends! First ticket regular price, then get ${discountConfig.percentage}% OFF when booking ${discountConfig.minTickets}+ tickets together`;
+            switch(discountConfig.type) {
+                case 'early_bird':
+                    const validUntil = new Date(discountConfig.valid_until);
+                    const now = new Date();
+                    const timeLeft = validUntil - now;
+                    
+                    if (timeLeft > 0) {
+                        mainMessage = `🕒 Early Bird Offer: ${discountConfig.percentage}% OFF!`;
+                        
+                        function updateCountdown() {
+                            const now = new Date();
+                            const timeLeft = validUntil - now;
+                            
+                            if (timeLeft <= 0) {
+                                banner.style.display = 'none';
+                                return;
+                            }
+                            
+                            const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+                            const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                            
+                            let timeMessage = '';
+                            if (days > 0) {
+                                timeMessage = `${days}d ${hours}h left`;
+                            } else if (hours > 0) {
+                                timeMessage = `${hours}h ${minutes}m left`;
+                            } else {
+                                timeMessage = `${minutes}m left`;
+                            }
+                            
+                            let maxTicketsMessage = discountConfig.max_tickets ? 
+                                ` (Limited to first ${discountConfig.max_tickets} tickets)` : '';
+                            subtitleMessage = `⚡️ Quick! Save £${savings} per ticket. Offer ends in ${timeMessage}${maxTicketsMessage}`;
+                            subtitle.textContent = subtitleMessage;
+                        }
+                        
+                        updateCountdown();
+                        setInterval(updateCountdown, 60000); // Update every minute
+                    }
+                    break;
+
+                case 'bulk':
+                    if (discountConfig.apply_to === 'all') {
+                        mainMessage = `🔥 Flash Sale: ${discountConfig.percentage}% OFF Everything!`;
+                        subtitleMessage = `Limited Time Offer! Buy ${discountConfig.minTickets}+ tickets and save £${savings} on each ticket - Don't miss out!`;
+                    } else {
+                        mainMessage = `🎉 Group Discount: Save ${discountConfig.percentage}% on Extra Tickets!`;
+                        subtitleMessage = `Bring your friends! First ticket regular price, then get ${discountConfig.percentage}% OFF when booking ${discountConfig.minTickets}+ tickets together`;
+                    }
+                    break;
             }
             
-            message.textContent = mainMessage;
-            subtitle.textContent = subtitleMessage;
-            banner.style.display = 'block';
-            
-            // Add click handler for close button
-            const closeButton = document.querySelector('.close-banner');
-            if (closeButton) {
-                closeButton.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    banner.style.display = 'none';
-                });
+            if (mainMessage && subtitleMessage && discountConfig.type !== 'promo_code') {
+                message.textContent = mainMessage;
+                subtitle.textContent = subtitleMessage;
+                banner.style.display = 'block';
+                
+                // Add appropriate animation class based on discount type
+                banner.className = 'discount-banner'; // Reset classes
+                banner.classList.add(`discount-banner-${discountConfig.type}`);
             }
         }
     }
@@ -821,6 +863,24 @@
         color: #666;
         font-size: 0.95rem;
         margin: 0.5rem 0;
+    }
+
+    /* Different styles for each discount type */
+    .discount-banner-early_bird {
+        background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+        animation: pulse 2s infinite;
+    }
+
+    .discount-banner-bulk {
+        background: linear-gradient(135deg, #ff4d4d 0%, #ff0000 100%);
+    }
+
+    /* Countdown timer specific styles */
+    .discount-banner-early_bird .discount-subtitle {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        margin-top: 1rem;
     }
 </style>
 
