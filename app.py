@@ -1248,91 +1248,48 @@ def purchase(event_id, promo_code=None):
                             db.session.add(attendee)
                             attendees.append(attendee)
 
-                        # Calculate total amount
-                        total_amount += quantity * ticket_type.price * 100  # Convert to pence
+                # Calculate base amount (in pence)
+                base_amount = sum(
+                    ticket_types[i].price * quantities[ticket_type_id] * 100
+                    for i, ticket_type_id in enumerate(quantities)
+                    if quantities[ticket_type_id] > 0
+                )
 
-                        # Add line item for Stripe checkout if price > 0
-                        if ticket_type.price > 0:
-                            line_items.append({
-                                'price_data': {
-                                    'currency': 'gbp',
-                                    'product_data': {'name': f"{event.name} - {ticket_type.name}"},
-                                    'unit_amount': int(ticket_type.price * 100),  # price in pence
-                                },
-                                'quantity': quantity,
-                            })
+                # Calculate discount for additional tickets (10% off)
+                total_tickets = sum(quantities.values())
+                if total_tickets > 1:
+                    # Calculate discount only for additional tickets
+                    additional_tickets = total_tickets - 1
+                    discount_amount = (base_amount / total_tickets) * additional_tickets * 0.1
 
-                            # Calculate booking fee (e.g., 5% per ticket)
-                            booking_fee_per_ticket = int(ticket_type.price * 100 * 0.05)
-                            booking_fee_pence += booking_fee_per_ticket * quantity
+                    # Apply the discount
+                    total_amount_pence = int(base_amount - discount_amount)
+                else:
+                    total_amount_pence = int(base_amount)
 
-                # Calculate discounts
-                total_discount = 0
-                promo_code = request.form.get('promo_code')
-                applied_rules = []  # Track which rules were applied
+                # Convert quantities dictionary to use string keys
+                quantities_for_stripe = {
+                    str(ticket_type_id): quantity 
+                    for ticket_type_id, quantity in quantities.items()
+                }
 
-                discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
-                for rule in discount_rules:
-                    try:
-                        discount_amount = rule.calculate_discount(
-                            quantity=total_tickets_requested,
-                            original_price=total_amount/100,
-                            promo_code=promo_code
-                        )
-                        
-                        if discount_amount > 0:
-                            total_discount += discount_amount
-                            applied_rules.append(rule)
-                            
-                            # Update promo code usage if applicable
-                            if rule.discount_type == 'promo_code' and promo_code == rule.promo_code:
-                                rule.uses_count += 1
-                                
-                    except Exception as e:
-                        app.logger.error(f"Error calculating discount for rule {rule.id}: {str(e)}")
-                        continue
+                # Prepare ticket and attendee data for Stripe metadata
+                ticket_data = {
+                    'quantities': quantities_for_stripe,
+                    'total_tickets': total_tickets,
+                    'base_amount': base_amount,
+                    'discount_applied': base_amount - total_amount_pence,
+                    'final_amount': total_amount_pence
+                }
 
-                # Convert discount to pence and apply to total
-                total_discount_pence = int(total_discount * 100)
-                
-                # Ensure discount doesn't exceed total amount
-                if total_discount_pence > total_amount:
-                    total_discount_pence = total_amount
-                    
-                total_amount -= total_discount_pence
-                
-                # Add discount information to line items for display
-                if total_discount_pence > 0:
-                    discount_descriptions = []
-                    for rule in applied_rules:
-                        if rule.discount_type == 'bulk':
-                            desc = f"Bulk purchase discount ({rule.discount_percent}%)"
-                        elif rule.discount_type == 'early_bird':
-                            desc = f"Early bird discount ({rule.discount_percent}%)"
-                        else:
-                            desc = f"Promo code discount ({rule.discount_percent}%)"
-                        discount_descriptions.append(desc)
-
-                    line_items.append({
-                        'price_data': {
-                            'currency': 'gbp',
-                            'product_data': {
-                                'name': 'Discount Applied',
-                                'description': ' + '.join(discount_descriptions),
-                            },
-                            'unit_amount': -total_discount_pence,
-                        },
-                        'quantity': 1,
-                    })
-
-                # Store discount information in session for confirmation
-                for attendee in attendees:
-                    attendee.discount_applied = total_discount_pence / len(attendees)
-                    attendee.discount_details = json.dumps([{
-                        'type': rule.discount_type,
-                        'amount': rule.discount_percent,
-                        'description': rule.promo_code if rule.discount_type == 'promo_code' else None
-                    } for rule in applied_rules])
+                attendee_data = {
+                    'full_name': full_name,
+                    'email': email,
+                    'phone_number': phone_number,
+                    'answers': {
+                        str(k): v for k, v in attendee_answers.items()
+                    }
+                }
 
                 if not attendees:
                     flash('Please select at least one ticket.')
@@ -1341,7 +1298,7 @@ def purchase(event_id, promo_code=None):
                 db.session.commit()
 
                 # Handle free tickets
-                if total_amount == 0:
+                if total_amount_pence == 0:
                     for attendee in attendees:
                         attendee.payment_status = 'succeeded'  # Mark as paid for free tickets
                     db.session.commit()
@@ -1357,31 +1314,6 @@ def purchase(event_id, promo_code=None):
                     return redirect(url_for('success', session_id=session_id))
 
                 else:
-                    # Convert quantities dictionary to use string keys
-                    quantities_for_stripe = {
-                        str(ticket_type_id): quantity 
-                        for ticket_type_id, quantity in quantities.items()
-                    }
-
-                    # Convert total_amount to integer (ensure it's in pence)
-                    total_amount_pence = int(total_amount)
-
-                    # Prepare ticket and attendee data for Stripe metadata
-                    ticket_data = {
-                        'quantities': quantities_for_stripe,
-                        'total_tickets': total_tickets_requested,
-                        'total_amount': total_amount_pence
-                    }
-
-                    attendee_data = {
-                        'full_name': full_name,
-                        'email': email,
-                        'phone_number': phone_number,
-                        'answers': {
-                            str(k): v for k, v in attendee_answers.items()
-                        }
-                    }
-
                     # Create Stripe checkout session
                     checkout_session = stripe.checkout.Session.create(
                         payment_method_types=['card'],
@@ -1391,6 +1323,7 @@ def purchase(event_id, promo_code=None):
                                 'unit_amount': total_amount_pence,
                                 'product_data': {
                                     'name': f'Tickets for {event.name}',
+                                    'description': f'{total_tickets} ticket(s) with multi-ticket discount applied'
                                 },
                             },
                             'quantity': 1,
