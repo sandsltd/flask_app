@@ -1131,7 +1131,7 @@ def purchase(event_id, promo_code=None):
         total_tickets_requested = 0
         total_tickets_sold = 0  # Initialize to 0
 
-        # Collect questions
+        # Collect questions - Move this up before the GET/POST split
         default_questions = DefaultQuestion.query.filter_by(user_id=organizer.id).order_by(DefaultQuestion.id).all()
         default_question_texts = [dq.question for dq in default_questions]
         custom_questions = [getattr(event, f'custom_question_{i}') for i in range(1, 11) if getattr(event, f'custom_question_{i}', None)]
@@ -1300,6 +1300,28 @@ def purchase(event_id, promo_code=None):
                     return redirect(url_for('success', session_id=session_id))
 
                 else:
+                    # Convert quantities dictionary to use string keys
+                    quantities_for_stripe = {
+                        str(ticket_type_id): quantity 
+                        for ticket_type_id, quantity in quantities.items()
+                    }
+
+                    # Prepare ticket and attendee data for Stripe metadata
+                    ticket_data = {
+                        'quantities': quantities_for_stripe,
+                        'total_tickets': total_tickets_requested,
+                        'total_amount': total_amount_pence
+                    }
+
+                    attendee_data = {
+                        'full_name': full_name,
+                        'email': email,
+                        'phone_number': phone_number,
+                        'answers': {
+                            str(k): v for k, v in attendee_answers.items()
+                        }
+                    }
+
                     # Create Stripe checkout session
                     checkout_session = stripe.checkout.Session.create(
                         payment_method_types=['card'],
@@ -1309,7 +1331,6 @@ def purchase(event_id, promo_code=None):
                                 'unit_amount': total_amount_pence,
                                 'product_data': {
                                     'name': f'Tickets for {event.name}',
-                                    'description': f'{total_tickets} ticket(s) with discount applied'
                                 },
                             },
                             'quantity': 1,
@@ -1319,19 +1340,8 @@ def purchase(event_id, promo_code=None):
                         cancel_url=url_for('cancel', _external=True),
                         metadata={
                             'event_id': str(event_id),
-                            'ticket_data': json.dumps({
-                                'quantities': {str(k): v for k, v in quantities.items()},
-                                'total_tickets': total_tickets,
-                                'base_amount': base_amount,
-                                'discount_applied': base_amount - total_amount_pence,
-                                'final_amount': total_amount_pence
-                            }),
-                            'attendee_data': json.dumps({
-                                'full_name': full_name,
-                                'email': email,
-                                'phone_number': phone_number,
-                                'answers': {str(k): v for k, v in attendee_answers.items()}
-                            })
+                            'ticket_data': json.dumps(ticket_data),
+                            'attendee_data': json.dumps(attendee_data)
                         }
                     )
 
@@ -1372,7 +1382,7 @@ def purchase(event_id, promo_code=None):
                 'purchase.html',
                 event=event,
                 organizer=organizer,
-                questions=questions,
+                questions=all_questions,
                 organizer_terms_link=organizer_terms_link,
                 platform_terms_link=platform_terms_link,
                 ticket_types=ticket_types,
