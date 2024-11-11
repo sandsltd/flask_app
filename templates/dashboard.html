@@ -128,13 +128,25 @@
                     <strong>Status:</strong> {{ event_data.status }}
                     <br>
                     <a href="{{ url_for('view_attendees', event_id=event_data.id) }}">View Attendees</a> | 
-                    <a href="{{ url_for('edit_event', event_id=event_data.id) }}">Edit</a> | 
-                    <a href="{{ url_for('create_webpage', event_id=event_data.id) }}">Create A Webpage For This Event</a>
+                    <a href="{{ url_for('edit_event', event_id=event_data.id) }}">Edit</a>
                     <form action="{{ url_for('delete_event', event_id=event_data.id) }}" method="POST" style="display:inline;">
                         <button type="submit" onclick="return confirm('Are you sure you want to delete this event? This action cannot be undone. Please ensure you process any refunds in Stripe.');" class="button">
                             Delete
                         </button>
                     </form>
+
+                    <!-- Add the event URL section -->
+                    <div class="event-url-section">
+                        <h4>Event URL:</h4>
+                        <div class="url-container">
+                            <input type="text" 
+                                   value="https://bookings.ticketrush.io/purchase/{{ event_data.id }}" 
+                                   id="event-url-{{ event_data.id }}" 
+                                   readonly 
+                                   class="event-url-input">
+                            <button onclick="copyEventUrl('{{ event_data.id }}')" class="copy-button">Copy</button>
+                        </div>
+                    </div>
                 </li>
             {% else %}
                 <li>No events yet.</li>
@@ -177,6 +189,18 @@
         } else {
             breakdownDiv.style.display = 'none';
         }
+    }
+
+    function copyEventUrl(eventId) {
+        const urlInput = document.getElementById(`event-url-${eventId}`);
+        urlInput.select();
+        navigator.clipboard.writeText(urlInput.value)
+            .then(() => {
+                alert("Event URL copied to clipboard!");
+            })
+            .catch(err => {
+                console.error("Failed to copy URL: ", err);
+            });
     }
 </script>
 
@@ -498,6 +522,35 @@
 
     th {
         background-color: #ffcccc;
+    }
+
+    /* Event URL Section Styles */
+    .event-url-section {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #f8f8f8;
+        border-radius: 5px;
+    }
+
+    .event-url-section h4 {
+        margin: 0 0 8px 0;
+        color: #333;
+    }
+
+    .url-container {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .event-url-input {
+        flex-grow: 1;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.9em;
+        background-color: white;
+        color: #666;
     }
 </style>
 
