@@ -5,41 +5,49 @@
 <div class="purchase-container">
     <!-- Event Header Section with Image and Organizer Logo -->
     <div class="event-header">
-        {% if event.image_url %}
-            <img src="{{ event.image_url }}" alt="Event Image" class="event-image">
-        {% else %}
-            <img src="{{ url_for('static', filename='images/event-placeholder.png') }}" alt="Event Image" class="event-image">
-        {% endif %}
-        <div class="event-info">
-            {% if organizer.business_logo_url %}
-                <img src="{{ organizer.business_logo_url }}" alt="Organizer Logo" class="organizer-logo">
+        <div class="event-image-container">
+            {% if event.image_url %}
+                <img src="{{ event.image_url }}" alt="Event Image" class="event-image">
             {% else %}
-                <img src="{{ url_for('static', filename='images/logo-placeholder.png') }}" alt="Organizer Logo" class="organizer-logo">
+                <img src="{{ url_for('static', filename='images/event-placeholder.png') }}" alt="Event Image" class="event-image">
             {% endif %}
-            <h1>{{ event.name }}</h1>
-            <p>{{ event.description }}</p>
-            <div class="event-details">
-                <p><strong>Date:</strong> {{ event.date | datetimeformat }}</p>
-                <p><strong>Time:</strong> {{ event.start_time }} - {{ event.end_time }}</p>
-                <p><strong>Location:</strong> {{ event.location }}</p>
-            </div>
-            <!-- Organizer Contact Links -->
-            <div class="organizer-contact">
-                <p><strong>Contact Email:</strong> <a href="mailto:{{ organizer.email }}">{{ organizer.email }}</a></p>
-                {% if organizer.website_url %}
-                    <p><strong>Website:</strong> <a href="{{ organizer.website_url }}" target="_blank">{{ organizer.website_url }}</a></p>
+            <div class="event-overlay"></div>
+        </div>
+        <div class="event-info">
+            <div class="organizer-badge">
+                {% if organizer.business_logo_url %}
+                    <img src="{{ organizer.business_logo_url }}" alt="Organizer Logo" class="organizer-logo">
+                {% else %}
+                    <img src="{{ url_for('static', filename='images/logo-placeholder.png') }}" alt="Organizer Logo" class="organizer-logo">
                 {% endif %}
+                <span class="organizer-name">{{ organizer.business_name }}</span>
+            </div>
+            <h1>{{ event.name }}</h1>
+            <p class="event-description">{{ event.description }}</p>
+            <div class="event-details">
+                <div class="detail-item">
+                    <i class="fas fa-calendar"></i>
+                    <span>{{ event.date | datetimeformat }}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-clock"></i>
+                    <span>{{ event.start_time }} - {{ event.end_time }}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>{{ event.location }}</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Move this right after the purchase-container div -->
+<!-- Discount Banner -->
 <div id="discount-banner" class="discount-banner" style="display: none;">
     <div class="discount-content">
         <div class="discount-header">
-            <span class="offer-badge">Limited Time Offer</span>
-            <button type="button" class="close-banner">×</button>
+            <span class="offer-badge">Special Offer</span>
+            <button type="button" class="close-banner" aria-label="Close">×</button>
         </div>
         <div class="discount-body">
             <h3 id="discount-message"></h3>
@@ -82,37 +90,22 @@
             {% for ticket_type in ticket_types %}
                 <div class="ticket-type">
                     <div class="ticket-header">
-                        <h3>{{ ticket_type.name }}</h3>
+                        <div class="ticket-info">
+                            <h3>{{ ticket_type.name }}</h3>
+                            {% if ticket_type.description %}
+                                <p class="ticket-description">{{ ticket_type.description }}</p>
+                            {% endif %}
+                            {% if enforce_individual_ticket_limits and ticket_type.quantity %}
+                                <span class="tickets-remaining">
+                                    {{ ticket_type.quantity - (ticket_type.sold_count or 0) }} tickets remaining
+                                </span>
+                            {% endif %}
+                        </div>
                         <div class="ticket-price-display" id="price-display-{{ ticket_type.id }}">
                             <span class="original-price">£{{ "{:.2f}".format(ticket_type.price) }}</span>
                             <span class="discounted-price"></span>
                         </div>
                     </div>
-                    {% if enforce_individual_ticket_limits %}
-                        {% set tickets_sold_type = ticket_type.attendees | selectattr('payment_status', 'equalto', 'succeeded') | list | length %}
-                        {% set tickets_remaining = ticket_type.quantity - tickets_sold_type %}
-                        <p class="tickets-remaining">Tickets Available: {{ tickets_remaining }}</p>
-                        <input
-                            type="number"
-                            name="quantity_{{ ticket_type.id }}"
-                            min="0"
-                            max="{{ tickets_remaining }}"
-                            value="0"
-                            data-ticket-type-id="{{ ticket_type.id }}"
-                            data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
-                            class="ticket-input"
-                        >
-                    {% else %}
-                        <input
-                            type="number"
-                            name="quantity_{{ ticket_type.id }}"
-                            min="0"
-                            value="0"
-                            data-ticket-type-id="{{ ticket_type.id }}"
-                            data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
-                            class="ticket-input"
-                        >
-                    {% endif %}
                 </div>
             {% endfor %}
         </div>
@@ -174,40 +167,40 @@
 
     // Show discount banner if bulk discount is available
     function initializeDiscountBanner() {
-        if (discountConfig && discountConfig.type === 'bulk') {
+        if (discountConfig && discountConfig.percentage > 0 && discountConfig.minTickets > 0) {
             const banner = document.getElementById('discount-banner');
             const message = document.getElementById('discount-message');
             const subtitle = document.querySelector('.discount-subtitle');
             
+            // Get lowest ticket price for better savings example
+            const ticketPrices = Array.from(document.querySelectorAll('.ticket-input'))
+                .map(input => parseFloat(input.getAttribute('data-ticket-price')));
+            const lowestPrice = Math.min(...ticketPrices);
+            const savings = ((discountConfig.percentage/100) * lowestPrice).toFixed(2);
+            
             let mainMessage = '';
             let subtitleMessage = '';
             
-            if (discountConfig.apply_to === 'all') {
-                mainMessage = `🎉 Special Offer: ${discountConfig.percentage}% OFF ALL TICKETS`;
-                subtitleMessage = `Buy ${discountConfig.minTickets} or more tickets to save £${((discountConfig.percentage/100) * parseFloat(document.querySelector('.ticket-input').getAttribute('data-ticket-price'))).toFixed(2)} per ticket!`;
+            if (discountConfig.type === 'all') {
+                mainMessage = `🎉 Save ${discountConfig.percentage}% on ALL tickets!`;
+                subtitleMessage = `Buy ${discountConfig.minTickets}+ tickets and save £${savings} per ticket`;
             } else {
-                mainMessage = `🎉 Special Offer: ${discountConfig.percentage}% OFF ADDITIONAL TICKETS`;
-                subtitleMessage = `Buy ${discountConfig.minTickets} or more tickets - first ticket full price, then save on all additional tickets!`;
+                mainMessage = `🎉 Save ${discountConfig.percentage}% on additional tickets!`;
+                subtitleMessage = `First ticket full price, then save £${savings} on each extra ticket when you buy ${discountConfig.minTickets}+`;
             }
             
             message.textContent = mainMessage;
             subtitle.textContent = subtitleMessage;
             banner.style.display = 'block';
-
-            // Add click handler for close button
-            document.querySelector('.close-banner').addEventListener('click', function(e) {
-                e.stopPropagation();
-                banner.style.display = 'none';
-            });
             
-            // Optional: Add click handler for the entire banner to show more details
-            banner.addEventListener('click', function() {
-                const savingsExample = discountConfig.apply_to === 'all' 
-                    ? `Save £${((discountConfig.percentage/100) * parseFloat(document.querySelector('.ticket-input').getAttribute('data-ticket-price'))).toFixed(2)} per ticket!`
-                    : `Save £${((discountConfig.percentage/100) * parseFloat(document.querySelector('.ticket-input').getAttribute('data-ticket-price'))).toFixed(2)} on each additional ticket!`;
-                
-                alert(`Special Offer Details:\n\n${mainMessage}\n${subtitleMessage}\n\n${savingsExample}`);
-            });
+            // Add click handler for close button
+            const closeButton = document.querySelector('.close-banner');
+            if (closeButton) {
+                closeButton.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    banner.style.display = 'none';
+                });
+            }
         }
     }
 
@@ -344,246 +337,300 @@
             input.addEventListener('input', updateQuestionForms);
         });
     });
+
+    function initializeCountdown() {
+        const eventDate = new Date('{{ event.date }}');
+        const now = new Date();
+        const timeLeft = eventDate - now;
+        
+        if (timeLeft <= 7 * 24 * 60 * 60 * 1000) { // 7 days in milliseconds
+            const countdownElement = document.createElement('div');
+            countdownElement.className = 'countdown-timer';
+            // Add countdown implementation
+            document.querySelector('.event-info').appendChild(countdownElement);
+        }
+    }
 </script>
 
 <style>
-    /* Scoped styles for the purchase page */
-
+    /* Modern styles for the purchase page */
     .purchase-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin: 50px auto;
         max-width: 1200px;
-        padding: 20px;
-        background-color: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        margin: 0 auto;
+        padding: 0;
+        background: #fff;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+        border-radius: 20px;
+        overflow: hidden;
     }
 
     .event-header {
+        position: relative;
         display: flex;
         flex-direction: column;
-        align-items: center;
+        background: #fff;
+    }
+
+    .event-image-container {
+        position: relative;
         width: 100%;
-        margin-bottom: 30px;
+        height: 400px;
+        overflow: hidden;
     }
 
     .event-image {
-    width: 100%;          /* Full width of container */
-    max-height: 400px;    /* Cap height for consistency */
-    object-fit: contain;  /* Ensure full image is visible */
-    border-radius: 10px;  /* Adds a rounded effect for style */
-}
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .event-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 50%;
+        background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.7));
+    }
 
     .event-info {
-        width: 100%;
-        padding: 20px;
-        text-align: center;
+        padding: 2rem;
+        position: relative;
+        z-index: 2;
+        margin-top: -100px;
+        background: #fff;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -20px 30px rgba(0,0,0,0.1);
+    }
+
+    .organizer-badge {
+        display: inline-flex;
+        align-items: center;
+        background: #fff;
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
     }
 
     .organizer-logo {
-        width: 100px;
-        height: 100px;
-        object-fit: contain;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
-        margin-bottom: 15px;
-    }
-
-    .event-details, .organizer-contact {
-        margin-top: 10px;
-    }
-
-    .organizer-contact a {
-        color: #ff0000;
-        text-decoration: none;
-    }
-
-    .organizer-contact a:hover {
-        text-decoration: underline;
-    }
-
-    .purchase-form {
-        width: 100%;
-        padding: 20px;
-        background-color: #f9f9f9;
-        border-radius: 10px;
-    }
-
-    .purchase-form h1 {
-        color: #ff0000;
-        text-align: center;
-        margin-bottom: 20px;
-    }
-
-    .purchase-form h2 {
-        color: #ff0000;
-        margin-top: 30px;
-        margin-bottom: 15px;
-    }
-
-    .purchase-form p {
-        margin-bottom: 15px;
-        color: #333;
-    }
-
-    .form-group {
-        margin-bottom: 15px;
-    }
-
-    .form-group label {
-        display: block;
-        margin-bottom: 5px;
-        color: #333;
-    }
-
-    .form-group input[type="text"],
-    .form-group input[type="email"],
-    .form-group input[type="tel"],
-    .form-group input[type="number"],
-    .form-group textarea {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        background-color: #fff;
-        box-sizing: border-box;
-    }
-
-    .checkbox-group {
-        display: flex;
-        align-items: center;
-        margin-bottom: 15px;
-    }
-
-    .checkbox-group input[type="checkbox"] {
         margin-right: 10px;
     }
 
-    .submit-btn {
-        width: 100%;
-        padding: 15px;
-        background-color: #ff0000;
-        color: white;
-        font-weight: bold;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        margin-top: 20px;
-        transition: background-color 0.3s ease;
-    }
-
-    .submit-btn:hover {
-        background-color: #cc0000;
-    }
-
-    .error-msg {
-        color: red;
-        margin-top: 15px;
-    }
-
-    .attendee-group {
-        border: 1px solid #ddd;
-        padding: 15px;
-        margin-bottom: 20px;
-        border-radius: 5px;
-        background-color: #fff;
-    }
-
-    .attendee-group h3 {
-        color: #ff0000;
-        margin-bottom: 10px;
-    }
-
-    .ticket-type {
-        margin-bottom: 15px;
-    }
-
-    .ticket-type label {
-        display: block;
-        margin-bottom: 5px;
-    }
-
-    .ticket-type input[type="number"] {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-    }
-
-    /* Additional styles for the total price */
-    #total_price {
-        font-size: 1.2em;
-        font-weight: bold;
+    .organizer-name {
+        font-weight: 600;
         color: #333;
     }
 
-    /* Responsive Design */
-    @media (min-width: 768px) {
-        .event-header {
-            flex-direction: row;
-            align-items: flex-start;
-        }
-
-        .event-image {
-            width: 60%;
-            max-height: 400px;
-        }
-
-        .event-info {
-            width: 40%;
-            padding: 20px;
-            text-align: left;
-        }
+    .event-info h1 {
+        font-size: 2.5rem;
+        margin: 1rem 0;
+        color: #1a1a1a;
+        line-height: 1.2;
     }
 
-    /* Add these new styles before your existing ones */
-    .discount-banner {
-        background: linear-gradient(135deg, #ff000010 0%, #ff000005 100%);
-        border: 2px solid #ff0000;
-        border-radius: 15px;
-        padding: 20px;
-        margin: 20px auto;
-        width: 100%;
-        max-width: 1200px;
-        position: relative;
-        box-shadow: 0 4px 15px rgba(255, 0, 0, 0.1);
+    .event-description {
+        font-size: 1.1rem;
+        color: #666;
+        line-height: 1.6;
+        margin-bottom: 2rem;
     }
 
-    .discount-header {
+    .event-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .detail-item {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 15px;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        transition: transform 0.2s ease;
     }
 
-    .offer-badge {
-        background: #ff0000;
+    .detail-item:hover {
+        transform: translateY(-2px);
+    }
+
+    .detail-item i {
+        color: #ff0000;
+        font-size: 1.2rem;
+    }
+
+    /* Modern Discount Banner */
+    .discount-banner {
+        background: linear-gradient(135deg, #ff4d4d 0%, #ff0000 100%);
         color: white;
-        padding: 8px 16px;
-        border-radius: 25px;
-        font-weight: bold;
-        font-size: 1.1em;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+        border: none;
+        border-radius: 16px;
+        padding: 2rem;
+        margin: 2rem auto;
+        max-width: 1000px;
+        box-shadow: 0 4px 20px rgba(255, 0, 0, 0.2);
     }
 
-    .discount-body {
+    .discount-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         text-align: center;
     }
 
     #discount-message {
-        color: #ff0000;
-        font-size: 1.8em;
-        margin: 10px 0;
-        font-weight: 700;
+        color: white;
+        font-size: 2rem;
+        margin: 0;
+        text-shadow: none;
     }
 
     .discount-subtitle {
-        font-size: 1.2em;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.1rem;
+        margin-top: 1rem;
+    }
+
+    /* Modern Form Styling */
+    .purchase-form {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-group input {
+        padding: 0.8rem 1rem;
+        border: 2px solid #eee;
+        border-radius: 12px;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-group input:focus {
+        border-color: #ff0000;
+        outline: none;
+    }
+
+    .submit-btn {
+        background: linear-gradient(135deg, #ff4d4d 0%, #ff0000 100%);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
+    }
+
+    /* Ticket Selection Styling */
+    .ticket-type {
+        background: #f8f9fa;
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: transform 0.2s ease;
+    }
+
+    .ticket-type:hover {
+        transform: translateY(-2px);
+    }
+
+    .ticket-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .ticket-price-display {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    .original-price.strikethrough {
+        text-decoration: line-through;
+        color: #999;
+    }
+
+    .discounted-price {
+        color: #ff0000;
+        margin-left: 0.5rem;
+    }
+
+    .sticky-total {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+        padding: 1rem;
+        z-index: 1000;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+    }
+
+    .sticky-total.visible {
+        transform: translateY(0);
+    }
+
+    .total-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .total-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ticket-count {
+        font-size: 0.9rem;
         color: #666;
-        margin: 10px 0;
+    }
+
+    .total-price {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #ff0000;
     }
 </style>
+
+<!-- Add after the form -->
+<div class="sticky-total">
+    <div class="total-content">
+        <div class="total-details">
+            <span class="ticket-count">0 tickets selected</span>
+            <span class="total-price">Total: £<span id="total_price">0.00</span></span>
+        </div>
+        <button type="submit" class="submit-btn">Continue to Payment</button>
+    </div>
+</div>
 
 {% endblock %}
