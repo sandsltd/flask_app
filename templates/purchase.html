@@ -158,15 +158,38 @@
         var formsContainer = document.getElementById('question_forms');
         formsContainer.innerHTML = '';
 
+        var totalQuantity = 0;
         var totalPrice = 0;
+        var originalPrice = 0;
 
+        // First pass: calculate total quantity for bulk discount determination
+        ticketInputs.forEach(function(input) {
+            totalQuantity += parseInt(input.value) || 0;
+        });
+
+        // Second pass: calculate prices with discounts
         ticketInputs.forEach(function(input) {
             var quantity = parseInt(input.value) || 0;
             var ticketTypeId = input.getAttribute('data-ticket-type-id');
             var ticketTypePrice = parseFloat(input.getAttribute('data-ticket-price'));
 
-            totalPrice += quantity * ticketTypePrice;
+            // Calculate original price before discount
+            originalPrice = quantity * ticketTypePrice;
 
+            // Apply bulk discount if applicable
+            if (totalQuantity >= 2) { // Minimum tickets threshold
+                if ('additional' === 'additional') {
+                    // First ticket at full price, rest discounted
+                    totalPrice += ticketTypePrice + (quantity - 1) * (ticketTypePrice * 0.9); // 10% discount
+                } else {
+                    // All tickets discounted
+                    totalPrice += quantity * (ticketTypePrice * 0.9); // 10% discount
+                }
+            } else {
+                totalPrice += originalPrice;
+            }
+
+            // Create question forms for each ticket
             for (var i = 0; i < quantity; i++) {
                 var ticketDiv = document.createElement('div');
                 ticketDiv.classList.add('attendee-group');
@@ -197,7 +220,7 @@
             }
         });
 
-        // Update total price
+        // Update total price display
         var totalPriceElement = document.getElementById('total_price');
         totalPriceElement.textContent = '£' + totalPrice.toFixed(2);
     }
