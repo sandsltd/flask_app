@@ -1145,7 +1145,7 @@ def purchase(event_id):
             if quantity > 0:
                 for i in range(quantity):
                     ticket_number = generate_unique_ticket_number()
-                    answers = attendee_answers.get((ticket_type.id, i), {})
+                    answers = attendee_answers.get((ticket_type.id, i), {}))
 
                     attendee = Attendee(
                         event_id=event.id,
@@ -1354,7 +1354,6 @@ END:VCALENDAR
     return Response(ics_content, mimetype='text/calendar', headers={
         'Content-Disposition': f'attachment; filename={event.name}.ics'
     })
-
 
 def send_confirmation_email_to_attendee(attendees, billing_details):
     try:
@@ -1806,8 +1805,64 @@ def edit_event(event_id):
         enforce_limits = request.form.get('enforce_individual_ticket_limits') == 'on'
         event.enforce_individual_ticket_limits = enforce_limits
 
-        # Process ticket types and limits...
-        # (Include the rest of your code for ticket types here)
+        # Process ticket types and limits
+        if enforce_limits:
+            # Handle existing ticket types with limits
+            existing_ticket_types = TicketType.query.filter_by(event_id=event.id).all()
+            for ticket_type in existing_ticket_types:
+                delete_key = f'delete_{ticket_type.id}'
+                if request.form.get(delete_key):
+                    db.session.delete(ticket_type)
+                else:
+                    ticket_type.name = request.form.get(f'name_{ticket_type.id}')
+                    ticket_type.price = float(request.form.get(f'price_{ticket_type.id}'))
+                    ticket_type.quantity = int(request.form.get(f'quantity_{ticket_type.id}'))
+
+            # Handle new ticket types with limits
+            new_names = request.form.getlist('new_ticket_name')
+            new_prices = request.form.getlist('new_ticket_price')
+            new_quantities = request.form.getlist('new_ticket_quantity')
+            
+            for name, price, quantity in zip(new_names, new_prices, new_quantities):
+                if name and price and quantity:
+                    new_ticket = TicketType(
+                        event_id=event.id,
+                        name=name,
+                        price=float(price),
+                        quantity=int(quantity)
+                    )
+                    db.session.add(new_ticket)
+            
+            event.ticket_quantity = None  # Clear total capacity when using individual limits
+
+        else:
+            # Handle existing ticket types without limits
+            existing_ticket_types = TicketType.query.filter_by(event_id=event.id).all()
+            for ticket_type in existing_ticket_types:
+                delete_key = f'delete_no_limit_{ticket_type.id}'
+                if request.form.get(delete_key):
+                    db.session.delete(ticket_type)
+                else:
+                    ticket_type.name = request.form.get(f'name_no_limit_{ticket_type.id}')
+                    ticket_type.price = float(request.form.get(f'price_no_limit_{ticket_type.id}'))
+                    ticket_type.quantity = None
+
+            # Handle new ticket types without limits
+            new_names = request.form.getlist('new_ticket_name_no_limit')
+            new_prices = request.form.getlist('new_ticket_price_no_limit')
+            
+            for name, price in zip(new_names, new_prices):
+                if name and price:
+                    new_ticket = TicketType(
+                        event_id=event.id,
+                        name=name,
+                        price=float(price),
+                        quantity=None
+                    )
+                    db.session.add(new_ticket)
+            
+            # Update total event capacity
+            event.ticket_quantity = int(request.form.get('total_ticket_quantity'))
 
         # Update custom questions conditionally
         for i in range(1, 11):
@@ -2030,7 +2085,6 @@ def send_email_to_organizer(attendee):
         print(f"Notification email sent to organizer {organizer.email}.")
     except Exception as e:
         print(f"Failed to send email to organizer {organizer.email}. Error: {str(e)}")
-
 
 
 @app.route('/export_attendees/<int:event_id>')
