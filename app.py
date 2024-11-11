@@ -443,11 +443,25 @@ def dashboard():
         event_date = str_to_date(event.date) if event.date else None
         event_status = "Upcoming" if event_date and event_date >= datetime.now() else "Past"
 
+        # Add discount rules
+        discount_rules = DiscountRule.query.filter_by(event_id=event.id).all()
+        discount_rules_data = [{
+            'discount_type': rule.discount_type,
+            'discount_percent': rule.discount_percent,
+            'min_tickets': rule.min_tickets if rule.discount_type == 'bulk' else None,
+            'apply_to': rule.apply_to if rule.discount_type == 'bulk' else None,
+            'valid_until': rule.valid_until if rule.discount_type == 'early_bird' else None,
+            'max_tickets': rule.max_tickets if rule.discount_type == 'early_bird' else None,
+            'code': rule.promo_code if rule.discount_type == 'promo_code' else None,
+            'max_uses': rule.max_uses if rule.discount_type == 'promo_code' else None,
+            'uses_left': rule.max_uses - rule.times_used if rule.discount_type == 'promo_code' else None
+        } for rule in discount_rules]
+
         event_data.append({
             'name': event.name,
             'date': event.date,
             'location': event.location,
-            'description': event.description,  # Add this line
+            'description': event.description,
             'tickets_sold': tickets_sold,
             'ticket_quantity': total_ticket_quantity,
             'tickets_remaining': tickets_remaining,
@@ -455,7 +469,8 @@ def dashboard():
             'status': event_status,
             'id': event.id,
             'ticket_breakdown': ticket_breakdown,
-            'enforce_individual_ticket_limits': event.enforce_individual_ticket_limits
+            'enforce_individual_ticket_limits': event.enforce_individual_ticket_limits,
+            'discount_rules': discount_rules_data
         })
 
     return render_template('dashboard.html', 

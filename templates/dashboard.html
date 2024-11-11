@@ -141,6 +141,61 @@
                                         {% endif %}
                                     </p>
                                 </div>
+                                
+                                <!-- Add Discount Rules Section -->
+                                {% if event_data.discount_rules %}
+                                <div class="info-group discount-rules">
+                                    <h4><i class="fas fa-tag"></i> Active Discounts</h4>
+                                    <div class="discount-rules-list">
+                                        {% for rule in event_data.discount_rules %}
+                                        <div class="discount-rule-card">
+                                            <div class="rule-type">
+                                                {% if rule.discount_type == 'bulk' %}
+                                                    <span class="rule-badge bulk">
+                                                        <i class="fas fa-users"></i> Bulk Discount
+                                                    </span>
+                                                {% elif rule.discount_type == 'early_bird' %}
+                                                    <span class="rule-badge early-bird">
+                                                        <i class="fas fa-clock"></i> Early Bird
+                                                    </span>
+                                                {% elif rule.discount_type == 'promo_code' %}
+                                                    <span class="rule-badge promo">
+                                                        <i class="fas fa-ticket-alt"></i> Promo Code
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <div class="rule-details">
+                                                {% if rule.discount_type == 'bulk' %}
+                                                    <p class="rule-description">
+                                                        {{ rule.discount_percent }}% off when buying {{ rule.min_tickets }}+ tickets
+                                                        {% if rule.apply_to == 'all' %}
+                                                            (applies to all tickets)
+                                                        {% else %}
+                                                            (applies to additional tickets only)
+                                                        {% endif %}
+                                                    </p>
+                                                {% elif rule.discount_type == 'early_bird' %}
+                                                    <p class="rule-description">
+                                                        {{ rule.discount_percent }}% off until {{ rule.valid_until | datetimeformat }}
+                                                        {% if rule.max_tickets %}
+                                                            (limited to first {{ rule.max_tickets }} tickets)
+                                                        {% endif %}
+                                                    </p>
+                                                {% elif rule.discount_type == 'promo_code' %}
+                                                    <p class="rule-description">
+                                                        Code: <strong>{{ rule.code }}</strong> - {{ rule.discount_percent }}% off
+                                                        {% if rule.max_uses %}
+                                                            ({{ rule.uses_left }}/{{ rule.max_uses }} uses remaining)
+                                                        {% endif %}
+                                                    </p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
                             </div>
 
                             <!-- Right Column -->
@@ -885,6 +940,78 @@
     .action-btn {
         width: 100%;
         justify-content: center;
+    }
+}
+
+/* Add to your existing styles (before the closing </style> tag) */
+.discount-rules {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.discount-rules h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.discount-rules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.discount-rule-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid #eee;
+}
+
+.rule-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.rule-badge.bulk {
+    background: #e3fcef;
+    color: #0a6c3c;
+}
+
+.rule-badge.early-bird {
+    background: #fff7ed;
+    color: #9a3412;
+}
+
+.rule-badge.promo {
+    background: #eff6ff;
+    color: #1e40af;
+}
+
+.rule-description {
+    color: #4b5563;
+    font-size: 0.95em;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.rule-description strong {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .discount-rules-list {
+        grid-template-columns: 1fr;
     }
 }
 </style>
