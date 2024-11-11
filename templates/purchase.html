@@ -45,14 +45,9 @@
 <!-- Discount Banner -->
 <div id="discount-banner" class="discount-banner" style="display: none;">
     <div class="discount-content">
-        <div class="discount-header">
-            <span class="offer-badge">Special Offer</span>
-            <button type="button" class="close-banner" aria-label="Close">×</button>
-        </div>
-        <div class="discount-body">
-            <h3 id="discount-message"></h3>
-            <p class="discount-subtitle"></p>
-        </div>
+        <span class="offer-badge">Limited Time Offer!</span>
+        <h3 id="discount-message"></h3>
+        <p class="discount-subtitle"></p>
     </div>
 </div>
 
@@ -97,7 +92,7 @@
                             {% endif %}
                             {% if enforce_individual_ticket_limits and ticket_type.quantity %}
                                 <span class="tickets-remaining">
-                                    {{ ticket_type.quantity - (ticket_type.sold_count or 0) }} tickets remaining
+                                    Only {{ ticket_type.quantity - (ticket_type.sold_count or 0) }} tickets left!
                                 </span>
                             {% endif %}
                         </div>
@@ -105,6 +100,33 @@
                             <span class="original-price">£{{ "{:.2f}".format(ticket_type.price) }}</span>
                             <span class="discounted-price"></span>
                         </div>
+                    </div>
+                    <div class="ticket-quantity">
+                        <label for="quantity_{{ ticket_type.id }}">Number of Tickets:</label>
+                        {% if enforce_individual_ticket_limits %}
+                            <input
+                                type="number"
+                                id="quantity_{{ ticket_type.id }}"
+                                name="quantity_{{ ticket_type.id }}"
+                                min="0"
+                                max="{{ ticket_type.quantity - (ticket_type.sold_count or 0) }}"
+                                value="0"
+                                data-ticket-type-id="{{ ticket_type.id }}"
+                                data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
+                                class="ticket-input"
+                            >
+                        {% else %}
+                            <input
+                                type="number"
+                                id="quantity_{{ ticket_type.id }}"
+                                name="quantity_{{ ticket_type.id }}"
+                                min="0"
+                                value="0"
+                                data-ticket-type-id="{{ ticket_type.id }}"
+                                data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
+                                class="ticket-input"
+                            >
+                        {% endif %}
                     </div>
                 </div>
             {% endfor %}
@@ -182,11 +204,11 @@
             let subtitleMessage = '';
             
             if (discountConfig.type === 'all') {
-                mainMessage = `🎉 Save ${discountConfig.percentage}% on ALL tickets!`;
-                subtitleMessage = `Buy ${discountConfig.minTickets}+ tickets and save £${savings} per ticket`;
+                mainMessage = `🔥 Flash Sale: ${discountConfig.percentage}% OFF Everything!`;
+                subtitleMessage = `Limited Time Offer! Buy ${discountConfig.minTickets}+ tickets and save £${savings} on each ticket - Don't miss out!`;
             } else {
-                mainMessage = `🎉 Save ${discountConfig.percentage}% on additional tickets!`;
-                subtitleMessage = `First ticket full price, then save £${savings} on each extra ticket when you buy ${discountConfig.minTickets}+`;
+                mainMessage = `🎉 Group Discount: Save ${discountConfig.percentage}% on Extra Tickets!`;
+                subtitleMessage = `Bring your friends! First ticket regular price, then get ${discountConfig.percentage}% OFF when booking ${discountConfig.minTickets}+ tickets together`;
             }
             
             message.textContent = mainMessage;
@@ -476,6 +498,35 @@
         margin: 2rem auto;
         max-width: 1000px;
         box-shadow: 0 4px 20px rgba(255, 0, 0, 0.2);
+        position: relative;
+        overflow: hidden;
+        animation: slideIn 0.6s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes shimmer {
+        0% {
+            background-position: -1000px 0;
+        }
+        100% {
+            background-position: 1000px 0;
+        }
     }
 
     .discount-content {
@@ -483,19 +534,87 @@
         flex-direction: column;
         align-items: center;
         text-align: center;
+        position: relative;
+        z-index: 2;
+    }
+
+    .offer-badge {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        animation: pulse 2s infinite;
     }
 
     #discount-message {
         color: white;
         font-size: 2rem;
         margin: 0;
-        text-shadow: none;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        background-size: 1000px 100%;
+        animation: shimmer 3s infinite linear;
     }
 
     .discount-subtitle {
         color: rgba(255, 255, 255, 0.9);
         font-size: 1.1rem;
         margin-top: 1rem;
+        opacity: 0;
+        animation: fadeIn 0.5s ease-out 0.3s forwards;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Add sparkle effect */
+    .discount-banner::before,
+    .discount-banner::after {
+        content: '';
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 60%);
+        border-radius: 50%;
+        pointer-events: none;
+        opacity: 0;
+    }
+
+    .discount-banner::before {
+        top: -50px;
+        left: -50px;
+        animation: sparkle 4s infinite;
+    }
+
+    .discount-banner::after {
+        bottom: -50px;
+        right: -50px;
+        animation: sparkle 4s infinite 2s;
+    }
+
+    @keyframes sparkle {
+        0% {
+            transform: scale(0) rotate(0deg);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1) rotate(180deg);
+            opacity: 0.3;
+        }
+        100% {
+            transform: scale(0) rotate(360deg);
+            opacity: 0;
+        }
     }
 
     /* Modern Form Styling */
@@ -619,6 +738,52 @@
         font-size: 1.2rem;
         font-weight: 600;
         color: #ff0000;
+    }
+
+    .ticket-quantity {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .ticket-quantity label {
+        font-weight: 500;
+        color: #333;
+        flex: 1;
+    }
+
+    .ticket-quantity input {
+        width: 100px;
+        padding: 0.8rem 1rem;
+        border: 2px solid #eee;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        text-align: center;
+        font-size: 1.1rem;
+    }
+
+    .ticket-quantity input:focus {
+        border-color: #ff0000;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.1);
+    }
+
+    .tickets-remaining {
+        display: inline-block;
+        background: #fff3f3;
+        color: #ff0000;
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-top: 0.5rem;
+    }
+
+    .ticket-description {
+        color: #666;
+        font-size: 0.95rem;
+        margin: 0.5rem 0;
     }
 </style>
 
