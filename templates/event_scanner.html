@@ -441,8 +441,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Play appropriate sound
             try {
                 const audio = new Audio(data.status === 'success' ? 
-                    "{{ url_for('static', filename='sounds/scan-beep.mp3') }}" : 
-                    "{{ url_for('static', filename='sounds/error-beep.mp3') }}"
+                    "{{ url_for('static', filename='.static/scan-beep.mp3') }}" : 
+                    "{{ url_for('static', filename='.static/error-beep.mp3') }}"
                 );
                 await audio.play();
             } catch (soundError) {
