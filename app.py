@@ -1963,38 +1963,60 @@ def edit_attendee(attendee_id):
 @login_required
 def add_attendee(event_id):
     event = Event.query.get_or_404(event_id)
-
-    # Ensure the user has permission to add attendees to the event
+    
+    # Ensure the user has permission
     if event.user_id != current_user.id:
         flash("You don't have permission to add attendees to this event.")
         return redirect(url_for('dashboard'))
 
-    # Fetch default and custom questions
+    # Get ticket types for the event
+    ticket_types = TicketType.query.filter_by(event_id=event_id).all()
+    
+    # Get questions
     user = User.query.get(event.user_id)
     default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
     default_question_texts = [dq.question for dq in default_questions]
-
+    
     custom_questions = []
-    for i in range(1, 11):  # Loop through 10 possible custom questions
+    for i in range(1, 11):
         question = getattr(event, f'custom_question_{i}')
         if question:
             custom_questions.append(question)
-
+    
     all_questions = default_question_texts + custom_questions
 
     if request.method == 'POST':
         full_name = request.form.get('full_name')
         email = request.form.get('email')
         phone_number = request.form.get('phone_number')
-        number_of_tickets = int(request.form.get('number_of_tickets'))
+        ticket_type_id = int(request.form.get('ticket_type'))
+        number_of_tickets = int(request.form.get('number_of_tickets', 1))
 
-        # Check if the number of tickets requested exceeds tickets available
-        attendees = Attendee.query.filter_by(event_id=event_id).all()
-        tickets_sold = sum([attendee.tickets_purchased for attendee in attendees])
-        tickets_available = event.ticket_quantity - tickets_sold
-        if number_of_tickets > tickets_available:
-            flash(f"Cannot add {number_of_tickets} tickets. Only {tickets_available} tickets are available.")
-            return redirect(url_for('add_attendee', event_id=event_id))
+        # Get selected ticket type
+        ticket_type = TicketType.query.get_or_404(ticket_type_id)
+        
+        # Check capacity based on event settings
+        if event.enforce_individual_ticket_limits:
+            # Check individual ticket type limit
+            tickets_sold = Attendee.query.filter_by(
+                event_id=event_id,
+                ticket_type_id=ticket_type_id,
+                payment_status='succeeded'
+            ).count()
+            
+            if tickets_sold + number_of_tickets > ticket_type.quantity:
+                flash(f"Cannot add {number_of_tickets} tickets. Only {ticket_type.quantity - tickets_sold} tickets of type {ticket_type.name} are available.")
+                return redirect(url_for('add_attendee', event_id=event_id))
+        else:
+            # Check total event capacity
+            total_tickets_sold = Attendee.query.filter_by(
+                event_id=event_id,
+                payment_status='succeeded'
+            ).count()
+            
+            if total_tickets_sold + number_of_tickets > event.ticket_quantity:
+                flash(f"Cannot add {number_of_tickets} tickets. Only {event.ticket_quantity - total_tickets_sold} tickets remaining for the event.")
+                return redirect(url_for('add_attendee', event_id=event_id))
 
         # Collect answers to ticket questions
         ticket_answers = {}
@@ -2002,7 +2024,7 @@ def add_attendee(event_id):
             answer = request.form.get(f'answer_{idx}')
             ticket_answers[question] = answer
 
-        # Collect billing details if provided
+        # Collect billing details
         billing_details = {
             "name": request.form.get('billing_name'),
             "email": request.form.get('billing_email'),
@@ -2017,39 +2039,42 @@ def add_attendee(event_id):
             }
         }
 
-        # Remove empty fields from billing details
+        # Clean up billing details
         billing_details = {k: v for k, v in billing_details.items() if v}
-        billing_details['address'] = {k: v for k, v in billing_details['address'].items() if v}
+        if 'address' in billing_details:
+            billing_details['address'] = {k: v for k, v in billing_details['address'].items() if v}
+            if not billing_details['address']:
+                del billing_details['address']
 
-        if not billing_details['address']:
-            del billing_details['address']
+        # Generate ticket number
+        ticket_number = generate_unique_ticket_number()
 
-        if not billing_details:
-            billing_details = None
-
-        # Create a new Attendee object
+        # Create attendee
         attendee = Attendee(
             event_id=event_id,
+            ticket_type_id=ticket_type_id,
             full_name=full_name,
             email=email,
             phone_number=phone_number,
             tickets_purchased=number_of_tickets,
-            ticket_price_at_purchase=event.ticket_price,
+            ticket_price_at_purchase=ticket_type.price,
             payment_status='succeeded',
-            session_id='N/A',  # Since there's no payment session
+            session_id='MANUAL_ENTRY',
             ticket_answers=json.dumps(ticket_answers),
-            billing_details=json.dumps(billing_details) if billing_details else None
-        )
+            billing_details=json.dumps(billing_details) if billing_details else None,
+            ticket_number=ticket_number,
+            created_at=datetime.now(timezone.utc)
 
         db.session.add(attendee)
         db.session.commit()
 
-        # Flash a success message without sending emails
-        flash("Attendee added successfully without sending emails.")
-
+        flash(f"Attendee added successfully with ticket number: {ticket_number}")
         return redirect(url_for('view_attendees', event_id=event_id))
 
-    return render_template('add_attendee.html', event=event, questions=all_questions)
+    return render_template('add_attendee.html', 
+                         event=event, 
+                         questions=all_questions,
+                         ticket_types=ticket_types)
 
 
 def send_email_to_organizer(attendee):
