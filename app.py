@@ -254,6 +254,43 @@ class TicketType(db.Model):
     # Relationship back to Event
     event = db.relationship('Event', back_populates='ticket_types')
 
+# Add this with your other models
+class DiscountRule(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    discount_type = db.Column(db.String(20), nullable=False)  # 'bulk', 'early_bird', 'promo_code'
+    
+    # Bulk purchase fields
+    min_tickets = db.Column(db.Integer)
+    discount_percent = db.Column(db.Float)
+    apply_to = db.Column(db.String(20))  # 'all' or 'additional'
+    
+    # Early bird fields
+    valid_until = db.Column(db.DateTime)
+    max_early_bird_tickets = db.Column(db.Integer)
+    
+    # Promo code fields
+    promo_code = db.Column(db.String(50))
+    max_uses = db.Column(db.Integer)
+    uses_count = db.Column(db.Integer, default=0)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def calculate_discount(self, quantity, original_price, promo_code=None):
+        if self.discount_type == 'bulk' and quantity >= self.min_tickets:
+            if self.apply_to == 'all':
+                return (original_price * quantity) * (self.discount_percent / 100)
+            else:  # 'additional'
+                return (original_price * (quantity - 1)) * (self.discount_percent / 100)
+                
+        elif self.discount_type == 'early_bird' and datetime.utcnow() < self.valid_until:
+            return (original_price * quantity) * (self.discount_percent / 100)
+            
+        elif self.discount_type == 'promo_code' and promo_code == self.promo_code:
+            if self.uses_count < self.max_uses:
+                return (original_price * quantity) * (self.discount_percent / 100)
+        
+        return 0
 
 # Generate a random unique ID with 15 characters
 def generate_unique_id():
@@ -506,6 +543,7 @@ def register():
         return render_template('register.html', error="An error occurred during registration.")
 
     return render_template('register.html')
+
 
 
 
@@ -1182,6 +1220,41 @@ def purchase(event_id):
                     booking_fee_per_ticket = int(ticket_type.price * 100 * 0.05)
                     booking_fee_pence += booking_fee_per_ticket * quantity
 
+        # Calculate discounts
+        total_discount = 0
+        promo_code = request.form.get('promo_code')
+        
+        discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
+        for rule in discount_rules:
+            discount_amount = rule.calculate_discount(
+                quantity=total_tickets_requested,
+                original_price=total_amount/100,  # Convert from pence to pounds
+                promo_code=promo_code
+            )
+            total_discount += discount_amount
+            
+            # Update promo code usage if applicable
+            if rule.discount_type == 'promo_code' and promo_code == rule.promo_code:
+                rule.uses_count += 1
+                
+        # Convert discount to pence and apply to total
+        total_discount_pence = int(total_discount * 100)
+        total_amount -= total_discount_pence
+        
+        # Add discount information to line items for display
+        if total_discount_pence > 0:
+            line_items.append({
+                'price_data': {
+                    'currency': 'gbp',
+                    'product_data': {
+                        'name': 'Discount Applied',
+                        'description': 'Automatic discount',
+                    },
+                    'unit_amount': -total_discount_pence,
+                },
+                'quantity': 1,
+            })
+
         if not attendees:
             flash('Please select at least one ticket.')
             return redirect(url_for('purchase', event_id=event_id))
@@ -1830,7 +1903,6 @@ def edit_event(event_id):
                         name=name,
                         price=float(price),
                         quantity=int(quantity)
-                    )
                     db.session.add(new_ticket)
             
             event.ticket_quantity = None  # Clear total capacity when using individual limits
@@ -2020,7 +2092,6 @@ def add_attendee(event_id):
             ticket_answers=json.dumps(ticket_answers),
             ticket_number=ticket_number,
             created_at=datetime.now(timezone.utc)
-        )
         db.session.add(attendee)
         db.session.commit()
 
