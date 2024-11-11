@@ -2064,6 +2064,7 @@ def add_attendee(event_id):
             billing_details=json.dumps(billing_details) if billing_details else None,
             ticket_number=ticket_number,
             created_at=datetime.now(timezone.utc)
+        )
 
         db.session.add(attendee)
         db.session.commit()
