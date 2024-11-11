@@ -32,13 +32,26 @@
 
     <div class="scanner-layout">
         <div class="scanner-content">
+            <div id="scanner-status" class="scanner-status ready">
+                <span class="status-icon"></span>
+                <span class="status-text">Ready to Scan</span>
+            </div>
+
             <div id="reader"></div>
+            
             <div id="scan-result" class="hidden">
                 <div class="result-content">
+                    <div class="result-icon">
+                        <i class="fas fa-check-circle success-icon"></i>
+                        <i class="fas fa-exclamation-circle warning-icon"></i>
+                        <i class="fas fa-times-circle error-icon"></i>
+                    </div>
                     <h3 class="result-title"></h3>
                     <p class="result-message"></p>
                     <div class="attendee-details"></div>
-                    <button onclick="dismissScanResult()" class="dismiss-button">Tap to Scan Next Ticket</button>
+                    <button onclick="dismissScanResult()" class="dismiss-button">
+                        <i class="fas fa-camera"></i> Tap to Scan Next Ticket
+                    </button>
                 </div>
             </div>
 
@@ -273,6 +286,117 @@
         padding: 15px;
     }
 }
+
+.scanner-status {
+    text-align: center;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 8px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.scanner-status.ready {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.scanner-status.scanning {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    animation: pulse 2s infinite;
+}
+
+.scanner-status.processing {
+    background-color: #fff3e0;
+    color: #f57c00;
+}
+
+.status-icon::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    margin-right: 8px;
+}
+
+.ready .status-icon::before {
+    content: "\f030"; /* camera icon */
+}
+
+.scanning .status-icon::before {
+    content: "\f002"; /* search icon */
+}
+
+.processing .status-icon::before {
+    content: "\f110"; /* spinner icon */
+    display: inline-block;
+    animation: spin 1s linear infinite;
+}
+
+.result-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.success-icon { color: #28a745; }
+.warning-icon { color: #ffc107; }
+.error-icon { color: #dc3545; }
+
+.result-content {
+    text-align: center;
+    padding: 20px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.dismiss-button {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 1.1em;
+    margin-top: 15px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.dismiss-button:hover {
+    background: #218838;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .scanner-status {
+        margin: 5px 0;
+        padding: 12px;
+        font-size: 1.1em;
+    }
+
+    .dismiss-button {
+        padding: 15px;
+        font-size: 1.2em;
+    }
+}
 </style>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
@@ -287,7 +411,9 @@ document.addEventListener('DOMContentLoaded', function() {
         { 
             fps: 10, 
             qrbox: 250,
-            rememberLastUsedCamera: true
+            rememberLastUsedCamera: true,
+            aspectRatio: 1.0,
+            showTorchButtonIfSupported: true
         }
     );
 
@@ -330,23 +456,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function updateScannerStatus(status, message) {
+        const statusDiv = document.getElementById('scanner-status');
+        statusDiv.className = `scanner-status ${status}`;
+        statusDiv.querySelector('.status-text').textContent = message;
+    }
+
     async function processTicket(decodedText) {
         if (isProcessing) return;
         isProcessing = true;
+        
+        updateScannerStatus('processing', 'Processing ticket...');
 
         try {
-            // Play initial scan sound
             const scanBeep = new Audio('/static/scan-beep.mp3');
             await scanBeep.play();
 
             const response = await fetch(`/api/check-in/{{ event.id }}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ticket_number: decodedText
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticket_number: decodedText })
             });
 
             const data = await response.json();
@@ -354,6 +483,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const resultDiv = document.getElementById('scan-result');
             resultDiv.className = `scan-result ${data.status}`;
             resultDiv.classList.remove('hidden');
+            
+            // Hide the scanner status while showing results
+            document.getElementById('scanner-status').style.display = 'none';
             
             const titleEl = resultDiv.querySelector('.result-title');
             const messageEl = resultDiv.querySelector('.result-message');
@@ -381,12 +513,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } catch (error) {
             console.error('Error:', error);
-            const resultDiv = document.getElementById('scan-result');
-            resultDiv.className = 'scan-result error';
-            resultDiv.classList.remove('hidden');
-            resultDiv.querySelector('.result-title').textContent = 'Error';
-            resultDiv.querySelector('.result-message').textContent = 'Failed to process ticket';
-            
+            updateScannerStatus('error', 'Error processing ticket');
             const errorSound = new Audio('/static/error-beep.mp3');
             await errorSound.play();
         }
@@ -406,14 +533,13 @@ document.addEventListener('DOMContentLoaded', function() {
     window.dismissScanResult = function() {
         const resultDiv = document.getElementById('scan-result');
         resultDiv.classList.add('hidden');
+        
+        // Show and update scanner status
+        const statusDiv = document.getElementById('scanner-status');
+        statusDiv.style.display = 'flex';
+        updateScannerStatus('ready', 'Ready to Scan');
+        
         isProcessing = false;
-        
-        // Clear the result content
-        resultDiv.querySelector('.result-title').textContent = '';
-        resultDiv.querySelector('.result-message').textContent = '';
-        resultDiv.querySelector('.attendee-details').innerHTML = '';
-        
-        // Resume scanning
         html5QrcodeScanner.resume();
     };
 
