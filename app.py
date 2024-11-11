@@ -2676,10 +2676,14 @@ def start_event_scanner(event_id):
     total_attendees = len(attendees)
     checked_in = sum(1 for a in attendees if getattr(a, 'checked_in', False))
     
+    # Get ticket types if using individual limits
+    if event.enforce_individual_ticket_limits:
+        event.ticket_types = TicketType.query.filter_by(event_id=event_id).all()
+    
     return render_template('event_scanner.html',
-                         event=event,
-                         total_attendees=total_attendees,
-                         checked_in=checked_in)
+                             event=event,
+                             total_attendees=total_attendees,
+                             checked_in=checked_in)
 
 @app.route('/api/check-in/<int:event_id>', methods=['POST'])
 @login_required
