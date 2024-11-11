@@ -1363,11 +1363,14 @@ def purchase(event_id, promo_code=None):
                         for ticket_type_id, quantity in quantities.items()
                     }
 
+                    # Convert total_amount to integer (ensure it's in pence)
+                    total_amount_pence = int(total_amount)
+
                     # Prepare ticket and attendee data for Stripe metadata
                     ticket_data = {
                         'quantities': quantities_for_stripe,
                         'total_tickets': total_tickets_requested,
-                        'total_amount': total_amount
+                        'total_amount': total_amount_pence
                     }
 
                     attendee_data = {
@@ -1375,7 +1378,7 @@ def purchase(event_id, promo_code=None):
                         'email': email,
                         'phone_number': phone_number,
                         'answers': {
-                            str(k): v for k, v in attendee_answers.items()  # Convert tuple keys to strings
+                            str(k): v for k, v in attendee_answers.items()
                         }
                     }
 
@@ -1385,7 +1388,7 @@ def purchase(event_id, promo_code=None):
                         line_items=[{
                             'price_data': {
                                 'currency': 'gbp',
-                                'unit_amount': total_amount,
+                                'unit_amount': total_amount_pence,
                                 'product_data': {
                                     'name': f'Tickets for {event.name}',
                                 },
@@ -1396,7 +1399,7 @@ def purchase(event_id, promo_code=None):
                         success_url=url_for('success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
                         cancel_url=url_for('cancel', _external=True),
                         metadata={
-                            'event_id': str(event_id),  # Convert to string
+                            'event_id': str(event_id),
                             'ticket_data': json.dumps(ticket_data),
                             'attendee_data': json.dumps(attendee_data)
                         }
