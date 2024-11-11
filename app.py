@@ -182,6 +182,7 @@ class Event(db.Model):
     ticket_quantity = db.Column(db.Integer, nullable=True)  # Total event capacity
     enforce_individual_ticket_limits = db.Column(db.Boolean, default=True)
     image_url = db.Column(db.String(255), nullable=True)  # To store the image file path
+    discount_rules = db.relationship('DiscountRule', backref='event', lazy=True)
 
 class Attendee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -259,10 +260,10 @@ class DiscountRule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
     discount_type = db.Column(db.String(20), nullable=False)  # 'bulk', 'early_bird', 'promo_code'
+    discount_percent = db.Column(db.Float, nullable=False)
     
     # Bulk purchase fields
     min_tickets = db.Column(db.Integer)
-    discount_percent = db.Column(db.Float)
     apply_to = db.Column(db.String(20))  # 'all' or 'additional'
     
     # Early bird fields
@@ -274,9 +275,18 @@ class DiscountRule(db.Model):
     max_uses = db.Column(db.Integer)
     uses_count = db.Column(db.Integer, default=0)
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
     def calculate_discount(self, quantity, original_price, promo_code=None):
+        """
+        Calculate the discount amount based on the rule type and conditions.
+        
+        Args:
+            quantity (int): Number of tickets being purchased
+            original_price (float): Original price per ticket
+            promo_code (str, optional): Promo code provided by customer
+            
+        Returns:
+            float: Discount amount to be applied
+        """
         if self.discount_type == 'bulk' and quantity >= self.min_tickets:
             if self.apply_to == 'all':
                 return (original_price * quantity) * (self.discount_percent / 100)
@@ -284,11 +294,13 @@ class DiscountRule(db.Model):
                 return (original_price * (quantity - 1)) * (self.discount_percent / 100)
                 
         elif self.discount_type == 'early_bird' and datetime.utcnow() < self.valid_until:
-            return (original_price * quantity) * (self.discount_percent / 100)
-            
-        elif self.discount_type == 'promo_code' and promo_code == self.promo_code:
-            if self.uses_count < self.max_uses:
+            if not self.max_early_bird_tickets or self.max_early_bird_tickets >= quantity:
                 return (original_price * quantity) * (self.discount_percent / 100)
+            
+        elif (self.discount_type == 'promo_code' and 
+              promo_code == self.promo_code and 
+              (not self.max_uses or self.uses_count < self.max_uses)):
+            return (original_price * quantity) * (self.discount_percent / 100)
         
         return 0
 
@@ -1067,7 +1079,6 @@ def calculate_total_charge_and_booking_fee(n_tickets, ticket_price_gbp):
     # Round up and return the total charge to the buyer and platform fee
     return int(math.ceil(total_charge_pence)), int(math.ceil(total_platform_fee_pence))
 
-
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
 def purchase(event_id):
     event = Event.query.get_or_404(event_id)
@@ -1223,37 +1234,70 @@ def purchase(event_id):
         # Calculate discounts
         total_discount = 0
         promo_code = request.form.get('promo_code')
-        
+        applied_rules = []  # Track which rules were applied
+
         discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
         for rule in discount_rules:
-            discount_amount = rule.calculate_discount(
-                quantity=total_tickets_requested,
-                original_price=total_amount/100,  # Convert from pence to pounds
-                promo_code=promo_code
-            )
-            total_discount += discount_amount
-            
-            # Update promo code usage if applicable
-            if rule.discount_type == 'promo_code' and promo_code == rule.promo_code:
-                rule.uses_count += 1
+            try:
+                discount_amount = rule.calculate_discount(
+                    quantity=total_tickets_requested,
+                    original_price=total_amount/100,
+                    promo_code=promo_code
+                )
                 
+                if discount_amount > 0:
+                    total_discount += discount_amount
+                    applied_rules.append(rule)
+                    
+                    # Update promo code usage if applicable
+                    if rule.discount_type == 'promo_code' and promo_code == rule.promo_code:
+                        rule.uses_count += 1
+                        
+            except Exception as e:
+                app.logger.error(f"Error calculating discount for rule {rule.id}: {str(e)}")
+                continue
+
         # Convert discount to pence and apply to total
         total_discount_pence = int(total_discount * 100)
+        
+        # Ensure discount doesn't exceed total amount
+        if total_discount_pence > total_amount:
+            total_discount_pence = total_amount
+            
         total_amount -= total_discount_pence
         
         # Add discount information to line items for display
         if total_discount_pence > 0:
+            discount_descriptions = []
+            for rule in applied_rules:
+                if rule.discount_type == 'bulk':
+                    desc = f"Bulk purchase discount ({rule.discount_percent}%)"
+                elif rule.discount_type == 'early_bird':
+                    desc = f"Early bird discount ({rule.discount_percent}%)"
+                else:
+                    desc = f"Promo code discount ({rule.discount_percent}%)"
+                discount_descriptions.append(desc)
+
             line_items.append({
                 'price_data': {
                     'currency': 'gbp',
                     'product_data': {
                         'name': 'Discount Applied',
-                        'description': 'Automatic discount',
+                        'description': ' + '.join(discount_descriptions),
                     },
                     'unit_amount': -total_discount_pence,
                 },
                 'quantity': 1,
             })
+
+        # Store discount information in session for confirmation
+        for attendee in attendees:
+            attendee.discount_applied = total_discount_pence / len(attendees)
+            attendee.discount_details = json.dumps([{
+                'type': rule.discount_type,
+                'amount': rule.discount_percent,
+                'description': rule.promo_code if rule.discount_type == 'promo_code' else None
+            } for rule in applied_rules])
 
         if not attendees:
             flash('Please select at least one ticket.')
@@ -1903,8 +1947,9 @@ def edit_event(event_id):
                         name=name,
                         price=float(price),
                         quantity=int(quantity)
+                    )
                     db.session.add(new_ticket)
-            
+                    
             event.ticket_quantity = None  # Clear total capacity when using individual limits
 
         else:
@@ -2092,6 +2137,7 @@ def add_attendee(event_id):
             ticket_answers=json.dumps(ticket_answers),
             ticket_number=ticket_number,
             created_at=datetime.now(timezone.utc)
+        )
         db.session.add(attendee)
         db.session.commit()
 
@@ -2659,7 +2705,6 @@ def resend_ticket(attendee_id):
 
     flash(f"Ticket has been resent to {attendee.email}.")
     return redirect(url_for('view_attendees', event_id=event.id))
-
 
 
 
