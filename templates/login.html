@@ -4,8 +4,23 @@
 <div class="login-container">
     <!-- Animated Background Elements -->
     <div class="animated-background">
-        {% for i in range(15) %}
-        <div class="floating-ticket ticket-{{ i }}">
+        <!-- Fast-moving horizontal tickets -->
+        {% for i in range(10) %}
+        <div class="floating-ticket horizontal-ticket ticket-{{ i }}">
+            <i class="fas fa-ticket-alt"></i>
+        </div>
+        {% endfor %}
+        
+        <!-- Diagonal upward-moving tickets -->
+        {% for i in range(10) %}
+        <div class="floating-ticket diagonal-ticket ticket-{{ i }}">
+            <i class="fas fa-ticket-alt"></i>
+        </div>
+        {% endfor %}
+        
+        <!-- Spinning tickets -->
+        {% for i in range(5) %}
+        <div class="floating-ticket spinning-ticket ticket-{{ i }}">
             <i class="fas fa-ticket-alt"></i>
         </div>
         {% endfor %}
@@ -85,72 +100,92 @@
 
 .floating-ticket {
     position: absolute;
-    color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.08);
     font-size: 2rem;
     z-index: 1;
+    pointer-events: none;
 }
 
-@keyframes floatTicket {
-    0% {
-        transform: translateY(110vh) rotate(0deg);
+/* Horizontal movement */
+@keyframes horizontalMove {
+    from {
+        transform: translateX(-100px) rotate(0deg);
         opacity: 0;
     }
     10% { opacity: 1; }
     90% { opacity: 1; }
-    100% {
-        transform: translateY(-10vh) rotate(360deg);
+    to {
+        transform: translateX(calc(100vw + 100px)) rotate(360deg);
         opacity: 0;
     }
+}
+
+/* Diagonal upward movement */
+@keyframes diagonalMove {
+    from {
+        transform: translate(-100px, 100vh) rotate(0deg);
+        opacity: 0;
+    }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    to {
+        transform: translate(calc(100vw + 100px), -100px) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+/* Spinning movement */
+@keyframes spinMove {
+    from {
+        transform: translate(-50%, 120vh) rotate(0deg);
+        opacity: 0;
+    }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    to {
+        transform: translate(-50%, -100px) rotate(1080deg);
+        opacity: 0;
+    }
+}
+
+.horizontal-ticket {
+    animation: horizontalMove var(--duration) linear var(--delay) infinite;
+}
+
+.diagonal-ticket {
+    animation: diagonalMove var(--duration) linear var(--delay) infinite;
+}
+
+.spinning-ticket {
+    animation: spinMove var(--duration) linear var(--delay) infinite;
 }
 
 .gradient-circle {
     position: absolute;
     border-radius: 50%;
-    filter: blur(60px);
-    opacity: 0.3;
-    animation: pulseGlow 8s ease-in-out infinite;
+    filter: blur(80px);
+    opacity: 0.15;
+    pointer-events: none;
 }
 
 .circle-1 {
-    width: 300px;
-    height: 300px;
+    width: 600px;
+    height: 600px;
     background: radial-gradient(circle, #ff0000 0%, transparent 70%);
-    top: 20%;
-    left: 20%;
-    animation-delay: 0s;
+    top: -10%;
+    left: -10%;
 }
 
 .circle-2 {
-    width: 400px;
-    height: 400px;
+    width: 800px;
+    height: 800px;
     background: radial-gradient(circle, #ff4d4d 0%, transparent 70%);
-    bottom: 10%;
-    right: 20%;
-    animation-delay: 2s;
-}
-
-.circle-3 {
-    width: 250px;
-    height: 250px;
-    background: radial-gradient(circle, #ff8080 0%, transparent 70%);
-    top: 50%;
-    right: 30%;
-    animation-delay: 4s;
-}
-
-@keyframes pulseGlow {
-    0%, 100% {
-        transform: scale(1);
-        opacity: 0.3;
-    }
-    50% {
-        transform: scale(1.2);
-        opacity: 0.4;
-    }
+    bottom: -20%;
+    right: -10%;
 }
 
 .login-card {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.98);
     padding: 40px;
     border-radius: 20px;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
@@ -158,25 +193,56 @@
     max-width: 420px;
     position: relative;
     z-index: 2;
-    animation: cardAppear 0.6s ease-out;
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Keep existing styles but update form elements for modern look */
+.login-logo {
+    width: 180px;
+    margin-bottom: 20px;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-header h1 {
+    font-size: 24px;
+    color: #1f2937;
+    margin: 20px 0 5px;
+}
+
+.subtitle {
+    color: #6b7280;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: #4b5563;
+    font-weight: 500;
+}
+
 .form-group input {
     width: 100%;
     padding: 12px;
-    border: 2px solid rgba(0, 0, 0, 0.1);
+    border: 2px solid #e5e7eb;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.9);
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    font-size: 16px;
 }
 
 .form-group input:focus {
     border-color: #ff0000;
     box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.1);
-    transform: translateY(-2px);
+    outline: none;
 }
 
 .login-button {
@@ -188,7 +254,7 @@
     width: 100%;
     font-weight: bold;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -196,117 +262,68 @@
 }
 
 .login-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255, 0, 0, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(255, 0, 0, 0.2);
 }
 
-/* Add hover effect to floating tickets */
-.floating-ticket:hover {
-    color: rgba(255, 0, 0, 0.3);
-    transform: scale(1.2);
+.forgot-password {
+    position: absolute;
+    right: 0;
+    top: 0;
+    color: #ff0000;
+    text-decoration: none;
+    font-size: 14px;
 }
 
-/* Keep other existing styles... */
+.forgot-password:hover {
+    text-decoration: underline;
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 30px;
+    color: #6b7280;
+}
+
+.login-footer a {
+    color: #ff0000;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Generate random positions and animations for tickets
+    // Initialize all tickets with random properties
     const tickets = document.querySelectorAll('.floating-ticket');
     
-    tickets.forEach((ticket, index) => {
-        // Random starting position
-        const randomX = Math.random() * 100;
-        ticket.style.left = `${randomX}%`;
+    tickets.forEach(ticket => {
+        // Random size (smaller range for better visibility)
+        const size = Math.random() * (24 - 16) + 16;
+        ticket.style.fontSize = `${size}px`;
         
-        // Random size
-        const randomSize = Math.random() * (40 - 20) + 20;
-        ticket.style.fontSize = `${randomSize}px`;
+        // Random duration and delay
+        const duration = Math.random() * (8 - 4) + 4; // Faster movement: 4-8 seconds
+        const delay = Math.random() * 5; // Shorter initial delay
         
-        // Random animation duration and delay
-        const duration = Math.random() * (20 - 10) + 10;
-        const delay = Math.random() * 10;
+        // Set CSS variables for the animations
+        ticket.style.setProperty('--duration', `${duration}s`);
+        ticket.style.setProperty('--delay', `${delay}s`);
         
-        ticket.style.animation = `floatTicket ${duration}s linear ${delay}s infinite`;
+        // For horizontal tickets, set random vertical position
+        if (ticket.classList.contains('horizontal-ticket')) {
+            ticket.style.top = `${Math.random() * 100}vh`;
+        }
         
-        // Add hover pause effect
-        ticket.addEventListener('mouseover', function() {
-            this.style.animationPlayState = 'paused';
-            this.style.color = 'rgba(255, 0, 0, 0.3)';
-            this.style.transform = 'scale(1.2)';
-            this.style.transition = 'color 0.3s, transform 0.3s';
-        });
-        
-        ticket.addEventListener('mouseout', function() {
-            this.style.animationPlayState = 'running';
-            this.style.color = 'rgba(255, 255, 255, 0.1)';
-            this.style.transform = 'scale(1)';
-        });
+        // For spinning tickets, set random horizontal position
+        if (ticket.classList.contains('spinning-ticket')) {
+            ticket.style.left = `${Math.random() * 100}vw`;
+        }
     });
-
-    // Add some extra visual effects
-    const loginCard = document.querySelector('.login-card');
-    
-    // Subtle hover effect on the card
-    loginCard.addEventListener('mousemove', function(e) {
-        const rect = this.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        
-        const angleX = (y - centerY) / 30;
-        const angleY = (centerX - x) / 30;
-        
-        this.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg)`;
-    });
-    
-    loginCard.addEventListener('mouseleave', function() {
-        this.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
-    });
-
-    // Add particle effect for more visual interest
-    const createParticle = () => {
-        const particle = document.createElement('div');
-        particle.className = 'particle';
-        particle.style.left = Math.random() * 100 + 'vw';
-        particle.style.animationDuration = Math.random() * 3 + 2 + 's';
-        document.querySelector('.animated-background').appendChild(particle);
-        
-        setTimeout(() => {
-            particle.remove();
-        }, 5000);
-    };
-
-    setInterval(createParticle, 200);
 });
 </script>
-
-<style>
-/* Add particle styling */
-.particle {
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 50%;
-    pointer-events: none;
-    animation: particleFloat linear forwards;
-}
-
-@keyframes particleFloat {
-    0% {
-        transform: translateY(100vh) scale(0);
-        opacity: 0;
-    }
-    20% {
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(-20vh) scale(1);
-        opacity: 0;
-    }
-}
-</style>
 {% endblock %}
