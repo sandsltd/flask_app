@@ -34,17 +34,17 @@
     </div>
 </div>
 
-<!-- Update the discount banner HTML -->
+<!-- Move this right after the purchase-container div -->
 <div id="discount-banner" class="discount-banner" style="display: none;">
     <div class="discount-content">
-        <div class="offer-badge-container">
-            <span class="offer-badge">Special Offer</span>
+        <div class="discount-header">
+            <span class="offer-badge">Limited Time Offer</span>
+            <button type="button" class="close-banner">×</button>
         </div>
-        <div class="discount-message-container">
-            <p id="discount-message"></p>
-            <p class="discount-subtitle">Add tickets to your cart to apply the discount!</p>
+        <div class="discount-body">
+            <h3 id="discount-message"></h3>
+            <p class="discount-subtitle"></p>
         </div>
-        <button type="button" class="close-banner">×</button>
     </div>
 </div>
 
@@ -82,10 +82,10 @@
             {% for ticket_type in ticket_types %}
                 <div class="ticket-type">
                     <div class="ticket-header">
-                        <label>{{ ticket_type.name }}</label>
+                        <h3>{{ ticket_type.name }}</h3>
                         <div class="ticket-price-display" id="price-display-{{ ticket_type.id }}">
                             <span class="original-price">£{{ "{:.2f}".format(ticket_type.price) }}</span>
-                            <span class="discounted-price" style="display: none;"></span>
+                            <span class="discounted-price"></span>
                         </div>
                     </div>
                     {% if enforce_individual_ticket_limits %}
@@ -174,21 +174,20 @@
 
     // Show discount banner if bulk discount is available
     function initializeDiscountBanner() {
-        if (discountConfig.apply_to === 'bulk') {
+        if (discountConfig && discountConfig.type === 'bulk') {
             const banner = document.getElementById('discount-banner');
             const message = document.getElementById('discount-message');
             const subtitle = document.querySelector('.discount-subtitle');
             
-            // Create specific message based on discount type
             let mainMessage = '';
             let subtitleMessage = '';
             
             if (discountConfig.apply_to === 'all') {
-                mainMessage = `Buy ${discountConfig.minTickets} or more tickets and save ${discountConfig.percentage}% on ALL tickets!`;
-                subtitleMessage = `Purchase ${discountConfig.minTickets} tickets to unlock a ${discountConfig.percentage}% discount on your entire order!`;
+                mainMessage = `🎉 Special Offer: ${discountConfig.percentage}% OFF ALL TICKETS`;
+                subtitleMessage = `Buy ${discountConfig.minTickets} or more tickets to save £${((discountConfig.percentage/100) * parseFloat(document.querySelector('.ticket-input').getAttribute('data-ticket-price'))).toFixed(2)} per ticket!`;
             } else {
-                mainMessage = `Buy ${discountConfig.minTickets} or more tickets and save ${discountConfig.percentage}% on additional tickets!`;
-                subtitleMessage = `First ticket full price, then get ${discountConfig.percentage}% off all additional tickets when you buy ${discountConfig.minTickets} or more!`;
+                mainMessage = `🎉 Special Offer: ${discountConfig.percentage}% OFF ADDITIONAL TICKETS`;
+                subtitleMessage = `Buy ${discountConfig.minTickets} or more tickets - first ticket full price, then save on all additional tickets!`;
             }
             
             message.textContent = mainMessage;
@@ -223,17 +222,17 @@
             var originalPriceSpan = priceDisplay.querySelector('.original-price');
             var discountedPriceSpan = priceDisplay.querySelector('.discounted-price');
 
-            if (applyDiscount && discountConfig.apply_to === 'all') {
-                // Show discount for all tickets when "all" type
-                var discountedPrice = originalPrice * (1 - discountConfig.percentage/100);
-                originalPriceSpan.classList.add('strikethrough');
-                discountedPriceSpan.textContent = `£${discountedPrice.toFixed(2)}`;
-                discountedPriceSpan.style.display = 'inline';
-            } else if (applyDiscount && discountConfig.apply_to === 'additional' && totalQuantity > 1) {
-                // Show discount only for additional tickets
-                originalPriceSpan.classList.remove('strikethrough');
-                discountedPriceSpan.textContent = `(Additional tickets: £${(originalPrice * (1 - discountConfig.percentage/100)).toFixed(2)})`;
-                discountedPriceSpan.style.display = 'inline';
+            if (applyDiscount) {
+                if (discountConfig.apply_to === 'all') {
+                    var discountedPrice = originalPrice * (1 - discountConfig.percentage/100);
+                    originalPriceSpan.classList.add('strikethrough');
+                    discountedPriceSpan.textContent = `£${discountedPrice.toFixed(2)}`;
+                    discountedPriceSpan.style.display = 'inline';
+                } else if (totalQuantity > 1) {
+                    var discountedPrice = originalPrice * (1 - discountConfig.percentage/100);
+                    discountedPriceSpan.textContent = `Additional tickets: £${discountedPrice.toFixed(2)}`;
+                    discountedPriceSpan.style.display = 'inline';
+                }
             } else {
                 originalPriceSpan.classList.remove('strikethrough');
                 discountedPriceSpan.style.display = 'none';
@@ -540,112 +539,50 @@
 
     /* Add these new styles before your existing ones */
     .discount-banner {
-        background: linear-gradient(45deg, #ffebee 0%, #fff1f2 100%);
+        background: linear-gradient(135deg, #ff000010 0%, #ff000005 100%);
         border: 2px solid #ff0000;
-        border-radius: 10px;
-        padding: 25px;
+        border-radius: 15px;
+        padding: 20px;
         margin: 20px auto;
-        position: relative;
-        cursor: pointer;
+        width: 100%;
         max-width: 1200px;
-        box-shadow: 0 4px 8px rgba(255, 0, 0, 0.1);
-        transition: all 0.3s ease;
+        position: relative;
+        box-shadow: 0 4px 15px rgba(255, 0, 0, 0.1);
     }
 
-    .discount-banner:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(255, 0, 0, 0.15);
-    }
-
-    .discount-banner:after {
-        content: "Click for details";
-        position: absolute;
-        bottom: 5px;
-        right: 10px;
-        font-size: 0.8em;
-        color: #666;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    .discount-banner:hover:after {
-        opacity: 1;
-    }
-
-    .offer-badge-container {
-        flex-shrink: 0;
+    .discount-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
     }
 
     .offer-badge {
-        background: linear-gradient(45deg, #ff0000 0%, #ff4444 100%);
+        background: #ff0000;
         color: white;
-        padding: 8px 15px;
-        border-radius: 5px;
+        padding: 8px 16px;
+        border-radius: 25px;
         font-weight: bold;
         font-size: 1.1em;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        box-shadow: 0 2px 4px rgba(255, 0, 0, 0.2);
+        letter-spacing: 1px;
     }
 
-    .discount-message-container {
-        flex-grow: 1;
+    .discount-body {
+        text-align: center;
     }
 
     #discount-message {
-        font-size: 1.3em;
-        font-weight: 600;
-        color: #333;
-        margin: 0;
-        line-height: 1.4;
+        color: #ff0000;
+        font-size: 1.8em;
+        margin: 10px 0;
+        font-weight: 700;
     }
 
     .discount-subtitle {
-        font-size: 1em;
+        font-size: 1.2em;
         color: #666;
-        margin: 8px 0 0 0;
-        line-height: 1.4;
-    }
-
-    .close-banner {
-        position: absolute;
-        right: 15px;
-        top: 15px;
-        background: none;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-        color: #666;
-        padding: 5px;
-        line-height: 1;
-        transition: color 0.3s ease;
-    }
-
-    .close-banner:hover {
-        color: #ff0000;
-    }
-
-    /* Update ticket price display styles */
-    .ticket-price-display {
-        margin: 8px 0;
-        font-size: 1.1em;
-    }
-
-    .original-price {
-        color: #333;
-        font-weight: 500;
-    }
-
-    .original-price.strikethrough {
-        text-decoration: line-through;
-        color: #666;
-    }
-
-    .discounted-price {
-        color: #ff0000;
-        font-weight: bold;
-        margin-left: 10px;
-        display: inline-block;
+        margin: 10px 0;
     }
 </style>
 
