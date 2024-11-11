@@ -1357,12 +1357,15 @@ def purchase(event_id, promo_code=None):
                     return redirect(url_for('success', session_id=session_id))
 
                 else:
-                    # Calculate total amount after discounts
-                    total_amount = total_amount - total_discount_pence  # This should already be in pence
+                    # Convert quantities dictionary to use string keys
+                    quantities_for_stripe = {
+                        str(ticket_type_id): quantity 
+                        for ticket_type_id, quantity in quantities.items()
+                    }
 
                     # Prepare ticket and attendee data for Stripe metadata
                     ticket_data = {
-                        'quantities': quantities,
+                        'quantities': quantities_for_stripe,
                         'total_tickets': total_tickets_requested,
                         'total_amount': total_amount
                     }
@@ -1371,7 +1374,9 @@ def purchase(event_id, promo_code=None):
                         'full_name': full_name,
                         'email': email,
                         'phone_number': phone_number,
-                        'answers': attendee_answers
+                        'answers': {
+                            str(k): v for k, v in attendee_answers.items()  # Convert tuple keys to strings
+                        }
                     }
 
                     # Create Stripe checkout session
@@ -1380,7 +1385,7 @@ def purchase(event_id, promo_code=None):
                         line_items=[{
                             'price_data': {
                                 'currency': 'gbp',
-                                'unit_amount': total_amount,  # Changed from final_price to total_amount
+                                'unit_amount': total_amount,
                                 'product_data': {
                                     'name': f'Tickets for {event.name}',
                                 },
@@ -1391,7 +1396,7 @@ def purchase(event_id, promo_code=None):
                         success_url=url_for('success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
                         cancel_url=url_for('cancel', _external=True),
                         metadata={
-                            'event_id': event_id,
+                            'event_id': str(event_id),  # Convert to string
                             'ticket_data': json.dumps(ticket_data),
                             'attendee_data': json.dumps(attendee_data)
                         }
