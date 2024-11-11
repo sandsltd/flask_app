@@ -374,6 +374,8 @@
 <script>
 let isProcessing = false;
 let html5QrcodeScanner;
+let lastScannedTicket = null;
+let lastScanTime = 0;
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize QR Scanner
@@ -413,10 +415,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function processTicket(ticketNumber) {
-        if (isProcessing) return;
-        isProcessing = true;
-        html5QrcodeScanner.pause(true);
+        // Prevent double processing
+        const currentTime = Date.now();
+        if (isProcessing || 
+            (lastScannedTicket === ticketNumber && currentTime - lastScanTime < 3000)) {
+            return;
+        }
 
+        isProcessing = true;
+        lastScannedTicket = ticketNumber;
+        lastScanTime = currentTime;
+        
+        html5QrcodeScanner.pause(true);
         updateStatus('processing', 'Processing ticket...');
 
         try {
@@ -429,8 +439,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             // Play appropriate sound
-            const audio = new Audio(data.status === 'success' ? '/static/scan-beep.mp3' : '/static/error-beep.mp3');
-            audio.play();
+            try {
+                const audio = new Audio(data.status === 'success' ? 
+                    "{{ url_for('static', filename='sounds/scan-beep.mp3') }}" : 
+                    "{{ url_for('static', filename='sounds/error-beep.mp3') }}"
+                );
+                await audio.play();
+            } catch (soundError) {
+                console.warn('Sound playback failed:', soundError);
+            }
 
             // Show result popup
             const resultDiv = document.getElementById('scan-result');
@@ -461,12 +478,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     data.stats.total_attendees - data.stats.total_checked_in;
             }
 
-            updateStatus('ready', 'Ready to Scan');
-
         } catch (error) {
             console.error('Error:', error);
-            const errorSound = new Audio('/static/error-beep.mp3');
-            errorSound.play();
+            try {
+                const errorSound = new Audio("{{ url_for('static', filename='sounds/error-beep.mp3') }}");
+                await errorSound.play();
+            } catch (soundError) {
+                console.warn('Error sound playback failed:', soundError);
+            }
             
             const resultDiv = document.getElementById('scan-result');
             resultDiv.className = 'scan-result error';
@@ -475,12 +494,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const resultCard = resultDiv.querySelector('.result-card');
             resultCard.querySelector('.result-title').textContent = 'Error';
             resultCard.querySelector('.result-message').textContent = 'Failed to process ticket';
-            
-            updateStatus('ready', 'Ready to Scan');
         }
 
-        isProcessing = false;
-        html5QrcodeScanner.resume();
+        updateStatus('ready', 'Ready to Scan');
+        setTimeout(() => {
+            isProcessing = false;
+            html5QrcodeScanner.resume();
+        }, 1000);
     }
 
     // Handle successful scan

@@ -41,6 +41,7 @@ import requests
 from werkzeug.utils import secure_filename
 import boto3
 from botocore.exceptions import NoCredentialsError
+from werkzeug.utils import send_from_directory
 
 load_dotenv()
 
@@ -702,6 +703,7 @@ def create_event():
     # Fetch and pass default questions for display in form
     default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
     return render_template('create_event.html', default_questions=default_questions)
+
 
 
 
@@ -2662,5 +2664,9 @@ def check_in_attendee(event_id):
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    return send_from_directory('static', filename)
 
     
