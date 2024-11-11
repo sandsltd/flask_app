@@ -283,7 +283,13 @@ let html5QrcodeScanner;
 
 document.addEventListener('DOMContentLoaded', function() {
     html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader", { fps: 10, qrbox: 250 });
+        "reader", 
+        { 
+            fps: 10, 
+            qrbox: 250,
+            rememberLastUsedCamera: true
+        }
+    );
 
     function addLogEntry(data) {
         const logContainer = document.getElementById('log-entries');
@@ -324,25 +330,27 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function processTicket(decodedText) {
+    async function processTicket(decodedText) {
         if (isProcessing) return;
         isProcessing = true;
 
-        // Play scan sound
-        const scanSound = new Audio('/static/scan-beep.mp3');
-        scanSound.play();
+        try {
+            // Play initial scan sound
+            const scanBeep = new Audio('/static/scan-beep.mp3');
+            await scanBeep.play();
 
-        fetch(`/api/check-in/{{ event.id }}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                ticket_number: decodedText
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
+            const response = await fetch(`/api/check-in/{{ event.id }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ticket_number: decodedText
+                })
+            });
+
+            const data = await response.json();
+            
             const resultDiv = document.getElementById('scan-result');
             resultDiv.className = `scan-result ${data.status}`;
             resultDiv.classList.remove('hidden');
@@ -366,17 +374,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Play status-specific sound
-            const audio = new Audio();
-            if (data.status === 'success') {
-                audio.src = '/static/scan-beep.mp3';
-            } else {
-                audio.src = '/static/error-beep.mp3';
-            }
-            audio.play();
-        })
-        .catch(error => {
+            const resultSound = new Audio(
+                data.status === 'success' ? '/static/scan-beep.mp3' : '/static/error-beep.mp3'
+            );
+            await resultSound.play();
+
+        } catch (error) {
             console.error('Error:', error);
-        });
+            const resultDiv = document.getElementById('scan-result');
+            resultDiv.className = 'scan-result error';
+            resultDiv.classList.remove('hidden');
+            resultDiv.querySelector('.result-title').textContent = 'Error';
+            resultDiv.querySelector('.result-message').textContent = 'Failed to process ticket';
+            
+            const errorSound = new Audio('/static/error-beep.mp3');
+            await errorSound.play();
+        }
     }
 
     function onScanSuccess(decodedText, decodedResult) {
@@ -391,8 +404,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add the dismiss function to the window object
     window.dismissScanResult = function() {
-        document.getElementById('scan-result').classList.add('hidden');
+        const resultDiv = document.getElementById('scan-result');
+        resultDiv.classList.add('hidden');
         isProcessing = false;
+        
+        // Clear the result content
+        resultDiv.querySelector('.result-title').textContent = '';
+        resultDiv.querySelector('.result-message').textContent = '';
+        resultDiv.querySelector('.attendee-details').innerHTML = '';
+        
+        // Resume scanning
+        html5QrcodeScanner.resume();
     };
 
     window.checkInManual = function() {
