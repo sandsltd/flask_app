@@ -32,45 +32,56 @@
 
     <div class="scanner-layout">
         <div class="scanner-content">
-            <div id="scanner-status" class="scanner-status ready">
-                <span class="status-icon"></span>
+            <!-- Scanner Status -->
+            <div id="scanner-status" class="scanner-status">
+                <i class="fas fa-camera status-icon"></i>
                 <span class="status-text">Ready to Scan</span>
             </div>
 
+            <!-- QR Scanner -->
             <div id="reader"></div>
-            
-            <div id="scan-result" class="hidden">
-                <div class="result-content">
-                    <div class="result-icon">
+
+            <!-- Scan Result Popup -->
+            <div id="scan-result" class="scan-result hidden">
+                <div class="result-card">
+                    <div class="result-header">
                         <i class="fas fa-check-circle success-icon"></i>
                         <i class="fas fa-exclamation-circle warning-icon"></i>
                         <i class="fas fa-times-circle error-icon"></i>
                     </div>
                     <h3 class="result-title"></h3>
-                    <p class="result-message"></p>
                     <div class="attendee-details"></div>
-                    <button onclick="dismissScanResult()" class="dismiss-button">
-                        <i class="fas fa-camera"></i> Tap to Scan Next Ticket
+                    <p class="result-message"></p>
+                    <button onclick="dismissResult()" class="dismiss-button">
+                        <i class="fas fa-camera"></i> Scan Next Ticket
                     </button>
                 </div>
             </div>
 
+            <!-- Manual Entry -->
             <div class="manual-entry">
-                <h3>Manual Entry</h3>
                 <div class="input-group">
-                    <input type="text" id="manual-ticket-number" placeholder="Enter ticket number">
-                    <button onclick="checkInManual()" class="manual-submit">Check In</button>
+                    <input type="text" 
+                           id="manual-ticket-number" 
+                           placeholder="Enter ticket number manually"
+                           onkeypress="if(event.key === 'Enter') checkInManual()">
+                    <button onclick="checkInManual()" class="manual-submit">
+                        <i class="fas fa-sign-in-alt"></i> Check In
+                    </button>
                 </div>
             </div>
         </div>
 
+        <!-- Activity Log -->
         <div class="activity-log">
-            <h3>Recent Activity</h3>
-            <div class="log-filters">
-                <button onclick="filterLog('all')" class="active">All</button>
-                <button onclick="filterLog('success')">Success</button>
-                <button onclick="filterLog('warning')">Warnings</button>
-                <button onclick="filterLog('error')">Errors</button>
+            <div class="log-header">
+                <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                <div class="log-filters">
+                    <button onclick="filterLog('all')" class="active">All</button>
+                    <button onclick="filterLog('success')">Success</button>
+                    <button onclick="filterLog('warning')">Warnings</button>
+                    <button onclick="filterLog('error')">Errors</button>
+                </div>
             </div>
             <div id="log-entries"></div>
         </div>
@@ -80,37 +91,37 @@
 <style>
 .scanner-container {
     max-width: 1200px;
-    margin: 10px auto;
-    padding: 15px;
+    margin: 20px auto;
+    padding: 0 20px;
 }
 
 .scanner-header {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
 }
 
 .scanner-header h1 {
     margin: 0;
     color: #333;
-    font-size: 1.8em;
+    font-size: 2em;
 }
 
 .event-details {
     color: #666;
-    margin: 5px 0 15px;
+    margin: 5px 0 20px;
 }
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 10px;
-    margin: 15px 0;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
 }
 
 .stat-box {
     background: white;
     padding: 15px;
-    border-radius: 8px;
+    border-radius: 10px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     text-align: center;
 }
@@ -140,41 +151,109 @@
     gap: 20px;
 }
 
+.scanner-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.scanner-status {
+    text-align: center;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    background: #e8f5e9;
+    color: #2e7d32;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.scanner-status.processing {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.scanner-status.error {
+    background: #ffebee;
+    color: #c62828;
+}
+
 #reader {
     width: 100%;
-    max-width: 600px;
-    margin: 0 auto;
     border-radius: 8px;
     overflow: hidden;
+    margin-bottom: 20px;
 }
 
-#scan-result {
-    margin-top: 20px;
-    padding: 20px;
-    border-radius: 8px;
+.scan-result {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.scan-result.hidden {
+    display: none;
+}
+
+.result-card {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
     text-align: center;
+    max-width: 400px;
+    width: 90%;
 }
 
-#scan-result.success { 
-    background: #d4edda; 
-    color: #155724;
+.result-header i {
+    font-size: 48px;
+    margin-bottom: 20px;
 }
 
-#scan-result.warning { 
-    background: #fff3cd; 
-    color: #856404;
+.success-icon { color: #28a745; }
+.warning-icon { color: #ffc107; }
+.error-icon { color: #dc3545; }
+
+.result-card h3 {
+    margin: 0 0 15px;
+    color: #333;
 }
 
-#scan-result.error { 
-    background: #f8d7da; 
-    color: #721c24;
+.attendee-details {
+    margin: 15px 0;
+    text-align: left;
+}
+
+.dismiss-button {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 1.1em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 20px;
 }
 
 .manual-entry {
     margin-top: 20px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 8px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
 }
 
 .input-group {
@@ -187,6 +266,7 @@
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 4px;
+    font-size: 1em;
 }
 
 .manual-submit {
@@ -196,22 +276,35 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .activity-log {
     background: white;
-    padding: 15px;
-    border-radius: 8px;
+    padding: 20px;
+    border-radius: 10px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     height: 600px;
     display: flex;
     flex-direction: column;
 }
 
+.log-header {
+    margin-bottom: 15px;
+}
+
+.log-header h3 {
+    margin: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .log-filters {
     display: flex;
     gap: 5px;
-    margin-bottom: 10px;
     flex-wrap: wrap;
 }
 
@@ -224,6 +317,12 @@
     font-size: 0.9em;
 }
 
+.log-filters button.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
 #log-entries {
     flex-grow: 1;
     overflow-y: auto;
@@ -234,23 +333,15 @@
 
 .log-entry {
     padding: 10px;
-    border-bottom: 1px solid #eee;
-    margin-bottom: 5px;
-    font-size: 0.9em;
+    border-left: 3px solid #ddd;
+    margin-bottom: 8px;
+    background: #f8f9fa;
 }
 
-.dismiss-button {
-    margin-top: 15px;
-    padding: 12px 24px;
-    background: #28a745;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1.1em;
-}
+.log-entry.success { border-left-color: #28a745; }
+.log-entry.warning { border-left-color: #ffc107; }
+.log-entry.error { border-left-color: #dc3545; }
 
-/* Mobile Responsive Styles */
 @media (max-width: 768px) {
     .scanner-layout {
         grid-template-columns: 1fr;
@@ -258,14 +349,6 @@
 
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
-    }
-
-    .stat-box {
-        padding: 10px;
-    }
-
-    .stat-value {
-        font-size: 1.4em;
     }
 
     .activity-log {
@@ -281,120 +364,8 @@
         width: 100%;
     }
 
-    .dismiss-button {
-        width: 100%;
-        padding: 15px;
-    }
-}
-
-.scanner-status {
-    text-align: center;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 8px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-}
-
-.scanner-status.ready {
-    background-color: #e8f5e9;
-    color: #2e7d32;
-}
-
-.scanner-status.scanning {
-    background-color: #e3f2fd;
-    color: #1976d2;
-    animation: pulse 2s infinite;
-}
-
-.scanner-status.processing {
-    background-color: #fff3e0;
-    color: #f57c00;
-}
-
-.status-icon::before {
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    margin-right: 8px;
-}
-
-.ready .status-icon::before {
-    content: "\f030"; /* camera icon */
-}
-
-.scanning .status-icon::before {
-    content: "\f002"; /* search icon */
-}
-
-.processing .status-icon::before {
-    content: "\f110"; /* spinner icon */
-    display: inline-block;
-    animation: spin 1s linear infinite;
-}
-
-.result-icon {
-    font-size: 48px;
-    margin-bottom: 15px;
-}
-
-.success-icon { color: #28a745; }
-.warning-icon { color: #ffc107; }
-.error-icon { color: #dc3545; }
-
-.result-content {
-    text-align: center;
-    padding: 20px;
-    border-radius: 8px;
-    background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.dismiss-button {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    font-size: 1.1em;
-    margin-top: 15px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-}
-
-.dismiss-button:hover {
-    background: #218838;
-}
-
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.7; }
-    100% { opacity: 1; }
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Mobile optimizations */
-@media (max-width: 768px) {
-    .scanner-status {
-        margin: 5px 0;
-        padding: 12px;
-        font-size: 1.1em;
-    }
-
-    .dismiss-button {
-        padding: 15px;
-        font-size: 1.2em;
+    .result-card {
+        margin: 20px;
     }
 }
 </style>
@@ -402,20 +373,28 @@
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script>
 let isProcessing = false;
-let currentFilter = 'all';
 let html5QrcodeScanner;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize QR Scanner
     html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader", 
+        "reader",
         { 
             fps: 10, 
-            qrbox: 250,
-            rememberLastUsedCamera: true,
+            qrbox: { width: 250, height: 250 },
             aspectRatio: 1.0,
             showTorchButtonIfSupported: true
         }
     );
+
+    function updateStatus(status, message) {
+        const statusDiv = document.getElementById('scanner-status');
+        statusDiv.className = `scanner-status ${status}`;
+        statusDiv.innerHTML = `
+            <i class="fas fa-${status === 'processing' ? 'spinner fa-spin' : 'camera'}"></i>
+            <span>${message}</span>
+        `;
+    }
 
     function addLogEntry(data) {
         const logContainer = document.getElementById('log-entries');
@@ -424,79 +403,53 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const timestamp = new Date().toLocaleTimeString();
         entry.innerHTML = `
-            <div class="time-stamp">${timestamp}</div>
+            <div class="log-time">${timestamp}</div>
             <strong>${data.attendee.name}</strong><br>
             ${data.message}<br>
             <small>Ticket Type: ${data.attendee.ticket_type}</small>
         `;
         
         logContainer.insertBefore(entry, logContainer.firstChild);
-        
-        // Update counts
-        if (data.stats) {
-            document.getElementById('checked-in-count').textContent = data.stats.total_checked_in;
-            document.getElementById('remaining-count').textContent = 
-                data.stats.total_attendees - data.stats.total_checked_in;
-        }
     }
 
-    window.filterLog = function(status) {
-        currentFilter = status;
-        const buttons = document.querySelectorAll('.log-filters button');
-        buttons.forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
-
-        const entries = document.querySelectorAll('.log-entry');
-        entries.forEach(entry => {
-            if (status === 'all' || entry.classList.contains(status)) {
-                entry.style.display = 'block';
-            } else {
-                entry.style.display = 'none';
-            }
-        });
-    }
-
-    function updateScannerStatus(status, message) {
-        const statusDiv = document.getElementById('scanner-status');
-        statusDiv.className = `scanner-status ${status}`;
-        statusDiv.querySelector('.status-text').textContent = message;
-    }
-
-    async function processTicket(decodedText) {
+    async function processTicket(ticketNumber) {
         if (isProcessing) return;
         isProcessing = true;
-        
-        updateScannerStatus('processing', 'Processing ticket...');
+
+        updateStatus('processing', 'Processing ticket...');
 
         try {
-            const scanBeep = new Audio('/static/scan-beep.mp3');
-            await scanBeep.play();
+            // Play scan sound
+            const scanSound = new Audio('/static/scan-beep.mp3');
+            await scanSound.play();
 
             const response = await fetch(`/api/check-in/{{ event.id }}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ticket_number: decodedText })
+                body: JSON.stringify({ ticket_number: ticketNumber })
             });
 
             const data = await response.json();
             
+            // Show result popup
             const resultDiv = document.getElementById('scan-result');
             resultDiv.className = `scan-result ${data.status}`;
             resultDiv.classList.remove('hidden');
             
-            // Hide the scanner status while showing results
-            document.getElementById('scanner-status').style.display = 'none';
+            // Update result content
+            const resultCard = resultDiv.querySelector('.result-card');
+            resultCard.className = `result-card ${data.status}`;
             
-            const titleEl = resultDiv.querySelector('.result-title');
-            const messageEl = resultDiv.querySelector('.result-message');
-            const detailsEl = resultDiv.querySelector('.attendee-details');
+            // Show appropriate icon
+            resultCard.querySelectorAll('.result-header i').forEach(icon => icon.style.display = 'none');
+            resultCard.querySelector(`.${data.status}-icon`).style.display = 'block';
             
-            titleEl.textContent = data.status === 'success' ? 'Success!' : 
-                                data.status === 'warning' ? 'Warning' : 'Error';
-            messageEl.textContent = data.message;
+            resultCard.querySelector('.result-title').textContent = 
+                data.status === 'success' ? 'Check-in Successful!' :
+                data.status === 'warning' ? 'Already Checked In' : 'Error';
             
             if (data.attendee) {
-                detailsEl.innerHTML = `
+                resultCard.querySelector('.attendee-details').innerHTML = `
                     <p><strong>Name:</strong> ${data.attendee.name}</p>
                     <p><strong>Ticket Type:</strong> ${data.attendee.ticket_type}</p>
                     ${data.attendee.check_in_time ? 
@@ -505,40 +458,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 addLogEntry(data);
             }
 
-            // Play status-specific sound
+            // Play status sound
             const resultSound = new Audio(
                 data.status === 'success' ? '/static/scan-beep.mp3' : '/static/error-beep.mp3'
             );
             await resultSound.play();
 
+            // Update statistics if provided
+            if (data.stats) {
+                document.getElementById('checked-in-count').textContent = data.stats.total_checked_in;
+                document.getElementById('remaining-count').textContent = 
+                    data.stats.total_attendees - data.stats.total_checked_in;
+            }
+
         } catch (error) {
             console.error('Error:', error);
-            updateScannerStatus('error', 'Error processing ticket');
             const errorSound = new Audio('/static/error-beep.mp3');
             await errorSound.play();
+            
+            const resultDiv = document.getElementById('scan-result');
+            resultDiv.className = 'scan-result error';
+            resultDiv.classList.remove('hidden');
+            
+            const resultCard = resultDiv.querySelector('.result-card');
+            resultCard.querySelector('.result-title').textContent = 'Error';
+            resultCard.querySelector('.result-message').textContent = 'Failed to process ticket';
         }
     }
 
-    function onScanSuccess(decodedText, decodedResult) {
+    function onScanSuccess(decodedText) {
         processTicket(decodedText);
     }
 
-    function onScanError(error) {
-        console.warn(`Code scan error = ${error}`);
-    }
+    html5QrcodeScanner.render(onScanSuccess, error => {
+        console.warn('QR Scan error:', error);
+    });
 
-    html5QrcodeScanner.render(onScanSuccess, onScanError);
+    // Initialize with ready status
+    updateStatus('ready', 'Ready to Scan');
 
-    // Add the dismiss function to the window object
-    window.dismissScanResult = function() {
-        const resultDiv = document.getElementById('scan-result');
-        resultDiv.classList.add('hidden');
-        
-        // Show and update scanner status
-        const statusDiv = document.getElementById('scanner-status');
-        statusDiv.style.display = 'flex';
-        updateScannerStatus('ready', 'Ready to Scan');
-        
+    // Add global functions
+    window.dismissResult = function() {
+        document.getElementById('scan-result').classList.add('hidden');
+        updateStatus('ready', 'Ready to Scan');
         isProcessing = false;
         html5QrcodeScanner.resume();
     };
@@ -551,11 +513,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    document.getElementById('manual-ticket-number').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            checkInManual();
-        }
-    });
+    window.filterLog = function(status) {
+        const buttons = document.querySelectorAll('.log-filters button');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+
+        const entries = document.querySelectorAll('.log-entry');
+        entries.forEach(entry => {
+            if (status === 'all' || entry.classList.contains(status)) {
+                entry.style.display = 'block';
+            } else {
+                entry.style.display = 'none';
+            }
+        });
+    };
 });
 </script>
 {% endblock %} 
