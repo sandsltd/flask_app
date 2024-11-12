@@ -312,31 +312,46 @@
     function updateTotalPrice() {
         var total = 0;
         var totalQuantity = 0;
+        var ticketInputs = document.querySelectorAll('.ticket-input');
         
-        document.querySelectorAll('.ticket-input').forEach(function(input) {
+        // First calculate total quantity and base price
+        ticketInputs.forEach(function(input) {
             var quantity = parseInt(input.value) || 0;
             var price = parseFloat(input.getAttribute('data-ticket-price'));
             totalQuantity += quantity;
-            
-            if (totalQuantity >= discountConfig.minTickets && discountConfig.type === 'all') {
-                // Apply discount to all tickets
-                price = price * (1 - discountConfig.percentage/100);
-                total += quantity * price;
-            } else if (totalQuantity >= discountConfig.minTickets && discountConfig.type === 'additional') {
-                // First ticket at full price, rest at discount
-                if (quantity > 0) {
-                    total += price; // First ticket at full price
-                    if (quantity > 1) {
-                        var discountedPrice = price * (1 - discountConfig.percentage/100);
-                        total += discountedPrice * (quantity - 1); // Additional tickets at discount
-                    }
-                }
-            } else {
-                total += quantity * price;
-            }
+            total += quantity * price;
         });
 
-        document.getElementById('total_price').textContent = total.toFixed(2);
+        // Apply discount if applicable
+        if (discountConfig && discountConfig.percentage > 0) {
+            var discountAmount = 0;
+            
+            switch(discountConfig.type) {
+                case 'early_bird':
+                    const validUntil = new Date(discountConfig.valid_until);
+                    const now = new Date();
+                    if (now < validUntil && (!discountConfig.max_tickets || totalQuantity <= discountConfig.max_tickets)) {
+                        discountAmount = total * (discountConfig.percentage / 100);
+                    }
+                    break;
+                    
+                case 'bulk':
+                    if (totalQuantity >= discountConfig.minTickets) {
+                        if (discountConfig.apply_to === 'all') {
+                            discountAmount = total * (discountConfig.percentage / 100);
+                        } else { // 'additional'
+                            const perTicketPrice = total / totalQuantity;
+                            const additionalTickets = totalQuantity - 1;
+                            discountAmount = (perTicketPrice * additionalTickets) * (discountConfig.percentage / 100);
+                        }
+                    }
+                    break;
+            }
+            
+            total -= discountAmount;
+        }
+
+        document.getElementById('total_price').textContent = `£${total.toFixed(2)}`;
         document.querySelector('.ticket-count').textContent = `${totalQuantity} tickets selected`;
     }
 
