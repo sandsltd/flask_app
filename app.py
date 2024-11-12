@@ -1387,26 +1387,31 @@ def purchase(event_id, promo_code=None):
                         }
                     }
 
-                    # Create Stripe checkout session without unnecessary metadata
+                    # Create Stripe checkout session with ticket and booking fee as separate line items
                     checkout_session = stripe.checkout.Session.create(
                         payment_method_types=['card'],
-                        line_items=[{
-                            'price_data': {
-                                'currency': 'gbp',
-                                'unit_amount': total_charge_pence,
-                                'product_data': {
-                                    'name': f'Tickets for {event.name}',
+                        line_items=[
+                            # Ticket line item
+                            {
+                                'price_data': {
+                                    'currency': 'gbp',
+                                    'unit_amount': total_amount_pence,  # Use only the discounted ticket price here
+                                    'product_data': {
+                                        'name': f'Tickets for {event.name}',
+                                    },
                                 },
+                                'quantity': 1,
                             },
-                            'quantity': 1,
-                        }, {
-                            'price_data': {
-                                'currency': 'gbp',
-                                'product_data': {'name': 'Booking Fee'},
-                                'unit_amount': total_booking_fee_pence,
-                            },
-                            'quantity': 1,
-                        }],
+                            # Separate booking fee line item
+                            {
+                                'price_data': {
+                                    'currency': 'gbp',
+                                    'product_data': {'name': 'Booking Fee'},
+                                    'unit_amount': total_booking_fee_pence,  # Total booking fees (e.g., 30p per ticket + Stripe fees)
+                                },
+                                'quantity': 1,
+                            }
+                        ],
                         mode='payment',
                         success_url=url_for('success', session_id=session_id, _external=True),
                         cancel_url=url_for('cancel', _external=True),
