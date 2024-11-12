@@ -31,31 +31,31 @@
     </header>
 
     <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        <div class="notifications-container">
-            {% for category, message in messages %}
-            <div class="notification {{ category }}" role="alert">
-                <div class="notification-content">
-                    {% if category == 'success' %}
-                        <i class="fas fa-check-circle"></i>
-                    {% elif category == 'error' %}
-                        <i class="fas fa-exclamation-circle"></i>
-                    {% elif category == 'warning' %}
-                        <i class="fas fa-exclamation-triangle"></i>
-                    {% else %}
-                        <i class="fas fa-info-circle"></i>
-                    {% endif %}
-                    <p>{{ message }}</p>
+    <div class="notifications-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="notification {{ category }} show">
+                    <div class="notification-content">
+                        {% if category == 'success' %}
+                            <i class="fas fa-check-circle"></i>
+                        {% elif category == 'error' %}
+                            <i class="fas fa-exclamation-circle"></i>
+                        {% elif category == 'warning' %}
+                            <i class="fas fa-exclamation-triangle"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle"></i>
+                        {% endif %}
+                        <p>{{ message }}</p>
+                    </div>
+                    <button type="button" class="notification-close" onclick="this.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                <button type="button" class="notification-close" onclick="this.parentElement.remove()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-    {% endwith %}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
 
     <!-- Main Content Grid -->
     <div class="dashboard-grid">
@@ -1142,6 +1142,168 @@
 
 .notifications-container {
     position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.notification {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 300px;
+    max-width: 500px;
+    padding: 16px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateX(120%);
+    opacity: 0;
+    transition: all 0.5s ease;
+}
+
+.notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.notification.success {
+    border-left: 4px solid #10B981;
+}
+
+.notification.error {
+    border-left: 4px solid #EF4444;
+}
+
+.notification.warning {
+    border-left: 4px solid #F59E0B;
+}
+
+.notification.info {
+    border-left: 4px solid #3B82F6;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.notification-content i {
+    font-size: 1.25rem;
+}
+
+.notification.success i {
+    color: #10B981;
+}
+
+.notification.error i {
+    color: #EF4444;
+}
+
+.notification.warning i {
+    color: #F59E0B;
+}
+
+.notification.info i {
+    color: #3B82F6;
+}
+
+.notification p {
+    margin: 0;
+    color: #374151;
+    font-size: 0.95rem;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.notification-close:hover {
+    color: #374151;
+}
+
+.embed-section {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-top: 30px;
+}
+
+.embed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.embed-header:hover {
+    background-color: #f3f4f6;
+}
+
+.embed-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.embed-title i {
+    color: #2563eb;
+    font-size: 1.2em;
+}
+
+.embed-title h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.toggle-button {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 8px;
+}
+
+.embed-description {
+    color: #6b7280;
+    margin: 15px 0;
+    font-size: 0.95em;
+}
+
+#embed-code-container {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.url-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.url-container input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.9em;
+    background: #f9fafb;
 }
 </style>
 
@@ -1199,16 +1361,12 @@ async function copyEventUrl(eventId) {
 }
 
 function copyEmbedCode() {
-    const codeElement = document.getElementById('embed-code');
-    const textArea = document.createElement('textarea');
-    textArea.value = codeElement.textContent.trim();
-    document.body.appendChild(textArea);
-    textArea.select();
+    const codeInput = document.getElementById('embed-code-input');
+    codeInput.select();
     document.execCommand('copy');
-    document.body.removeChild(textArea);
     
     // Show feedback
-    const button = document.querySelector('.embed-section .copy-button');
+    const button = codeInput.nextElementSibling;
     const originalText = button.innerHTML;
     button.innerHTML = '<i class="fas fa-check"></i> Copied!';
     button.style.background = '#28a745';
@@ -1255,6 +1413,37 @@ window.onclick = function(event) {
 
 // Add this to verify the script is loaded
 console.log('Delete event handlers initialized');
+
+// Auto-dismiss notifications after 5 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    const notifications = document.querySelectorAll('.notification');
+    notifications.forEach(notification => {
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 100);
+        
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(120%)';
+            setTimeout(() => {
+                notification.remove();
+            }, 500);
+        }, 5000);
+    });
+});
+
+function toggleEmbedCode() {
+    const container = document.getElementById('embed-code-container');
+    const chevron = document.getElementById('embed-chevron');
+    
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        chevron.className = 'fas fa-chevron-up';
+    } else {
+        container.style.display = 'none';
+        chevron.className = 'fas fa-chevron-down';
+    }
+}
 </script>
 
 {% endblock %}
