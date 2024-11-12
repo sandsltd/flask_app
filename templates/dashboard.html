@@ -306,6 +306,26 @@
     </div>
 </div>
 
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <h2>⚠️ Delete Event</h2>
+        <p>Are you sure you want to delete this event? This action cannot be undone and will:</p>
+        <ul>
+            <li>Delete all event details</li>
+            <li>Remove all ticket types</li>
+            <li>Delete all attendee records</li>
+            <li>Remove all discount rules</li>
+        </ul>
+        <div class="modal-actions">
+            <form id="deleteEventForm" method="POST">
+                <button type="button" class="btn-cancel" onclick="hideDeleteModal()">Cancel</button>
+                <button type="submit" class="btn-delete">Yes, Delete Event</button>
+            </form>
+        </div>
+    </div>
+</div>
+
 <style>
 /* Base Styles */
 .dashboard-wrapper {
@@ -1031,16 +1051,16 @@
 }
 
 .modal {
+    display: none;
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: 100vh;
     background: rgba(0, 0, 0, 0.5);
-    display: none;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 9999;
 }
 
 .modal-content {
@@ -1049,6 +1069,41 @@
     border-radius: 12px;
     max-width: 500px;
     width: 90%;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.btn-cancel {
+    padding: 0.5rem 1rem;
+    border: 1px solid #d1d5db;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-delete {
+    padding: 0.5rem 1rem;
+    background: #dc2626;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-delete:hover {
+    background: #b91c1c;
+}
+
+.action-btn.delete {
+    background: #dc2626;
+    color: white;
 }
 </style>
 
@@ -1173,26 +1228,6 @@ window.onclick = function(event) {
 // Add this to verify the script is loaded
 console.log('Delete event handlers initialized');
 </script>
-
-<!-- Delete Confirmation Modal -->
-<div id="deleteModal" class="modal" style="display: none;">
-    <div class="modal-content">
-        <h2>⚠️ Delete Event</h2>
-        <p>Are you sure you want to delete this event? This action cannot be undone and will:</p>
-        <ul>
-            <li>Delete all event details</li>
-            <li>Remove all ticket types</li>
-            <li>Delete all attendee records</li>
-            <li>Remove all discount rules</li>
-        </ul>
-        <div class="modal-actions">
-            <form id="deleteEventForm" method="POST">
-                <button type="button" class="btn-cancel" onclick="hideDeleteModal()">Cancel</button>
-                <button type="submit" class="btn-delete">Yes, Delete Event</button>
-            </form>
-        </div>
-    </div>
-</div>
 
 {% endblock %}
   
