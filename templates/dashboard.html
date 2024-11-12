@@ -326,15 +326,27 @@
 
         <!-- Embed Code Section -->
         <section class="embed-section">
-            <h3>Website Integration</h3>
-            <p>Add this code to your website to display your events:</p>
-            <div class="code-container">
-                <pre id="embed-code">
-                    &lt;script src="https://bookings.ticketrush.io/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
-                </pre>
-                <button onclick="copyEmbedCode()" class="copy-button">
-                    <i class="fas fa-copy"></i> Copy Code
+            <div class="embed-header" onclick="toggleEmbedCode()">
+                <div class="embed-title">
+                    <i class="fas fa-code"></i>
+                    <h3>Add Tickets to Your Website</h3>
+                </div>
+                <button class="toggle-button">
+                    <i class="fas fa-chevron-down" id="embed-chevron"></i>
                 </button>
+            </div>
+            
+            <div id="embed-code-container" style="display: none;">
+                <p class="embed-description">Copy this code snippet to your website to display your events:</p>
+                <div class="url-container">
+                    <input type="text" 
+                           id="embed-code-input" 
+                           value="<script src='https://bookings.ticketrush.io/embed/{{ user.unique_id }}'></script>" 
+                           readonly>
+                    <button onclick="copyEmbedCode()" class="action-btn copy">
+                        <i class="fas fa-copy"></i> Copy Code
+                    </button>
+                </div>
             </div>
         </section>
     </div>
