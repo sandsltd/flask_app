@@ -280,6 +280,9 @@
                                     </button>
                                 </div>
                             </div>
+                            <button onclick="showDeleteConfirmation('{{ event_data.id }}')" class="action-btn delete">
+                                <i class="fas fa-trash"></i> Delete Event
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1014,6 +1017,69 @@
         grid-template-columns: 1fr;
     }
 }
+
+.action-btn.delete {
+    background: #dc2626;
+    color: white;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+}
+
+.modal-content h2 {
+    color: #dc2626;
+    margin-top: 0;
+}
+
+.modal-content ul {
+    color: #4b5563;
+    margin-bottom: 2rem;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.btn-cancel {
+    padding: 0.5rem 1rem;
+    border: 1px solid #d1d5db;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-delete {
+    padding: 0.5rem 1rem;
+    background: #dc2626;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-delete:hover {
+    background: #b91c1c;
+}
 </style>
 
 <script>
@@ -1106,7 +1172,47 @@ document.addEventListener('DOMContentLoaded', function() {
         progress.style.width = progress.dataset.width + '%';
     });
 });
+
+function showDeleteConfirmation(eventId) {
+    const modal = document.getElementById('deleteModal');
+    const form = document.getElementById('deleteEventForm');
+    form.action = `/delete_event/${eventId}`;
+    modal.style.display = 'flex';
+}
+
+function hideDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    modal.style.display = 'none';
+}
+
+// Close modal if clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('deleteModal');
+    if (event.target == modal) {
+        hideDeleteModal();
+    }
+}
 </script>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h2>⚠️ Delete Event</h2>
+        <p>Are you sure you want to delete this event? This action cannot be undone and will:</p>
+        <ul>
+            <li>Delete all event details</li>
+            <li>Remove all ticket types</li>
+            <li>Delete all attendee records</li>
+            <li>Remove all discount rules</li>
+        </ul>
+        <div class="modal-actions">
+            <form id="deleteEventForm" method="POST">
+                <button type="button" class="btn-cancel" onclick="hideDeleteModal()">Cancel</button>
+                <button type="submit" class="btn-delete">Yes, Delete Event</button>
+            </form>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
   

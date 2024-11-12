@@ -1933,14 +1933,31 @@ def view_attendees(event_id):
 def delete_event(event_id):
     event = Event.query.get_or_404(event_id)
 
-    # Check if current user owns the event before deleting (for extra security)
+    # Security check
     if event.user_id != current_user.id:
         flash("You do not have permission to delete this event.", "error")
         return redirect(url_for('dashboard'))
 
-    db.session.delete(event)
-    db.session.commit()
-    flash('Event and all associated attendees deleted successfully!')
+    try:
+        # Delete all related records first
+        # Discount rules will be automatically deleted due to cascade
+        DiscountRule.query.filter_by(event_id=event_id).delete()
+        
+        # Delete all attendees for this event
+        Attendee.query.filter_by(event_id=event_id).delete()
+        
+        # Delete all ticket types
+        TicketType.query.filter_by(event_id=event_id).delete()
+        
+        # Finally delete the event
+        db.session.delete(event)
+        db.session.commit()
+        
+        flash('Event and all associated data deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting event: {str(e)}', 'error')
+        
     return redirect(url_for('dashboard'))
 
 
