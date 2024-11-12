@@ -2355,7 +2355,12 @@ def stripe_onboarding_refresh():
 @app.template_filter('datetimeformat')
 def datetimeformat(value):
     if value:
-        return datetime.strptime(value, '%Y-%m-%d').strftime('%d-%m-%Y')
+        if isinstance(value, str):
+            # If it's a string, parse it first
+            return datetime.strptime(value, '%Y-%m-%d').strftime('%d-%m-%Y')
+        else:
+            # If it's already a datetime object, just format it
+            return value.strftime('%d-%m-%Y')
     return ""
 
 from flask import render_template, request, redirect, url_for
