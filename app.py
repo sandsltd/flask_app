@@ -584,6 +584,7 @@ def register():
 
 
 
+
 @app.route('/create_event', methods=['GET', 'POST'])
 @login_required
 def create_event():
@@ -1192,25 +1193,39 @@ def purchase(event_id, promo_code=None):
         # Get discount rules for this event
         discount_rules = DiscountRule.query.filter_by(event_id=event_id, active=True).all()
         
-        # Format discount config for the template
-        discount_config = {'type': 'none', 'percentage': 0, 'minTickets': 0, 'apply_to': 'none'}
+        # Format discount config for the template - make it more explicit
+        discount_config = {
+            'type': 'none',
+            'percentage': 0,
+            'minTickets': 0,
+            'apply_to': 'none',
+            'valid_until': None,
+            'max_tickets': None
+        }
+        
+        # Get current time once
+        current_time = datetime.now()
         
         for rule in discount_rules:
-            if rule.rule_type == 'early_bird' and rule.valid_until > datetime.now():
-                discount_config = {
-                    'type': 'early_bird',
-                    'percentage': rule.discount_percentage,
-                    'valid_until': rule.valid_until.isoformat(),
-                    'max_tickets': rule.max_tickets,
-                    'apply_to': 'all'
-                }
-                break
+            if rule.rule_type == 'early_bird' and hasattr(rule, 'valid_until'):
+                if rule.valid_until > current_time:
+                    discount_config = {
+                        'type': 'early_bird',
+                        'percentage': float(rule.discount_percentage),  # Ensure it's a float
+                        'valid_until': rule.valid_until.isoformat(),
+                        'max_tickets': int(rule.max_tickets) if rule.max_tickets else None,
+                        'apply_to': 'all',
+                        'minTickets': 1  # Early bird applies from first ticket
+                    }
+                    break
             elif rule.rule_type == 'bulk':
                 discount_config = {
                     'type': 'bulk',
-                    'percentage': rule.discount_percentage,
-                    'minTickets': rule.min_tickets,
-                    'apply_to': rule.apply_to or 'all'
+                    'percentage': float(rule.discount_percentage),  # Ensure it's a float
+                    'minTickets': int(rule.min_tickets),
+                    'apply_to': rule.apply_to if hasattr(rule, 'apply_to') else 'all',
+                    'valid_until': None,
+                    'max_tickets': None
                 }
                 break
 
