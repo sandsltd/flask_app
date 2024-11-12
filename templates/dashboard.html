@@ -683,66 +683,62 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .primary-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1rem;
-    border-radius: var(--radius);
-    font-weight: 500;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    border: none;
-    text-decoration: none;
-    background: var(--primary);
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    transform-origin: center;
 }
 
 .primary-button:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+    transform: translateY(-2px);
 }
 
 .secondary-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1rem;
+    background: white;
+    color: var(--primary);
+    padding: 0.75rem 1.25rem;
+    border: 2px solid var(--primary);
     border-radius: var(--radius);
-    font-weight: 500;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    border: none;
-    text-decoration: none;
-    background: var(--gray-100);
-    color: var(--gray-700);
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .secondary-button:hover {
-    background: var(--gray-200);
-    transform: translateY(-1px);
+    background: var(--primary-light);
+    color: white;
+    border-color: var(--primary-light);
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2);
+    transform: translateY(-2px);
 }
 
 .text-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
+    color: var(--gray-700);
+    padding: 0.75rem 1rem;
     border-radius: var(--radius);
     font-weight: 500;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    border: none;
-    text-decoration: none;
-    background: transparent;
-    color: var(--gray-600);
+    position: relative;
+    overflow: hidden;
 }
 
-.text-button:hover {
-    color: var(--gray-900);
-    background: var(--gray-50);
+.text-button::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--primary);
+    transform: scaleX(0);
+    transition: transform 0.2s ease;
+}
+
+.text-button:hover::after {
+    transform: scaleX(1);
 }
 
 /* Stats Section */
@@ -1074,23 +1070,22 @@ document.addEventListener('DOMContentLoaded', function() {
 /* Embed Section */
 .embed-section {
     background: white;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
     margin: 2rem 0;
-    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.embed-section:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
 }
 
 .embed-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.25rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.embed-header:hover {
-    background-color: var(--gray-50);
+    background: linear-gradient(to right, var(--gray-50), white);
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .embed-title {
@@ -1100,8 +1095,11 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .embed-title i {
-    color: var(--primary);
-    font-size: 1.25rem;
+    background: var(--primary);
+    color: white;
+    padding: 0.75rem;
+    border-radius: var(--radius);
+    font-size: 1rem;
 }
 
 .embed-title h3 {
@@ -1124,48 +1122,56 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .code-box {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    background: var(--gray-50);
-    padding: 1rem;
+    background: var(--gray-900);
+    color: white;
+    padding: 1.5rem;
     border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
+    position: relative;
+    margin: 1rem 0;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .code-box code {
-    flex: 1;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    color: var(--gray-700);
-    font-size: 0.875rem;
-    line-height: 1.5;
-    overflow-x: auto;
+    color: #a5f3fc;  /* Light cyan color for code */
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 0.95rem;
 }
 
 .copy-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 0.5rem 1rem;
-    background: white;
-    border: 1px solid var(--gray-200);
     border-radius: var(--radius);
-    color: var(--gray-700);
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
+    backdrop-filter: blur(4px);
     transition: all 0.2s ease;
 }
 
 .copy-button:hover {
-    background: var(--gray-50);
-    border-color: var(--gray-300);
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
 }
 
 .copy-button.copied {
     background: var(--success);
     border-color: var(--success);
-    color: white;
+}
+
+.copy-button i {
+    margin-right: 0.5rem;
+}
+
+/* Add a subtle animation for the embed section toggle */
+#embed-chevron {
+    transition: transform 0.3s ease;
+}
+
+.embed-header[aria-expanded="true"] #embed-chevron {
+    transform: rotate(180deg);
 }
 
 /* Animations */
