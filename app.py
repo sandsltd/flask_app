@@ -1131,6 +1131,31 @@ def manage_default_questions():
 
 
 
+def calculate_total_charge_and_booking_fee(n_tickets, ticket_price_gbp):
+    # Constants
+    platform_fee_per_ticket_pence = 30  # Platform fee: 30p per ticket
+    stripe_percent_fee = 0.014          # Stripe percentage fee (1.4%)
+    stripe_fixed_fee_pence = 20         # Fixed Stripe fee per transaction (20p)
+
+    # Calculate the ticket price in pence
+    total_ticket_price_pence = int(n_tickets * ticket_price_gbp * 100)
+
+    # Calculate the platform fee (30p per ticket)
+    total_platform_fee_pence = platform_fee_per_ticket_pence * n_tickets
+
+    # Calculate the subtotal (ticket price + platform fee)
+    subtotal_before_stripe = total_ticket_price_pence + total_platform_fee_pence
+
+    # Calculate the Stripe fee (1.4% of subtotal + 20p)
+    stripe_fee_pence = int(subtotal_before_stripe * stripe_percent_fee) + stripe_fixed_fee_pence
+
+    # Calculate total charge to the buyer, including Stripe fee
+    total_charge_pence = subtotal_before_stripe + stripe_fee_pence
+
+    # Round up and return the total charge to the buyer and platform fee
+    return int(math.ceil(total_charge_pence)), int(math.ceil(total_platform_fee_pence))
+
+
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
 @app.route('/purchase/<int:event_id>/<string:promo_code>', methods=['GET', 'POST'])
 def purchase(event_id, promo_code=None):
@@ -1181,156 +1206,272 @@ def purchase(event_id, promo_code=None):
                     flash("You must accept the platform's Terms and Conditions.")
                     return redirect(url_for('purchase', event_id=event_id))
 
-                # Get ticket quantities from form
-                quantities = {}
-                total_tickets_requested = 0
-                for ticket_type in event.ticket_types:
-                    qty = int(request.form.get(f'quantity_{ticket_type.id}', 0))
-                    if qty > 0:
-                        quantities[ticket_type.id] = qty
-                        total_tickets_requested += qty
-
-                if total_tickets_requested == 0:
-                    flash('Please select at least one ticket.')
-                    return redirect(url_for('purchase', event_id=event_id))
-
-                # Process attendee information
+                # Initialize variables
                 attendees = []
-                ticket_types = event.ticket_types
+                total_amount = 0  # Total amount in pence
+                line_items = []
+                booking_fee_pence = 0  # Initialize booking fee
+                total_tickets_requested = 0
+
+                # Collect quantities for each ticket type
+                quantities = {}
+                for ticket_type in ticket_types:
+                    quantity_str = request.form.get(f'quantity_{ticket_type.id}', '0')
+                    quantity = int(quantity_str)
+                    quantities[ticket_type.id] = quantity
+                    if quantity > 0:
+                        total_tickets_requested += quantity
+
+                        if event.enforce_individual_ticket_limits and ticket_type.quantity is not None:
+                            # Check if requested quantity exceeds available tickets for this type
+                            tickets_sold_type = Attendee.query.filter_by(
+                                event_id=event.id,
+                                ticket_type_id=ticket_type.id,
+                                payment_status='succeeded'
+                            ).count()
+                            tickets_remaining = ticket_type.quantity - tickets_sold_type
+                            if quantity > tickets_remaining:
+                                flash(f"Cannot purchase {quantity} tickets for {ticket_type.name}. Only {tickets_remaining} tickets are available.")
+                                return redirect(url_for('purchase', event_id=event_id))
+                        else:
+                            # Will check total capacity later
+                            pass
+
+                # If individual ticket limits are not enforced, check total event capacity
+                if not event.enforce_individual_ticket_limits:
+                    total_tickets_sold = db.session.query(
+                        func.sum(Attendee.tickets_purchased)
+                    ).filter_by(event_id=event.id, payment_status='succeeded').scalar() or 0
+                    tickets_available = event.ticket_quantity - total_tickets_sold
+                    if total_tickets_requested > tickets_available:
+                        flash(f"Cannot purchase {total_tickets_requested} tickets. Only {tickets_available} tickets are available.")
+                        return redirect(url_for('purchase', event_id=event_id))
+                else:
+                    # When individual ticket limits are enforced, tickets_available isn't used in the same way
+                    tickets_available = None  # Or handle accordingly
+
+                # Collect custom questions
+                questions = all_questions
                 attendee_answers = {}
 
-                # Collect custom question answers
-                for i in range(1, 11):
-                    question_attr = f'custom_question_{i}'
-                    if hasattr(event, question_attr) and getattr(event, question_attr):
-                        answer = request.form.get(f'custom_answer_{i}')
-                        if answer:
-                            attendee_answers[str(i)] = answer
+                # Collect answers for each ticket
+                for ticket_type in ticket_types:
+                    quantity = quantities[ticket_type.id]
+                    for i in range(quantity):
+                        answers = {}
+                        for q_index, question in enumerate(questions):
+                            answer_key = f'ticket_{ticket_type.id}_{i}_question_{q_index}'
+                            answer = request.form.get(answer_key)
+                            if not answer:
+                                flash(f'Please answer all questions for {ticket_type.name} Ticket {i + 1}.')
+                                return redirect(url_for('purchase', event_id=event_id))
+                            answers[question] = answer
+                        attendee_answers[(ticket_type.id, i)] = answers
 
-                # Calculate base amount (T)
-                base_amount = sum(
-                    ticket_types[i].price * quantities[ticket_type_id] * 100
-                    for i, ticket_type_id in enumerate(quantities)
-                    if quantities[ticket_type_id] > 0
-                )
+                # Create Attendee entries and calculate amounts
+                for ticket_type in ticket_types:
+                    quantity = quantities[ticket_type.id]
+                    if quantity > 0:
+                        for i in range(quantity):
+                            ticket_number = generate_unique_ticket_number()
+                            answers = attendee_answers.get((ticket_type.id, i), {})
 
-                # Apply any discounts to base amount
-                total_tickets = sum(quantities.values())
+                            attendee = Attendee(
+                                event_id=event.id,
+                                ticket_type_id=ticket_type.id,
+                                ticket_answers=json.dumps(answers),
+                                payment_status='pending',
+                                full_name=full_name,
+                                email=email,
+                                phone_number=phone_number,
+                                tickets_purchased=1,
+                                ticket_price_at_purchase=ticket_type.price,
+                                session_id=session_id,
+                                created_at=datetime.now(timezone.utc),
+                                ticket_number=ticket_number
+                            )
+                            db.session.add(attendee)
+                            attendees.append(attendee)
+
+                # Calculate base amount (in pence)
+                print("\n=== PAYMENT CALCULATION DETAILS ===")
+                print("Calculating base amount for tickets:")
+                base_amount = 0
+                for ticket_type_id, quantity in quantities.items():
+                    if quantity > 0:
+                        ticket_type = next(tt for tt in ticket_types if tt.id == ticket_type_id)
+                        ticket_total = ticket_type.price * quantity * 100
+                        print(f"- {ticket_type.name}: {quantity} x £{ticket_type.price:.2f} = £{ticket_total/100:.2f}")
+                        base_amount += ticket_total
+                print(f"Base amount before discounts: £{base_amount/100:.2f}")
+
+                # Check all discount rules
+                print("\nChecking discount rules:")
                 discount_amount = 0
                 discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
+                total_tickets = sum(quantities.values())
                 
                 for rule in discount_rules:
-                    current_discount = rule.calculate_discount(
-                        total_tickets, 
-                        base_amount/100,  # Convert to pounds for calculation
-                        promo_code
-                    )
-                    discount_amount = max(discount_amount, current_discount * 100)  # Convert back to pence
+                    current_discount = 0
+                    print(f"\nEvaluating {rule.discount_type} discount rule:")
+                    print(f"- Discount percentage: {rule.discount_percent}%")
+                    
+                    if rule.discount_type == 'early_bird':
+                        print(f"- Valid until: {rule.valid_until}")
+                        print(f"- Max tickets: {rule.max_early_bird_tickets}")
+                        if rule.valid_until and datetime.now() < rule.valid_until:
+                            if not rule.max_early_bird_tickets or total_tickets <= rule.max_early_bird_tickets:
+                                current_discount = base_amount * (rule.discount_percent / 100)
+                                print(f"- Early bird discount applicable: £{current_discount/100:.2f}")
+                            else:
+                                print("- Too many tickets for early bird discount")
+                        else:
+                            print("- Early bird period has expired")
+                    
+                    elif rule.discount_type == 'bulk' and total_tickets >= rule.min_tickets:
+                        print(f"- Minimum tickets required: {rule.min_tickets}")
+                        print(f"- Apply to: {rule.apply_to}")
+                        if rule.apply_to == 'all':
+                            current_discount = base_amount * (rule.discount_percent / 100)
+                            print(f"- Bulk discount on all tickets: £{current_discount/100:.2f}")
+                        else:  # 'additional'
+                            per_ticket_amount = base_amount / total_tickets
+                            additional_tickets = total_tickets - 1
+                            current_discount = (per_ticket_amount * additional_tickets) * (rule.discount_percent / 100)
+                            print(f"- Bulk discount on additional tickets: £{current_discount/100:.2f}")
+                    
+                    # Keep the highest discount
+                    if current_discount > discount_amount:
+                        discount_amount = current_discount
+                        print(f"- New highest discount found: £{discount_amount/100:.2f}")
 
-                # Apply discount to get final base amount (T)
-                base_amount = int(base_amount - discount_amount)
+                # Apply the discount
+                total_amount_pence = int(base_amount - discount_amount)
+                print(f"\nAmount after discounts: £{total_amount_pence/100:.2f}")
 
-                # Calculate total amount using the formula: X = (T + (N × 0.30) + 0.20) / (1 - 0.014)
-                platform_fee = total_tickets * 30  # £0.30 per ticket in pence
-                stripe_flat_fee = 20  # £0.20 in pence
-                
-                total_amount_pence = int((base_amount + platform_fee + stripe_flat_fee) / (1 - 0.014))
-                booking_fee_pence = total_amount_pence - base_amount
+                # Calculate fees
+                print("\nCalculating fees:")
+                booking_fee_pence = 30 * total_tickets  # 30p per ticket
+                print(f"- Base booking fee: {total_tickets} tickets × 30p = £{booking_fee_pence/100:.2f}")
 
-                # Create attendee records
-                for ticket_type_id, quantity in quantities.items():
-                    ticket_type = next((t for t in ticket_types if t.id == ticket_type_id), None)
-                    if ticket_type and quantity > 0:
-                        attendee = Attendee(
-                            session_id=session_id,
-                            event_id=event_id,
-                            ticket_type_id=ticket_type_id,
-                            full_name=full_name,
-                            email=email,
-                            phone_number=phone_number,
-                            tickets_purchased=quantity,
-                            ticket_price_at_purchase=ticket_type.price,
-                            ticket_answers=json.dumps(attendee_answers),
-                            ticket_number=generate_unique_ticket_number()
-                        )
-                        attendees.append(attendee)
-                        db.session.add(attendee)
+                subtotal_before_stripe = total_amount_pence + booking_fee_pence
+                print(f"- Subtotal before Stripe fee: £{subtotal_before_stripe/100:.2f}")
+
+                stripe_fee_pence = int(subtotal_before_stripe * 0.014) + 20  # 1.4% + 20p
+                print(f"- Stripe fee: 1.4% + 20p = £{stripe_fee_pence/100:.2f}")
+
+                total_booking_fee_pence = booking_fee_pence + stripe_fee_pence
+                print(f"- Total booking fee: £{total_booking_fee_pence/100:.2f}")
+
+                # Adjust platform fee to cover Stripe's processing cut
+                adjusted_platform_fee = int(booking_fee_pence / 0.971)  # Adjust for Stripe's cut
+                print(f"- Adjusted platform fee: £{adjusted_platform_fee/100:.2f}")
+
+                # Final charge amount
+                total_charge_pence = total_amount_pence + total_booking_fee_pence
+                print(f"\nFinal charge amount: £{total_charge_pence/100:.2f}")
+                print("=== END PAYMENT CALCULATION ===\n")
 
                 if not attendees:
+                    print("No attendees found - redirecting back to purchase page")
                     flash('Please select at least one ticket.')
                     return redirect(url_for('purchase', event_id=event_id))
+
+                db.session.commit()
 
                 # Handle free tickets
                 if total_amount_pence == 0:
                     for attendee in attendees:
-                        attendee.payment_status = 'succeeded'
+                        attendee.payment_status = 'succeeded'  # Mark as paid for free tickets
                     db.session.commit()
 
+                    # Set up billing details for the confirmation email
                     billing_details = {'name': full_name, 'email': email, 'phone': phone_number}
+
+                    # Send confirmation emails for free tickets
                     send_confirmation_email_to_attendee(attendees, billing_details)
                     send_confirmation_email_to_organizer(organizer, attendees, billing_details, event)
 
                     flash('Your free ticket(s) have been booked successfully!')
                     return redirect(url_for('success', session_id=session_id))
 
-                # Create line items for Stripe
-                line_items = []
-                
-                # Add ticket line items
-                for ticket_type_id, quantity in quantities.items():
-                    if quantity > 0:
-                        ticket_type = next((t for t in ticket_types if t.id == ticket_type_id), None)
-                        if ticket_type:
-                            line_items.append({
-                                'price_data': {
-                                    'currency': 'gbp',
-                                    'unit_amount': int(ticket_type.price * 100),
-                                    'product_data': {
-                                        'name': f"{ticket_type.name} for {event.name}",
-                                    },
-                                },
-                                'quantity': quantity,
-                            })
+                else:
+                    # Convert quantities dictionary to use string keys
+                    quantities_for_stripe = {
+                        str(ticket_type_id): quantity 
+                        for ticket_type_id, quantity in quantities.items()
+                    }
 
-                # Add booking fee as separate line item if > 0
-                if booking_fee_pence > 0:
+                    # Prepare ticket and attendee data for Stripe metadata
+                    ticket_data = {
+                        'quantities': quantities_for_stripe,
+                        'total_tickets': total_tickets_requested,
+                        'total_amount': total_amount_pence
+                    }
+
+                    attendee_data = {
+                        'full_name': full_name,
+                        'email': email,
+                        'phone_number': phone_number,
+                        'answers': {
+                            str(k): v for k, v in attendee_answers.items()
+                        }
+                    }
+
+                    # Initialize line_items with individual tickets and separate booking fee line item
+                    line_items = []
+
+                    # Add each ticket as a separate line item
+                    for ticket_type_id, quantity in quantities.items():
+                        ticket_type = next((t for t in ticket_types if t.id == ticket_type_id), None)
+                        if ticket_type and quantity > 0:
+                            for _ in range(quantity):
+                                line_items.append({
+                                    'price_data': {
+                                        'currency': 'gbp',
+                                        'unit_amount': int(ticket_type.price * 100),  # Price of each ticket in pence
+                                        'product_data': {
+                                            'name': f"{ticket_type.name} for {event.name}",
+                                        },
+                                    },
+                                    'quantity': 1,
+                                })
+
+                    # Add the updated booking fee line item with the new label
                     line_items.append({
                         'price_data': {
                             'currency': 'gbp',
-                            'unit_amount': booking_fee_pence,
-                            'product_data': {
-                                'name': 'Booking and Processing Fee',
-                                'description': f'Includes platform fee (£0.30/ticket) and payment processing fees'
-                            },
+                            'product_data': {'name': 'Booking, handling, and processing fee'},
+                            'unit_amount': total_booking_fee_pence,  # Total booking fees (e.g., 30p per ticket + Stripe fees)
                         },
                         'quantity': 1,
                     })
 
-                # Create Stripe checkout session
-                checkout_session = stripe.checkout.Session.create(
-                    payment_method_types=['card'],
-                    line_items=line_items,
-                    mode='payment',
-                    success_url=url_for('success', session_id=session_id, _external=True),
-                    cancel_url=url_for('cancel', _external=True),
-                    metadata={'session_id': session_id},
-                    payment_intent_data={
-                        'application_fee_amount': booking_fee_pence,
-                        'transfer_data': {
-                            'destination': organizer.stripe_connect_id,
+                    # Create Stripe checkout session with individual ticket line items and booking fee
+                    checkout_session = stripe.checkout.Session.create(
+                        payment_method_types=['card'],
+                        line_items=line_items,
+                        mode='payment',
+                        success_url=url_for('success', session_id=session_id, _external=True),
+                        cancel_url=url_for('cancel', _external=True),
+                        metadata={'session_id': session_id},
+                        payment_intent_data={
+                            'application_fee_amount': adjusted_platform_fee,  # Adjusted platform fee to cover Stripe's processing cut
+                            'on_behalf_of': organizer.stripe_connect_id,
+                            'transfer_data': {
+                                'destination': organizer.stripe_connect_id,
+                            },
                         },
-                    },
-                    customer_email=email
-                )
+                        billing_address_collection='required',
+                        customer_email=email
+                    )
+                                        
 
-                db.session.commit()
-                return redirect(checkout_session.url)
+                    return redirect(checkout_session.url)
 
             except Exception as e:
-                print(f"Error creating checkout session: {str(e)}")
-                print(f"Event ID: {event_id}, Ticket Quantity: {total_tickets_requested}")
-                db.session.rollback()
-                flash('An error occurred while processing your request. Please try again.')
+                app.logger.error(f"Error creating checkout session: {str(e)}")
+                flash('An error occurred while processing your payment. Please try again.', 'error')
                 return redirect(url_for('purchase', event_id=event_id))
 
         else:
@@ -1392,6 +1533,7 @@ def purchase(event_id, promo_code=None):
         app.logger.error(f"Error in purchase route: {str(e)}")
         flash('An error occurred. Please try again.', 'error')
         return redirect(url_for('dashboard'))
+
 
 
 
@@ -2275,8 +2417,6 @@ def stripe_onboarding_complete():
         print("Stripe onboarding failed: Missing account_id or user_id.")
         flash('Stripe onboarding failed. Please try again.')
         return redirect(url_for('register'))
-
-
 
 
 
