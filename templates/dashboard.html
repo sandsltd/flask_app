@@ -272,6 +272,9 @@
                             <a href="{{ url_for('start_event_scanner', event_id=event_data.id) }}" class="action-btn scanner">
                                 <i class="fas fa-qrcode"></i> Scanner
                             </a>
+                            <button onclick="confirmDeleteEvent(event, '{{ event_data.id }}')" class="action-btn delete">
+                                <i class="fas fa-trash"></i> Delete Event
+                            </button>
                             <div class="booking-url">
                                 <div class="url-container">
                                     <input type="text" id="event-url-{{ event_data.id }}" value="{{ url_for('purchase', event_id=event_data.id, _external=True) }}" readonly>
@@ -1014,6 +1017,16 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Add this to your existing action-btn styles (around line 889) */
+.action-btn.delete { 
+    background: #dc2626; 
+    color: white; 
+}
+
+.action-btn.delete:hover {
+    background: #b91c1c;
+}
 </style>
 
 <script>
@@ -1106,6 +1119,35 @@ document.addEventListener('DOMContentLoaded', function() {
         progress.style.width = progress.dataset.width + '%';
     });
 });
+
+// Add this to your existing script section
+function confirmDeleteEvent(e, eventId) {
+    e.stopPropagation(); // Prevent event card from expanding
+    
+    if (confirm('Are you sure you want to delete this event? This action cannot be undone and will permanently delete all event data including attendees, ticket types, and discount rules.')) {
+        fetch(`/delete_event/${eventId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // Remove the event card from the DOM
+                const eventCard = document.getElementById(`event-card-${eventId}`);
+                eventCard.remove();
+                // Show success message
+                alert('Event deleted successfully');
+            } else {
+                alert('Error deleting event. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting event. Please try again.');
+        });
+    }
+}
 </script>
 
 {% endblock %}
