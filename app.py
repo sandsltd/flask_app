@@ -578,6 +578,7 @@ def register():
 
 
 
+
 @app.route('/create_event', methods=['GET', 'POST'])
 @login_required
 def create_event():
@@ -1347,8 +1348,8 @@ def purchase(event_id, promo_code=None):
                         success_url=url_for('success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
                         cancel_url=url_for('cancel', _external=True),
                         transfer_data={
-                            'destination': organizer.stripe_account_id,
-                            'amount': total_ticket_price_pence  # Amount to transfer to the organizer
+                            'destination': organizer.stripe_connect_id,  # Changed from stripe_account_id to stripe_connect_id
+                            'amount': total_ticket_price_pence
                         }
                     )
 
@@ -2697,7 +2698,6 @@ def generate_unique_ticket_number():
         existing_ticket = Attendee.query.filter_by(ticket_number=ticket_number).first()
         if not existing_ticket:
             return ticket_number
-
 
 
 
