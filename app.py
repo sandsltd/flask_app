@@ -1347,9 +1347,11 @@ def purchase(event_id, promo_code=None):
                         mode='payment',
                         success_url=url_for('success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
                         cancel_url=url_for('cancel', _external=True),
-                        transfer_data={
-                            'destination': organizer.stripe_connect_id,  # Changed from stripe_account_id to stripe_connect_id
-                            'amount': total_ticket_price_pence
+                        payment_intent_data={
+                            'application_fee_amount': booking_fee_pence,  # This is your platform fee + Stripe fees
+                            'transfer_data': {
+                                'destination': organizer.stripe_connect_id,
+                            },
                         }
                     )
 
@@ -1725,6 +1727,7 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
 
     except Exception as e:
         print(f"Failed to send confirmation email to organizer {organizer.email}. Error: {str(e)}")
+
 
 
 # Update handle_checkout_session to generate QR codes
