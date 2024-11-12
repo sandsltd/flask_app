@@ -1156,8 +1156,7 @@ def calculate_total_charge_and_booking_fee(n_tickets, ticket_price_gbp):
     return int(math.ceil(total_charge_pence)), int(math.ceil(total_platform_fee_pence))
 
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
-@app.route('/purchase/<int:event_id>/<string:promo_code>', methods=['GET', 'POST'])
-def purchase(event_id, promo_code=None):
+def purchase(event_id):
     try:
         event = Event.query.get_or_404(event_id)
         print(f"Event ID: {event.id}, Ticket Quantity: {event.ticket_quantity}")
@@ -1183,6 +1182,34 @@ def purchase(event_id, promo_code=None):
 
         # Fetch ticket types
         ticket_types = event.ticket_types
+
+        # Initialize discount configuration
+        discount_config = {
+            'type': None,
+            'percentage': 0,
+            'minTickets': 0,
+            'apply_to': 'all'
+        }
+
+        # Check for early bird discount
+        if event.early_bird_discount and event.early_bird_end_date:
+            now = datetime.now(timezone.utc)
+            if now < event.early_bird_end_date:
+                discount_config = {
+                    'type': 'early_bird',
+                    'percentage': event.early_bird_discount,
+                    'valid_until': event.early_bird_end_date.isoformat(),
+                    'max_tickets': event.early_bird_quantity
+                }
+
+        # Check for bulk discount
+        elif event.bulk_discount and event.bulk_discount_quantity:
+            discount_config = {
+                'type': 'bulk',
+                'percentage': event.bulk_discount,
+                'minTickets': event.bulk_discount_quantity,
+                'apply_to': 'all'  # or 'additional' based on your business logic
+            }
 
         if request.method == 'POST':
             try:
@@ -1302,7 +1329,8 @@ def purchase(event_id, promo_code=None):
                 platform_terms_link=platform_terms_link,
                 ticket_types=ticket_types,
                 enforce_individual_ticket_limits=event.enforce_individual_ticket_limits,
-                tickets_available=tickets_available
+                tickets_available=tickets_available,
+                discount_config=discount_config
             )
 
     except Exception as e:
