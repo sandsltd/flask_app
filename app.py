@@ -1933,15 +1933,33 @@ def view_attendees(event_id):
 def delete_event(event_id):
     event = Event.query.get_or_404(event_id)
 
-    # Check if current user owns the event before deleting (for extra security)
+    # Check if current user owns the event
     if event.user_id != current_user.id:
         flash("You do not have permission to delete this event.", "error")
-        return redirect(url_for('dashboard'))
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
 
-    db.session.delete(event)
-    db.session.commit()
-    flash('Event and all associated attendees deleted successfully!')
-    return redirect(url_for('dashboard'))
+    try:
+        # Delete all related records in order to maintain referential integrity
+        
+        # Delete all discount codes first
+        DiscountRule.query.filter_by(event_id=event_id).delete()
+        
+        # Delete all attendees
+        Attendee.query.filter_by(event_id=event_id).delete()
+        
+        # Delete all ticket types
+        TicketType.query.filter_by(event_id=event_id).delete()
+        
+        # Finally, delete the event itself
+        db.session.delete(event)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting event: {str(e)}")
+        return jsonify({'success': False, 'message': 'Error deleting event'}), 500
 
 
 
