@@ -314,26 +314,17 @@
         var totalQuantity = 0;
         var ticketInputs = document.querySelectorAll('.ticket-input');
         
-        // Debug logging
-        console.log('Discount Config:', discountConfig);
-        console.log('Starting price calculation...');
-        
         // First calculate total quantity and base price
         ticketInputs.forEach(function(input) {
             var quantity = parseInt(input.value) || 0;
             var price = parseFloat(input.getAttribute('data-ticket-price'));
             totalQuantity += quantity;
             total += quantity * price;
-            console.log(`Ticket type: ${input.getAttribute('data-ticket-type-id')}, Quantity: ${quantity}, Price: ${price}`);
         });
-        
-        console.log('Base total:', total);
-        console.log('Total quantity:', totalQuantity);
 
         // Apply discount if applicable
         if (discountConfig && discountConfig.percentage > 0) {
             var discountAmount = 0;
-            console.log('Applying discount...');
             
             switch(discountConfig.type) {
                 case 'early_bird':
@@ -357,9 +348,7 @@
                     break;
             }
             
-            console.log('Discount amount:', discountAmount);
             total -= discountAmount;
-            console.log('Final total after discount:', total);
         }
 
         document.getElementById('total_price').textContent = `£${total.toFixed(2)}`;
@@ -395,6 +384,9 @@
                 } else if (discountConfig.apply_to === 'all') {
                     // All tickets discounted
                     totalPrice += quantity * (ticketTypePrice * (1 - discountConfig.percentage/100));
+                } else {
+                    // No discount
+                    totalPrice += quantity * ticketTypePrice;
                 }
             } else {
                 totalPrice += quantity * ticketTypePrice;
@@ -458,15 +450,8 @@
 
     // Initialize when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('Initializing with discount config:', discountConfig);
         initializeDiscountBanner();
         updateQuestionForms();
-        
-        // Show the sticky total initially if needed
-        const stickyTotal = document.querySelector('.sticky-total');
-        if (stickyTotal) {
-            stickyTotal.classList.add('visible');
-        }
         
         var ticketInputs = document.querySelectorAll('.ticket-input');
         ticketInputs.forEach(function(input) {
