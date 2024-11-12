@@ -33,13 +33,27 @@
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div class="flash-messages">
-                {% for category, message in messages %}
-                    <div class="alert {{ 'alert-first-login' if category == 'success' and 'Welcome to TicketRush' in message else 'alert-' + category }}">
-                        {{ message|safe }}
-                    </div>
-                {% endfor %}
+        <div class="notifications-container">
+            {% for category, message in messages %}
+            <div class="notification {{ category }}" role="alert">
+                <div class="notification-content">
+                    {% if category == 'success' %}
+                        <i class="fas fa-check-circle"></i>
+                    {% elif category == 'error' %}
+                        <i class="fas fa-exclamation-circle"></i>
+                    {% elif category == 'warning' %}
+                        <i class="fas fa-exclamation-triangle"></i>
+                    {% else %}
+                        <i class="fas fa-info-circle"></i>
+                    {% endif %}
+                    <p>{{ message }}</p>
+                </div>
+                <button type="button" class="notification-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
+            {% endfor %}
+        </div>
         {% endif %}
     {% endwith %}
 
@@ -1112,6 +1126,10 @@
 
 .delete-actions .btn-cancel:hover {
     background: #fee2e2;
+}
+
+.notifications-container {
+    position: fixed;
 }
 </style>
 
