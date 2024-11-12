@@ -1189,6 +1189,27 @@ def purchase(event_id, promo_code=None):
             flash('Event organizer is not properly configured for payments.', 'error')
             return redirect(url_for('dashboard'))
 
+        # Initialize variables needed by the template
+        questions = []  # Get your questions from wherever they're stored
+        discount_config = {
+            'type': 'none',
+            'percentage': 0,
+            'minTickets': 0,
+            'apply_to': 'none',
+            'valid_until': None,
+            'max_tickets': None
+        }
+        
+        # Get the organizer's terms link
+        organizer_terms_link = organizer.terms if organizer.terms != 'none' else None
+        
+        # Set platform terms link
+        platform_terms_link = "https://www.ticketrush.io/terms"  # Update with your actual terms URL
+        
+        # Calculate tickets available
+        tickets_available = None  # or calculate based on your logic
+        enforce_individual_ticket_limits = False  # or set based on your logic
+
         if request.method == 'POST':
             print("Starting purchase calculation...")
             
@@ -1306,12 +1327,20 @@ def purchase(event_id, promo_code=None):
                 flash('An error occurred while processing your payment. Please try again.', 'error')
                 return redirect(url_for('purchase', event_id=event_id))
 
-        # GET request - render the form
-        return render_template('purchase.html', 
-                             event=event, 
-                             organizer=organizer, 
-                             ticket_types=ticket_types,
-                             promo_code=promo_code)
+        # Render the template with all required variables
+        return render_template(
+            'purchase.html',
+            event=event,
+            organizer=organizer,
+            ticket_types=ticket_types,
+            promo_code=promo_code,
+            questions=questions,
+            discount_config=discount_config,
+            organizer_terms_link=organizer_terms_link,
+            platform_terms_link=platform_terms_link,
+            tickets_available=tickets_available,
+            enforce_individual_ticket_limits=enforce_individual_ticket_limits
+        )
 
     except Exception as e:
         print(f"Error in purchase route: {str(e)}")
