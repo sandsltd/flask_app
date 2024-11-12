@@ -1360,36 +1360,53 @@ def purchase(event_id, promo_code=None):
                         }
                     }
 
-                    # Initialize line_items with individual tickets and separate booking fee line item
-                    line_items = []
+                    # Calculate total amount using the formula: X = (T + (N × 0.30) + 0.20) / (1 - 0.014)
+                    platform_fee = total_tickets * 30  # £0.30 per ticket in pence
+                    stripe_flat_fee = 20  # £0.20 in pence
+                    
+                    total_amount_pence = int((base_amount + platform_fee + stripe_flat_fee) / (1 - 0.014))
+
+                    # For transparency, calculate the individual fee components
+                    stripe_percentage_fee = int(total_amount_pence * 0.014)
+                    total_fees = platform_fee + stripe_flat_fee + stripe_percentage_fee
+
+                    # Calculate booking fee (for display purposes)
+                    booking_fee_pence = total_amount_pence - base_amount
+
+                    # Ensure all values are positive integers
+                    adjusted_platform_fee = max(1, int(booking_fee_pence))  # Minimum 1 pence
 
                     # Add each ticket as a separate line item
+                    line_items = []
                     for ticket_type_id, quantity in quantities.items():
                         ticket_type = next((t for t in ticket_types if t.id == ticket_type_id), None)
                         if ticket_type and quantity > 0:
-                            for _ in range(quantity):
-                                line_items.append({
-                                    'price_data': {
-                                        'currency': 'gbp',
-                                        'unit_amount': int(ticket_type.price * 100),  # Price of each ticket in pence
-                                        'product_data': {
-                                            'name': f"{ticket_type.name} for {event.name}",
-                                        },
+                            unit_amount = max(1, int(ticket_type.price * 100))  # Ensure minimum 1 pence
+                            line_items.append({
+                                'price_data': {
+                                    'currency': 'gbp',
+                                    'unit_amount': unit_amount,
+                                    'product_data': {
+                                        'name': f"{ticket_type.name} for {event.name}",
                                     },
-                                    'quantity': 1,
-                                })
+                                },
+                                'quantity': quantity,
+                            })
 
-                    # Add the updated booking fee line item with the new label
-                    line_items.append({
-                        'price_data': {
-                            'currency': 'gbp',
-                            'product_data': {'name': 'Booking, handling, and processing fee'},
-                            'unit_amount': total_booking_fee_pence,  # Total booking fees (e.g., 30p per ticket + Stripe fees)
-                        },
-                        'quantity': 1,
-                    })
+                    # Add booking fee as separate line item if greater than 0
+                    if booking_fee_pence > 0:
+                        line_items.append({
+                            'price_data': {
+                                'currency': 'gbp',
+                                'unit_amount': max(1, int(booking_fee_pence)),
+                                'product_data': {
+                                    'name': 'Booking, handling, and processing fee'
+                                },
+                            },
+                            'quantity': 1,
+                        })
 
-                    # Create Stripe checkout session with individual ticket line items and booking fee
+                    # Create Stripe checkout session
                     checkout_session = stripe.checkout.Session.create(
                         payment_method_types=['card'],
                         line_items=line_items,
@@ -1398,7 +1415,7 @@ def purchase(event_id, promo_code=None):
                         cancel_url=url_for('cancel', _external=True),
                         metadata={'session_id': session_id},
                         payment_intent_data={
-                            'application_fee_amount': adjusted_platform_fee,  # Adjusted platform fee to cover Stripe's processing cut
+                            'application_fee_amount': adjusted_platform_fee,
                             'on_behalf_of': organizer.stripe_connect_id,
                             'transfer_data': {
                                 'destination': organizer.stripe_connect_id,
@@ -1407,7 +1424,7 @@ def purchase(event_id, promo_code=None):
                         billing_address_collection='required',
                         customer_email=email
                     )
-                                        
+                                            
 
                     return redirect(checkout_session.url)
 
