@@ -758,43 +758,72 @@ def create_event():
                 if i < occurrences - 1:
                     current_date = get_next_date(current_date, recurrence)
 
-            # After creating the event and ticket types, add this section:
-            
             # Process discount rules
             discount_types = request.form.getlist('discount_type[]')
+            print("\n=== Starting Discount Rules Processing ===")
+            print(f"Found discount types: {discount_types}")
+
             for i, discount_type in enumerate(discount_types):
                 try:
+                    print(f"\nProcessing discount rule {i+1}:")
+                    print(f"Discount type: {discount_type}")
+                    
+                    # Get and print all relevant form data
+                    discount_percent = float(request.form.getlist('discount_percent[]')[i])
+                    print(f"Discount percentage: {discount_percent}")
+
                     discount_rule = DiscountRule(
                         event_id=event.id,
                         discount_type=discount_type,
-                        discount_percent=float(request.form.getlist('discount_percent[]')[i])
+                        discount_percent=discount_percent
                     )
 
-                    # Set specific fields based on discount type
-                    if discount_type == 'bulk':
+                    if discount_type == 'early_bird':
+                        valid_until = request.form.getlist('valid_until[]')[i]
+                        max_tickets = request.form.getlist('max_early_bird_tickets[]')[i]
+                        print(f"Early Bird details:")
+                        print(f"- Valid until: {valid_until}")
+                        print(f"- Max tickets: {max_tickets}")
+                        
+                        discount_rule.valid_until = datetime.strptime(valid_until, '%Y-%m-%dT%H:%M')
+                        discount_rule.max_early_bird_tickets = int(max_tickets)
+                        print(f"Processed Early Bird rule: valid until {discount_rule.valid_until}, max tickets: {discount_rule.max_early_bird_tickets}")
+
+                    elif discount_type == 'bulk':
                         discount_rule.min_tickets = int(request.form.getlist('min_tickets[]')[i])
                         discount_rule.apply_to = request.form.getlist('discount_apply_to[]')[i]
-                    elif discount_type == 'early_bird':
-                        discount_rule.valid_until = datetime.strptime(request.form.getlist('valid_until[]')[i], '%Y-%m-%dT%H:%M')
-                        discount_rule.max_early_bird_tickets = int(request.form.getlist('max_early_bird_tickets[]')[i])
-                    elif discount_type == 'promo_code':
-                        discount_rule.promo_code = request.form.getlist('promo_code[]')[i]
-                        discount_rule.max_uses = int(request.form.getlist('max_uses[]')[i])
+                        print(f"Bulk discount details:")
+                        print(f"- Min tickets: {discount_rule.min_tickets}")
+                        print(f"- Apply to: {discount_rule.apply_to}")
 
+                    print(f"Adding discount rule to session: {discount_rule.__dict__}")
                     db.session.add(discount_rule)
 
                 except (ValueError, IndexError) as e:
-                    print(f"Error processing discount rule: {e}")
+                    print(f"ERROR processing discount rule: {str(e)}")
+                    print(f"Form data for debugging:")
+                    print(f"- All discount_percent values: {request.form.getlist('discount_percent[]')}")
+                    print(f"- All valid_until values: {request.form.getlist('valid_until[]')}")
+                    print(f"- All max_tickets values: {request.form.getlist('max_early_bird_tickets[]')}")
                     continue
 
+            print("\nCommitting all changes to database...")
             db.session.commit()
+            print("Successfully committed changes!")
+            print("=== Finished Discount Rules Processing ===\n")
 
             flash(f'{occurrences} occurrence(s) of the event "{name}" created successfully!', 'success')
             return redirect(url_for('dashboard'))
 
         except Exception as e:
-            # Log the exception details for debugging
-            print(f"An unexpected error occurred: {e}")
+            print(f"\nCRITICAL ERROR in create_event:")
+            print(f"Error type: {type(e).__name__}")
+            print(f"Error message: {str(e)}")
+            print("Full form data:")
+            for key in request.form:
+                print(f"- {key}: {request.form.getlist(key)}")
+            
+            db.session.rollback()
             flash('An unexpected error occurred while creating the event. Please try again.', 'danger')
             return redirect(url_for('create_event'))
 
