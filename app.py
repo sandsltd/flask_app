@@ -1303,6 +1303,7 @@ def purchase(event_id, promo_code=None):
                 # Get all discount rules and apply the most beneficial one
                 total_tickets = sum(quantities.values())
                 discount_amount = 0
+
                 
                 # Check all discount rules
                 discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
@@ -1327,6 +1328,19 @@ def purchase(event_id, promo_code=None):
 
                 # Apply the discount
                 total_amount_pence = int(base_amount - discount_amount)
+
+                # Booking fee (e.g., 30p per ticket)
+                booking_fee_pence = 30 * total_tickets_requested
+
+                # Stripe fee (1.4% + 20p per transaction)
+                stripe_fee_pence = int((total_amount_pence + booking_fee_pence) * 0.014) + 20
+                total_booking_fee_pence = booking_fee_pence + stripe_fee_pence
+
+                # Adjust platform fee to cover Stripe's processing cut
+                adjusted_platform_fee = int(booking_fee_pence / 0.971)
+
+                # Final charge amount including booking and Stripe fees
+                total_charge_pence = total_amount_pence + total_booking_fee_pence
 
                 if not attendees:
                     flash('Please select at least one ticket.')
@@ -1379,17 +1393,35 @@ def purchase(event_id, promo_code=None):
                         line_items=[{
                             'price_data': {
                                 'currency': 'gbp',
-                                'unit_amount': total_amount_pence,
+                                'unit_amount': total_charge_pence,
                                 'product_data': {
                                     'name': f'Tickets for {event.name}',
                                 },
                             },
                             'quantity': 1,
+                        }, {
+                            'price_data': {
+                                'currency': 'gbp',
+                                'product_data': {'name': 'Booking Fee'},
+                                'unit_amount': total_booking_fee_pence,
+                            },
+                            'quantity': 1,
                         }],
                         mode='payment',
-                        success_url=url_for('success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
-                        cancel_url=url_for('cancel', _external=True)
+                        success_url=url_for('success', session_id=session_id, _external=True),
+                        cancel_url=url_for('cancel', _external=True),
+                        metadata={'session_id': session_id},
+                        payment_intent_data={
+                            'application_fee_amount': adjusted_platform_fee,  # Adjusted platform fee to account for Stripe's processing fee
+                            'on_behalf_of': organizer.stripe_connect_id,
+                            'transfer_data': {
+                                'destination': organizer.stripe_connect_id,
+                            },
+                        },
+                        billing_address_collection='required',
+                        customer_email=email
                     )
+                    
 
                     return redirect(checkout_session.url)
 
