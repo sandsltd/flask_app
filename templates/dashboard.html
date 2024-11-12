@@ -178,8 +178,8 @@
                                                 {% elif rule.discount_type == 'early_bird' %}
                                                     <p class="rule-description">
                                                         {{ rule.discount_percent }}% off until {{ rule.valid_until | datetimeformat }}
-                                                        {% if rule.max_tickets %}
-                                                            (limited to first {{ rule.max_tickets }} tickets)
+                                                        {% if rule.max_early_bird_tickets %}
+                                                            (limited to first {{ rule.max_early_bird_tickets }} tickets)
                                                         {% endif %}
                                                     </p>
                                                 {% elif rule.discount_type == 'promo_code' %}

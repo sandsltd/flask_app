@@ -451,7 +451,7 @@ def dashboard():
             'min_tickets': rule.min_tickets if rule.discount_type == 'bulk' else None,
             'apply_to': rule.apply_to if rule.discount_type == 'bulk' else None,
             'valid_until': rule.valid_until if rule.discount_type == 'early_bird' else None,
-            'max_tickets': rule.max_tickets if rule.discount_type == 'early_bird' else None,
+            'max_tickets': rule.max_early_bird_tickets if rule.discount_type == 'early_bird' else None,
             'code': rule.promo_code if rule.discount_type == 'promo_code' else None,
             'max_uses': rule.max_uses if rule.discount_type == 'promo_code' else None,
             'uses_left': rule.max_uses - rule.times_used if rule.discount_type == 'promo_code' else None
@@ -1408,7 +1408,7 @@ def purchase(event_id, promo_code=None):
                             'type': 'early_bird',
                             'percentage': rule.discount_percent,
                             'valid_until': rule.valid_until.isoformat(),
-                            'max_tickets': rule.max_tickets
+                            'max_tickets': rule.max_early_bird_tickets
                         }
                         break
                 elif rule.discount_type == 'bulk':
