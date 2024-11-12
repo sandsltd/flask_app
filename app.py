@@ -309,6 +309,11 @@ def generate_unique_id():
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(15))
 
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    return send_from_directory('static', filename)
+
+    
 # User Loader
 @login_manager.user_loader
 def load_user(user_id):
@@ -1294,19 +1299,19 @@ def purchase(event_id, promo_code=None):
                             attendees.append(attendee)
 
                 # Calculate the total amount and booking fee
-                total_ticket_price_pence = sum(
+                total_ticket_price_pence = int(sum(
                     ticket_type.price * quantities[ticket_type.id] * 100
                     for ticket_type in ticket_types
                     if quantities[ticket_type.id] > 0
-                )
+                ))
 
                 # Calculate the booking fee to cover Stripe fees and platform fee
-                platform_fee_pence = 30 * total_tickets_requested
+                platform_fee_pence = int(30 * total_tickets_requested)
                 stripe_fee_pence = int((total_ticket_price_pence + platform_fee_pence) * 0.014) + 20
-                booking_fee_pence = stripe_fee_pence + platform_fee_pence
+                booking_fee_pence = int(stripe_fee_pence + platform_fee_pence)
 
                 # Calculate the total charge to the buyer
-                total_charge_pence = total_ticket_price_pence + booking_fee_pence
+                total_charge_pence = int(total_ticket_price_pence + booking_fee_pence)
 
                 if not attendees:
                     flash('Please select at least one ticket.')
@@ -1348,7 +1353,7 @@ def purchase(event_id, promo_code=None):
                         success_url=url_for('success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
                         cancel_url=url_for('cancel', _external=True),
                         payment_intent_data={
-                            'application_fee_amount': booking_fee_pence,  # This is your platform fee + Stripe fees
+                            'application_fee_amount': int(booking_fee_pence),
                             'transfer_data': {
                                 'destination': organizer.stripe_connect_id,
                             },
@@ -2839,8 +2844,3 @@ def check_in_attendee(event_id):
 if __name__ == "__main__":
     app.run(debug=True)
 
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    return send_from_directory('static', filename)
-
-    
