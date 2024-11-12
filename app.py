@@ -2884,6 +2884,6 @@ if __name__ == "__main__":
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
-    return send_from_directory('static', filename)
+    return send_from_directory('static', filename) 
 
-    
+     
