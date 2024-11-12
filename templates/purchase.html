@@ -270,7 +270,22 @@
 
     function updatePriceDisplays(totalQuantity) {
         var ticketInputs = document.querySelectorAll('.ticket-input');
-        var applyDiscount = totalQuantity >= discountConfig.minTickets;
+        var applyDiscount = false;
+        
+        if (discountConfig && discountConfig.percentage > 0) {
+            switch(discountConfig.type) {
+                case 'early_bird':
+                    const validUntil = new Date(discountConfig.valid_until);
+                    const now = new Date();
+                    applyDiscount = now < validUntil && 
+                        (!discountConfig.max_tickets || totalQuantity <= discountConfig.max_tickets);
+                    break;
+                    
+                case 'bulk':
+                    applyDiscount = totalQuantity >= discountConfig.minTickets;
+                    break;
+            }
+        }
 
         ticketInputs.forEach(function(input) {
             var ticketTypeId = input.getAttribute('data-ticket-type-id');
@@ -281,18 +296,9 @@
 
             if (applyDiscount) {
                 var discountedPrice = originalPrice * (1 - discountConfig.percentage/100);
-                
-                if (discountConfig.type === 'all') {
-                    // For 'all' type discounts, show the discounted price for every ticket
-                    originalPriceSpan.classList.add('strikethrough');
-                    discountedPriceSpan.textContent = `£${discountedPrice.toFixed(2)}`;
-                    discountedPriceSpan.style.display = 'inline';
-                } else {
-                    // For 'additional' type discounts, show original price and note about additional tickets
-                    originalPriceSpan.classList.remove('strikethrough');
-                    discountedPriceSpan.textContent = `(Additional tickets: £${discountedPrice.toFixed(2)})`;
-                    discountedPriceSpan.style.display = 'inline';
-                }
+                originalPriceSpan.classList.add('strikethrough');
+                discountedPriceSpan.textContent = `£${discountedPrice.toFixed(2)}`;
+                discountedPriceSpan.style.display = 'inline';
             } else {
                 originalPriceSpan.classList.remove('strikethrough');
                 discountedPriceSpan.style.display = 'none';
