@@ -740,6 +740,186 @@ document.addEventListener('DOMContentLoaded', function() {
 .progress-bar[data-width] {
     width: var(--progress-width);
 }
+
+/* Business Logo Styles */
+.business-profile {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.business-logo {
+    width: 60px;  /* Adjust this value as needed */
+    height: 60px; /* Adjust this value as needed */
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.business-logo-placeholder {
+    width: 60px;
+    height: 60px;
+    background: var(--primary-soft);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.25rem;
+    border-radius: 8px;
+}
+
+.business-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.business-info h1 {
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.business-info .subtitle {
+    color: #64748b;
+    margin: 0;
+}
+
+/* Dashboard Layout */
+.dashboard-wrapper {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* Flash Messages */
+.flash-messages {
+    margin: 1rem 0;
+}
+
+.flash-message {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.flash-message.success {
+    background: var(--success-lighter);
+    color: var(--success-soft);
+}
+
+.flash-message.error {
+    background: var(--danger-lighter);
+    color: var(--danger-soft);
+}
+
+/* Toast Container */
+#toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+}
+
+.toast {
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.5rem;
+    background: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Embed Section */
+.embed-section {
+    margin-top: 2rem;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.embed-header {
+    padding: 1rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.code-box {
+    background: var(--gray-soft);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1rem;
+}
+
+.copy-button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.copy-button:hover {
+    background: var(--primary-lighter);
+    border-color: var(--primary-soft);
+}
+
+.copy-button.copied {
+    background: var(--success-soft);
+    color: white;
+    border-color: var(--success-soft);
+}
 </style>
 
 
