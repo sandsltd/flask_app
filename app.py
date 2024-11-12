@@ -1192,6 +1192,40 @@ def purchase(event_id, promo_code=None):
         ticket_types = event.ticket_types
         
         if request.method == 'POST':
+            print("Starting purchase calculation...")
+
+            # Calculate the total ticket price
+            total_ticket_price_pence = sum(
+                int(ticket_type.price * 100) * quantities[ticket_type.id]
+                for ticket_type in ticket_types
+                if quantities[ticket_type.id] > 0
+            )
+            print(f"Total ticket price: {total_ticket_price_pence}p (£{total_ticket_price_pence/100:.2f})")
+
+            # Calculate the total number of tickets
+            total_tickets = sum(quantities[ticket_type.id] for ticket_type in ticket_types)
+            print(f"Total number of tickets: {total_tickets}")
+
+            # Calculate the platform fee (30p per ticket)
+            platform_fee_pence = 30 * total_tickets
+            print(f"Platform fee: {platform_fee_pence}p (£{platform_fee_pence/100:.2f})")
+
+            # Calculate the subtotal (ticket price + platform fee)
+            subtotal_pence = total_ticket_price_pence + platform_fee_pence
+            print(f"Subtotal: {subtotal_pence}p (£{subtotal_pence/100:.2f})")
+
+            # Calculate the Stripe percentage fee (1.4% of subtotal)
+            stripe_percent_fee_pence = int(subtotal_pence * 0.014)
+            print(f"Stripe percentage fee: {stripe_percent_fee_pence}p (£{stripe_percent_fee_pence/100:.2f})")
+
+            # Add the fixed Stripe fee (20p)
+            stripe_fixed_fee_pence = 20
+            print(f"Stripe fixed fee: {stripe_fixed_fee_pence}p (£{stripe_fixed_fee_pence/100:.2f})")
+
+            # Calculate the total booking fee
+            booking_fee_pence = stripe_percent_fee_pence + stripe_fixed_fee_pence
+            print(f"Total booking fee: {booking_fee_pence}p (£{booking_fee_pence/100:.2f})")
+
             try:
                 session_id = str(uuid4())
                 full_name = request.form.get('full_name')
@@ -1215,7 +1249,6 @@ def purchase(event_id, promo_code=None):
                 # Initialize variables
                 attendees = []
                 line_items = []
-                booking_fee_pence = 0  # Initialize booking fee
                 total_tickets_requested = 0
 
                 # Collect quantities for each ticket type
@@ -1298,34 +1331,6 @@ def purchase(event_id, promo_code=None):
                             db.session.add(attendee)
                             attendees.append(attendee)
 
-                # Calculate the total ticket price
-                total_ticket_price_pence = sum(
-                    int(ticket_type.price * 100) * quantities[ticket_type.id]
-                    for ticket_type in ticket_types
-                    if quantities[ticket_type.id] > 0
-                )
-
-                # Calculate the total number of tickets
-                total_tickets = sum(quantities[ticket_type.id] for ticket_type in ticket_types)
-
-                # Calculate the platform fee (30p per ticket)
-                platform_fee_pence = 30 * total_tickets
-
-                # Calculate the subtotal (ticket price + platform fee)
-                subtotal_pence = total_ticket_price_pence + platform_fee_pence
-
-                # Calculate the Stripe percentage fee (1.4% of subtotal)
-                stripe_percent_fee_pence = int(subtotal_pence * 0.014)
-
-                # Add the fixed Stripe fee (20p)
-                stripe_fixed_fee_pence = 20
-
-                # Calculate the total booking fee
-                booking_fee_pence = platform_fee_pence + stripe_percent_fee_pence + stripe_fixed_fee_pence
-
-                # Calculate the total charge to the buyer
-                total_charge_pence = total_ticket_price_pence + booking_fee_pence
-
                 if not attendees:
                     flash('Please select at least one ticket.')
                     return redirect(url_for('purchase', event_id=event_id))
@@ -1349,29 +1354,57 @@ def purchase(event_id, promo_code=None):
                     return redirect(url_for('success', session_id=session_id))
 
                 else:
-                    # Create Stripe checkout session
+                    # Create Stripe checkout session with separate line items
                     checkout_session = stripe.checkout.Session.create(
                         payment_method_types=['card'],
-                        line_items=[{
-                            'price_data': {
-                                'currency': 'gbp',
-                                'unit_amount': total_charge_pence,
-                                'product_data': {
-                                    'name': f'Tickets for {event.name}',
+                        line_items=[
+                            {
+                                'price_data': {
+                                    'currency': 'gbp',
+                                    'unit_amount': total_ticket_price_pence,
+                                    'product_data': {
+                                        'name': f'Tickets for {event.name}',
+                                    },
                                 },
+                                'quantity': 1,
                             },
-                            'quantity': 1,
-                        }],
+                            {
+                                'price_data': {
+                                    'currency': 'gbp',
+                                    'unit_amount': platform_fee_pence,
+                                    'product_data': {
+                                        'name': 'Platform Fee',
+                                        'description': f'Platform fee (£0.30 per ticket × {total_tickets} tickets)',
+                                    },
+                                },
+                                'quantity': 1,
+                            },
+                            {
+                                'price_data': {
+                                    'currency': 'gbp',
+                                    'unit_amount': booking_fee_pence,
+                                    'product_data': {
+                                        'name': 'Processing Fee',
+                                        'description': 'Card processing fee',
+                                    },
+                                },
+                                'quantity': 1,
+                            }
+                        ],
                         mode='payment',
                         success_url=url_for('success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
                         cancel_url=url_for('cancel', _external=True),
                         payment_intent_data={
-                            'application_fee_amount': booking_fee_pence,
+                            'application_fee_amount': platform_fee_pence + booking_fee_pence,
                             'transfer_data': {
                                 'destination': organizer.stripe_connect_id,
                             },
                         }
                     )
+
+                    total_charge_pence = total_ticket_price_pence + platform_fee_pence + booking_fee_pence
+                    print(f"Total charge: {total_charge_pence}p (£{total_charge_pence/100:.2f})")
+                    print(f"Checkout session created with total charge: {total_charge_pence}p (£{total_charge_pence/100:.2f})")
 
                     return redirect(checkout_session.url)
 
