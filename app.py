@@ -768,8 +768,16 @@ def create_event():
                     print(f"\nProcessing discount rule {i+1}:")
                     print(f"Discount type: {discount_type}")
                     
-                    # Get and print all relevant form data
-                    discount_percent = float(request.form.getlist('discount_percent[]')[i])
+                    # Get discount percentage based on discount type
+                    if discount_type == 'early_bird':
+                        discount_percent = float(request.form.getlist('early_bird_discount_percent[]')[i])
+                    elif discount_type == 'bulk':
+                        discount_percent = float(request.form.getlist('bulk_discount_percent[]')[i])
+                    elif discount_type == 'promo_code':
+                        discount_percent = float(request.form.getlist('promo_discount_percent[]')[i])
+                    else:
+                        raise ValueError(f"Unknown discount type: {discount_type}")
+                    
                     print(f"Discount percentage: {discount_percent}")
 
                     discount_rule = DiscountRule(
@@ -795,6 +803,14 @@ def create_event():
                         print(f"Bulk discount details:")
                         print(f"- Min tickets: {discount_rule.min_tickets}")
                         print(f"- Apply to: {discount_rule.apply_to}")
+
+                    elif discount_type == 'promo_code':
+                        discount_rule.promo_code = request.form.getlist('promo_code[]')[i]
+                        discount_rule.max_uses = int(request.form.getlist('max_uses[]')[i])
+                        discount_rule.uses_count = 0
+                        print(f"Promo code details:")
+                        print(f"- Code: {discount_rule.promo_code}")
+                        print(f"- Max uses: {discount_rule.max_uses}")
 
                     print(f"Adding discount rule to session: {discount_rule.__dict__}")
                     db.session.add(discount_rule)
