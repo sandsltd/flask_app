@@ -1131,31 +1131,6 @@ def manage_default_questions():
 
 
 
-def calculate_total_charge_and_booking_fee(n_tickets, ticket_price_gbp):
-    # Constants
-    platform_fee_per_ticket_pence = 30  # Platform fee: 30p per ticket
-    stripe_percent_fee = 0.014          # Stripe percentage fee (1.4%)
-    stripe_fixed_fee_pence = 20         # Fixed Stripe fee per transaction (20p)
-
-    # Calculate the ticket price in pence
-    total_ticket_price_pence = int(n_tickets * ticket_price_gbp * 100)
-
-    # Calculate the platform fee (30p per ticket)
-    total_platform_fee_pence = platform_fee_per_ticket_pence * n_tickets
-
-    # Calculate the subtotal (ticket price + platform fee)
-    subtotal_before_stripe = total_ticket_price_pence + total_platform_fee_pence
-
-    # Calculate the Stripe fee (1.4% of subtotal + 20p)
-    stripe_fee_pence = int(subtotal_before_stripe * stripe_percent_fee) + stripe_fixed_fee_pence
-
-    # Calculate total charge to the buyer, including Stripe fee
-    total_charge_pence = subtotal_before_stripe + stripe_fee_pence
-
-    # Round up and return the total charge to the buyer and platform fee
-    return int(math.ceil(total_charge_pence)), int(math.ceil(total_platform_fee_pence))
-
-
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
 @app.route('/purchase/<int:event_id>/<string:promo_code>', methods=['GET', 'POST'])
 def purchase(event_id, promo_code=None):
@@ -1293,44 +1268,42 @@ def purchase(event_id, promo_code=None):
                             db.session.add(attendee)
                             attendees.append(attendee)
 
-                # Calculate base amount (in pence)
+                # Calculate base amount (organizer's target revenue T)
                 base_amount = sum(
                     ticket_types[i].price * quantities[ticket_type_id] * 100
                     for i, ticket_type_id in enumerate(quantities)
                     if quantities[ticket_type_id] > 0
                 )
 
-                # Get all discount rules and apply the most beneficial one
+                # Apply any discounts to the base amount
                 total_tickets = sum(quantities.values())
                 discount_amount = 0
 
-                
                 # Check all discount rules
                 discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
                 for rule in discount_rules:
-                    current_discount = 0
-                    
-                    if rule.discount_type == 'early_bird':
-                        if rule.valid_until and datetime.now() < rule.valid_until:
-                            if not rule.max_early_bird_tickets or total_tickets <= rule.max_early_bird_tickets:
-                                current_discount = base_amount * (rule.discount_percent / 100)
-                    
-                    elif rule.discount_type == 'bulk' and total_tickets >= rule.min_tickets:
-                        if rule.apply_to == 'all':
-                            current_discount = base_amount * (rule.discount_percent / 100)
-                        else:  # 'additional'
-                            per_ticket_amount = base_amount / total_tickets
-                            additional_tickets = total_tickets - 1
-                            current_discount = (per_ticket_amount * additional_tickets) * (rule.discount_percent / 100)
-                    
-                    # Keep the highest discount
-                    discount_amount = max(discount_amount, current_discount)
+                    current_discount = rule.calculate_discount(
+                        total_tickets, 
+                        base_amount/100,  # Convert to pounds for calculation
+                        promo_code
+                    )
+                    discount_amount = max(discount_amount, current_discount * 100)  # Convert back to pence
 
-                # Apply the discount
-                total_amount_pence = int(base_amount - discount_amount)
+                # Apply the discount to get final base amount (T)
+                base_amount = int(base_amount - discount_amount)
 
-                # Booking fee (e.g., 30p per ticket)
-                booking_fee_pence = 30 * total_tickets_requested
+                # Calculate total amount using the formula: X = (T + (N × 0.30) + 0.20) / (1 - 0.014)
+                platform_fee = total_tickets * 30  # £0.30 per ticket in pence
+                stripe_flat_fee = 20  # £0.20 in pence
+                
+                total_amount_pence = int((base_amount + platform_fee + stripe_flat_fee) / (1 - 0.014))
+
+                # For transparency, calculate the individual fee components
+                stripe_percentage_fee = int(total_amount_pence * 0.014)
+                total_fees = platform_fee + stripe_flat_fee + stripe_percentage_fee
+
+                # Calculate booking fee (for display purposes)
+                booking_fee_pence = total_amount_pence - base_amount
 
                 # Stripe fee (1.4% + 20p per transaction)
                 stripe_fee_pence = int((total_amount_pence + booking_fee_pence) * 0.014) + 20
@@ -2385,6 +2358,7 @@ def stripe_onboarding_complete():
         print("Stripe onboarding failed: Missing account_id or user_id.")
         flash('Stripe onboarding failed. Please try again.')
         return redirect(url_for('register'))
+
 
 
 
