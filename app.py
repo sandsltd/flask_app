@@ -1387,37 +1387,45 @@ def purchase(event_id, promo_code=None):
                         }
                     }
 
-                    # Create Stripe checkout session with ticket and booking fee as separate line items
+                    # Initialize line_items with individual tickets and separate booking fee line item
+                    line_items = []
+
+                    # Add each ticket as a separate line item
+                    for ticket_type_id, quantity in quantities.items():
+                        ticket_type = next((t for t in ticket_types if t.id == ticket_type_id), None)
+                        if ticket_type and quantity > 0:
+                            for _ in range(quantity):
+                                line_items.append({
+                                    'price_data': {
+                                        'currency': 'gbp',
+                                        'unit_amount': int(ticket_type.price * 100),  # Price of each ticket in pence
+                                        'product_data': {
+                                            'name': f"{ticket_type.name} for {event.name}",
+                                        },
+                                    },
+                                    'quantity': 1,
+                                })
+
+                    # Add the updated booking fee line item with the new label
+                    line_items.append({
+                        'price_data': {
+                            'currency': 'gbp',
+                            'product_data': {'name': 'Booking, handling, and processing fee'},
+                            'unit_amount': total_booking_fee_pence,  # Total booking fees (e.g., 30p per ticket + Stripe fees)
+                        },
+                        'quantity': 1,
+                    })
+
+                    # Create Stripe checkout session with individual ticket line items and booking fee
                     checkout_session = stripe.checkout.Session.create(
                         payment_method_types=['card'],
-                        line_items=[
-                            # Ticket line item
-                            {
-                                'price_data': {
-                                    'currency': 'gbp',
-                                    'unit_amount': total_amount_pence,  # Use only the discounted ticket price here
-                                    'product_data': {
-                                        'name': f'Tickets for {event.name}',
-                                    },
-                                },
-                                'quantity': 1,
-                            },
-                            # Separate booking fee line item
-                            {
-                                'price_data': {
-                                    'currency': 'gbp',
-                                    'product_data': {'name': 'Booking Fee'},
-                                    'unit_amount': total_booking_fee_pence,  # Total booking fees (e.g., 30p per ticket + Stripe fees)
-                                },
-                                'quantity': 1,
-                            }
-                        ],
+                        line_items=line_items,
                         mode='payment',
                         success_url=url_for('success', session_id=session_id, _external=True),
                         cancel_url=url_for('cancel', _external=True),
                         metadata={'session_id': session_id},
                         payment_intent_data={
-                            'application_fee_amount': adjusted_platform_fee,  # Adjusted platform fee to account for Stripe's processing fee
+                            'application_fee_amount': adjusted_platform_fee,  # Adjusted platform fee to cover Stripe's processing cut
                             'on_behalf_of': organizer.stripe_connect_id,
                             'transfer_data': {
                                 'destination': organizer.stripe_connect_id,
@@ -1426,7 +1434,7 @@ def purchase(event_id, promo_code=None):
                         billing_address_collection='required',
                         customer_email=email
                     )
-                    
+                                        
 
                     return redirect(checkout_session.url)
 
