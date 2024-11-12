@@ -768,8 +768,14 @@ def create_event():
                     print(f"\nProcessing discount rule {i+1}:")
                     print(f"Discount type: {discount_type}")
                     
-                    # Get and print all relevant form data
-                    discount_percent = float(request.form.getlist('discount_percent[]')[i])
+                    # Get discount percentage based on type
+                    if discount_type == 'early_bird':
+                        discount_percent = float(request.form.getlist('early_bird_discount_percent[]')[i])
+                    elif discount_type == 'bulk':
+                        discount_percent = float(request.form.getlist('discount_percent[]')[i])
+                    else:
+                        discount_percent = float(request.form.getlist('promo_discount[]')[i])
+                    
                     print(f"Discount percentage: {discount_percent}")
 
                     discount_rule = DiscountRule(
@@ -785,8 +791,11 @@ def create_event():
                         print(f"- Valid until: {valid_until}")
                         print(f"- Max tickets: {max_tickets}")
                         
+                        if not valid_until:
+                            raise ValueError("Valid until date is required for early bird discount")
+                            
                         discount_rule.valid_until = datetime.strptime(valid_until, '%Y-%m-%dT%H:%M')
-                        discount_rule.max_early_bird_tickets = int(max_tickets)
+                        discount_rule.max_early_bird_tickets = int(max_tickets) if max_tickets else None
                         print(f"Processed Early Bird rule: valid until {discount_rule.valid_until}, max tickets: {discount_rule.max_early_bird_tickets}")
 
                     elif discount_type == 'bulk':
@@ -802,9 +811,10 @@ def create_event():
                 except (ValueError, IndexError) as e:
                     print(f"ERROR processing discount rule: {str(e)}")
                     print(f"Form data for debugging:")
-                    print(f"- All discount_percent values: {request.form.getlist('discount_percent[]')}")
-                    print(f"- All valid_until values: {request.form.getlist('valid_until[]')}")
-                    print(f"- All max_tickets values: {request.form.getlist('max_early_bird_tickets[]')}")
+                    print(f"- Early bird discount values: {request.form.getlist('early_bird_discount_percent[]')}")
+                    print(f"- Bulk discount values: {request.form.getlist('discount_percent[]')}")
+                    print(f"- Valid until values: {request.form.getlist('valid_until[]')}")
+                    print(f"- Max tickets values: {request.form.getlist('max_early_bird_tickets[]')}")
                     continue
 
             print("\nCommitting all changes to database...")
