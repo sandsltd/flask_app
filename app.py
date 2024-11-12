@@ -2974,8 +2974,51 @@ def create_checkout_session(event_id):
         return jsonify({'error': str(e)}), 500
 
 def calculate_discounted_price(original_price, quantity, event_id):
-    # Your existing discount calculation logic here
-    # Make sure to return the discounted price per ticket
-    return discounted_price
-
+    """
+    Calculate the discounted price per ticket based on applicable discount rules.
+    
+    Args:
+        original_price (float): Original ticket price
+        quantity (int): Number of tickets being purchased
+        event_id (int): ID of the event
+        
+    Returns:
+        float: Final price per ticket after applying any applicable discounts
+    """
+    # Get all discount rules for this event
+    discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
+    
+    # If no discount rules exist, return original price
+    if not discount_rules:
+        return original_price
+    
+    max_discount = 0
+    current_time = datetime.now(timezone.utc)
+    
+    # Check each discount rule and find the highest applicable discount
+    for rule in discount_rules:
+        current_discount = 0
+        
+        if rule.discount_type == 'early_bird':
+            # Check if within valid timeframe
+            if rule.valid_until and current_time < rule.valid_until:
+                if not rule.max_early_bird_tickets or quantity <= rule.max_early_bird_tickets:
+                    current_discount = original_price * (rule.discount_percent / 100)
+        
+        elif rule.discount_type == 'bulk' and quantity >= rule.min_tickets:
+            if rule.apply_to == 'all':
+                current_discount = original_price * (rule.discount_percent / 100)
+            else:  # 'additional'
+                # Calculate discount only for additional tickets
+                additional_tickets = quantity - 1
+                current_discount = (original_price * additional_tickets * rule.discount_percent / 100) / quantity
+        
+        # Keep track of the highest discount
+        max_discount = max(max_discount, current_discount)
+    
+    # Apply the highest discount to get final price
+    final_price = original_price - max_discount
+    
+    # Ensure price doesn't go below zero
+    return max(0, final_price)
      
