@@ -763,47 +763,28 @@ def create_event():
             print("\n=== Starting Discount Rules Processing ===")
             print(f"Found discount types: {discount_types}")
 
+            # Clear any existing discount rules for this event
+            DiscountRule.query.filter_by(event_id=event.id).delete()
+
             for i, discount_type in enumerate(discount_types):
                 try:
                     print(f"\nProcessing discount rule {i+1}:")
                     print(f"Discount type: {discount_type}")
                     
-                    # Get discount percentage based on discount type
-                    if discount_type == 'early_bird':
-                        discount_percent = float(request.form.getlist('early_bird_discount_percent[]')[i])
-                    elif discount_type == 'bulk':
-                        discount_percent = float(request.form.getlist('bulk_discount_percent[]')[i])
-                    elif discount_type == 'promo_code':
-                        try:
-                            # Get the promo code details using the correct field name
-                            promo_code = request.form.getlist('promo_code[]')[i]
-                            discount_percent = float(request.form.getlist('promo_discount[]')[i])  # Changed from promo_discount_percent[]
-                            max_uses = int(request.form.getlist('max_uses[]')[i])
-                            
-                            print(f"Processing promo code discount:")
-                            print(f"- Discount percent: {discount_percent}")
-                            print(f"- Promo code: {promo_code}")
-                            print(f"- Max uses: {max_uses}")
-                            
-                            discount_rule = DiscountRule(
-                                event_id=event.id,
-                                discount_type='promo_code',
-                                discount_percent=discount_percent,
-                                promo_code=promo_code,
-                                max_uses=max_uses,
-                                uses_count=0
-                            )
-                            
-                            print(f"Created discount rule: {discount_rule.__dict__}")
-                            db.session.add(discount_rule)
-                            
-                        except IndexError as e:
-                            print(f"Error accessing promo code form fields: {str(e)}")
-                            print("Form field contents:")
-                            print(f"- promo_code[]: {request.form.getlist('promo_code[]')}")
-                            print(f"- promo_discount[]: {request.form.getlist('promo_discount[]')}")  # Updated field name
-                            print(f"- max_uses[]: {request.form.getlist('max_uses[]')}")
-                            continue
+                    if discount_type == 'promo_code':
+                        promo_code = request.form.getlist('promo_code[]')[i]
+                        discount_percent = float(request.form.getlist('promo_discount[]')[i])  # Note the field name
+                        max_uses = int(request.form.getlist('max_uses[]')[i])
+                        
+                        discount_rule = DiscountRule(
+                            event_id=event.id,
+                            discount_type='promo_code',
+                            discount_percent=discount_percent,
+                            promo_code=promo_code,
+                            max_uses=max_uses,
+                            uses_count=0
+                        )
+                        db.session.add(discount_rule)
                     else:
                         raise ValueError(f"Unknown discount type: {discount_type}")
                     
@@ -1718,7 +1699,7 @@ def send_confirmation_email_to_attendee(attendees, billing_details):
         event_date = event.date.replace('-', '')
         google_calendar_url = (
             f"https://www.google.com/calendar/render?"
-            f"action=TEMPLATE&text={urllib.parse.quote(event.name)}"
+            f"&text={urllib.parse.quote(event.name)}"
             f"&dates={event_date}T{start_time}Z/{event_date}T{end_time}Z"
             f"&details=Event+at+{urllib.parse.quote(event.location)}"
             f"&location={urllib.parse.quote(event.location)}"

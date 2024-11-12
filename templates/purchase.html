@@ -160,10 +160,14 @@
             </label>
         </div>
 
-        <!-- Add this in your form -->
+        <!-- Update the promo code section -->
         <div class="promo-code-section">
             <label for="promo_code">Promo Code (if applicable):</label>
-            <input type="text" id="promo_code" name="promo_code">
+            <div class="promo-code-input-group">
+                <input type="text" id="promo_code" name="promo_code">
+                <button type="button" id="check_promo" class="check-promo-btn">Check Code</button>
+            </div>
+            <span id="promo_message" class="promo-message"></span>
         </div>
 
         <input type="submit" value="Proceed to Payment" class="submit-btn">
@@ -471,6 +475,62 @@
             // Add countdown implementation
             document.querySelector('.event-info').appendChild(countdownElement);
         }
+    }
+
+    document.getElementById('check_promo').addEventListener('click', async function() {
+        const promoCode = document.getElementById('promo_code').value;
+        const eventId = '{{ event.id }}';
+        const messageElement = document.getElementById('promo_message');
+        
+        if (!promoCode) {
+            messageElement.textContent = 'Please enter a promo code';
+            messageElement.className = 'promo-message error';
+            return;
+        }
+
+        try {
+            const response = await fetch('/verify_promo_code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    event_id: eventId,
+                    promo_code: promoCode
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.valid) {
+                messageElement.textContent = `Success! ${data.discount}% discount will be applied`;
+                messageElement.className = 'promo-message success';
+                // Update the discount configuration
+                discountConfig = {
+                    type: 'promo_code',
+                    percentage: data.discount,
+                    code: promoCode
+                };
+                // Update prices
+                updatePriceDisplays(getTotalQuantity());
+            } else {
+                messageElement.textContent = data.message || 'Invalid promo code';
+                messageElement.className = 'promo-message error';
+                // Reset discount if promo code is invalid
+                if (discountConfig.type === 'promo_code') {
+                    discountConfig = null;
+                    updatePriceDisplays(getTotalQuantity());
+                }
+            }
+        } catch (error) {
+            messageElement.textContent = 'Error checking promo code';
+            messageElement.className = 'promo-message error';
+        }
+    });
+
+    function getTotalQuantity() {
+        return Array.from(document.querySelectorAll('.ticket-input'))
+            .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
     }
 </script>
 
@@ -902,6 +962,40 @@
         padding: 0.5rem 1rem;
         border-radius: 50px;
         margin-top: 1rem;
+    }
+
+    .promo-code-input-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 0.5rem;
+    }
+
+    .check-promo-btn {
+        padding: 0.8rem 1.5rem;
+        background: #ff0000;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .check-promo-btn:hover {
+        background: #cc0000;
+    }
+
+    .promo-message {
+        display: block;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .promo-message.success {
+        color: #28a745;
+    }
+
+    .promo-message.error {
+        color: #dc3545;
     }
 </style>
 
