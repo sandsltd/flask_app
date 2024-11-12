@@ -72,6 +72,22 @@
             </div>
         </section>
 
+        <!-- Embed Code Section -->
+        <section class="embed-section">
+            <h3>Website Integration</h3>
+            <p>Add this code to your website to display your events:</p>
+            <div class="code-container">
+                <pre id="embed-code">
+                    &lt;script src="https://bookings.ticketrush.io/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
+                </pre>
+                <button onclick="copyEmbedCode()" class="copy-button">
+                    <i class="fas fa-copy"></i> Copy Code
+                </button>
+            </div>
+        </section>
+    </div>
+</div>
+
         <!-- Events Management Section -->
         <section class="events-section">
             <div class="section-header">
@@ -290,21 +306,7 @@
             </div>
         </section>
 
-        <!-- Embed Code Section -->
-        <section class="embed-section">
-            <h3>Website Integration</h3>
-            <p>Add this code to your website to display your events:</p>
-            <div class="code-container">
-                <pre id="embed-code">
-                    &lt;script src="https://bookings.ticketrush.io/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;
-                </pre>
-                <button onclick="copyEmbedCode()" class="copy-button">
-                    <i class="fas fa-copy"></i> Copy Code
-                </button>
-            </div>
-        </section>
-    </div>
-</div>
+        
 
 <style>
 /* Base Styles */
