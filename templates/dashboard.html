@@ -272,6 +272,9 @@
                             <a href="{{ url_for('start_event_scanner', event_id=event_data.id) }}" class="action-btn scanner">
                                 <i class="fas fa-qrcode"></i> Scanner
                             </a>
+                            <button onclick="showDeleteConfirmation('{{ event_data.id }}')" class="action-btn delete">
+                                <i class="fas fa-trash"></i> Delete Event
+                            </button>
                             <div class="booking-url">
                                 <div class="url-container">
                                     <input type="text" id="event-url-{{ event_data.id }}" value="{{ url_for('purchase', event_id=event_data.id, _external=True) }}" readonly>
@@ -280,9 +283,6 @@
                                     </button>
                                 </div>
                             </div>
-                            <button onclick="showDeleteConfirmation('{{ event_data.id }}')" class="action-btn delete">
-                                <i class="fas fa-trash"></i> Delete Event
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -1021,6 +1021,13 @@
 .action-btn.delete {
     background: #dc2626;
     color: white;
+    cursor: pointer;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .modal {
@@ -1030,7 +1037,7 @@
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
-    display: flex;
+    display: none;
     justify-content: center;
     align-items: center;
     z-index: 1000;
@@ -1042,43 +1049,6 @@
     border-radius: 12px;
     max-width: 500px;
     width: 90%;
-}
-
-.modal-content h2 {
-    color: #dc2626;
-    margin-top: 0;
-}
-
-.modal-content ul {
-    color: #4b5563;
-    margin-bottom: 2rem;
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-}
-
-.btn-cancel {
-    padding: 0.5rem 1rem;
-    border: 1px solid #d1d5db;
-    background: white;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.btn-delete {
-    padding: 0.5rem 1rem;
-    background: #dc2626;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.btn-delete:hover {
-    background: #b91c1c;
 }
 </style>
 
@@ -1174,15 +1144,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function showDeleteConfirmation(eventId) {
+    console.log('Showing delete confirmation for event:', eventId); // Debug log
     const modal = document.getElementById('deleteModal');
     const form = document.getElementById('deleteEventForm');
-    form.action = `/delete_event/${eventId}`;
-    modal.style.display = 'flex';
+    if (modal && form) {
+        form.action = `/delete_event/${eventId}`;
+        modal.style.display = 'flex';
+    } else {
+        console.error('Modal or form not found!'); // Debug log
+    }
 }
 
 function hideDeleteModal() {
     const modal = document.getElementById('deleteModal');
-    modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+    }
 }
 
 // Close modal if clicking outside
@@ -1192,6 +1169,9 @@ window.onclick = function(event) {
         hideDeleteModal();
     }
 }
+
+// Add this to verify the script is loaded
+console.log('Delete event handlers initialized');
 </script>
 
 <!-- Delete Confirmation Modal -->
