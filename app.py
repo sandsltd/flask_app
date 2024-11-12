@@ -2381,19 +2381,29 @@ def datetimeformat(value):
         return ''
     
     try:
-        # First try the expected format YYYY-MM-DD
-        return datetime.strptime(value, '%Y-%m-%d').strftime('%d-%m-%Y')
-    except ValueError:
+        # If value is already a datetime object
+        if isinstance(value, datetime):
+            return value.strftime('%d-%m-%Y')
+            
+        # If value is a string, try parsing it
         try:
-            # Try the format that's causing the error (Y-MM-DD)
-            return datetime.strptime(value, '%Y-%d-%m').strftime('%d-%m-%Y')
+            # First try the expected format YYYY-MM-DD
+            return datetime.strptime(value, '%Y-%m-%d').strftime('%d-%m-%Y')
         except ValueError:
             try:
-                # Try another possible format
-                return datetime.strptime(value, '%d-%m-%Y').strftime('%d-%m-%Y')
+                # Try the format that's causing the error (Y-MM-DD)
+                return datetime.strptime(value, '%Y-%d-%m').strftime('%d-%m-%Y')
             except ValueError:
-                # If all parsing attempts fail, return the original value
-                return value
+                try:
+                    # Try another possible format
+                    return datetime.strptime(value, '%d-%m-%Y').strftime('%d-%m-%Y')
+                except ValueError:
+                    # If all parsing attempts fail, return the original value
+                    return value
+                    
+    except Exception as e:
+        print(f"Error formatting date {value}: {str(e)}")
+        return value
 
 from flask import render_template, request, redirect, url_for
 import qrcode
