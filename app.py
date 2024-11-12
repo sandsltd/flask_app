@@ -1189,16 +1189,33 @@ def purchase(event_id, promo_code=None):
             flash('Event organizer is not properly configured for payments.', 'error')
             return redirect(url_for('dashboard'))
 
+        # Get discount rules for this event
+        discount_rules = DiscountRule.query.filter_by(event_id=event_id, active=True).all()
+        
+        # Format discount config for the template
+        discount_config = {'type': 'none', 'percentage': 0, 'minTickets': 0, 'apply_to': 'none'}
+        
+        for rule in discount_rules:
+            if rule.rule_type == 'early_bird' and rule.valid_until > datetime.now():
+                discount_config = {
+                    'type': 'early_bird',
+                    'percentage': rule.discount_percentage,
+                    'valid_until': rule.valid_until.isoformat(),
+                    'max_tickets': rule.max_tickets,
+                    'apply_to': 'all'
+                }
+                break
+            elif rule.rule_type == 'bulk':
+                discount_config = {
+                    'type': 'bulk',
+                    'percentage': rule.discount_percentage,
+                    'minTickets': rule.min_tickets,
+                    'apply_to': rule.apply_to or 'all'
+                }
+                break
+
         # Initialize variables needed by the template
         questions = []  # Get your questions from wherever they're stored
-        discount_config = {
-            'type': 'none',
-            'percentage': 0,
-            'minTickets': 0,
-            'apply_to': 'none',
-            'valid_until': None,
-            'max_tickets': None
-        }
         
         # Get the organizer's terms link
         organizer_terms_link = organizer.terms if organizer.terms != 'none' else None
@@ -1251,12 +1268,32 @@ def purchase(event_id, promo_code=None):
 
             print(f"Total ticket price: {total_ticket_price_pence}p (£{total_ticket_price_pence/100:.2f})")
 
+            # Apply discount if applicable
+            discount_amount_pence = 0
+            if discount_config['type'] != 'none':
+                if discount_config['type'] == 'early_bird':
+                    if datetime.now() < datetime.fromisoformat(discount_config['valid_until']):
+                        if not discount_config['max_tickets'] or total_tickets <= discount_config['max_tickets']:
+                            discount_amount_pence = int(total_ticket_price_pence * (discount_config['percentage'] / 100))
+                
+                elif discount_config['type'] == 'bulk' and total_tickets >= discount_config['minTickets']:
+                    if discount_config['apply_to'] == 'all':
+                        discount_amount_pence = int(total_ticket_price_pence * (discount_config['percentage'] / 100))
+                    else:  # 'additional'
+                        price_per_ticket = total_ticket_price_pence / total_tickets
+                        additional_tickets = total_tickets - 1
+                        discount_amount_pence = int((price_per_ticket * additional_tickets) * (discount_config['percentage'] / 100))
+
+            # Calculate final price after discount
+            final_price_pence = total_ticket_price_pence - discount_amount_pence
+            print(f"Final price after discount: {final_price_pence}p (£{final_price_pence/100:.2f})")
+
             # Calculate the platform fee (30p per ticket)
             platform_fee_pence = 30 * total_tickets
             print(f"Platform fee: {platform_fee_pence}p (£{platform_fee_pence/100:.2f})")
 
             # Calculate the subtotal (ticket price + platform fee)
-            subtotal_pence = total_ticket_price_pence + platform_fee_pence
+            subtotal_pence = final_price_pence + platform_fee_pence
             print(f"Subtotal: {subtotal_pence}p (£{subtotal_pence/100:.2f})")
 
             # Calculate the Stripe percentage fee (1.4% of subtotal)
@@ -1279,7 +1316,7 @@ def purchase(event_id, promo_code=None):
                         {
                             'price_data': {
                                 'currency': 'gbp',
-                                'unit_amount': int(total_ticket_price_pence),
+                                'unit_amount': int(final_price_pence),
                                 'product_data': {
                                     'name': f'Tickets for {event.name}',
                                 },
