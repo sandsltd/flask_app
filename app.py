@@ -768,13 +768,50 @@ def create_event():
                     print(f"\nProcessing discount rule {i+1}:")
                     print(f"Discount type: {discount_type}")
                     
+                    # Debug all relevant form fields
+                    print("Form data received:")
+                    print(f"- Promo code values: {request.form.getlist('promo_code[]')}")
+                    print(f"- Promo discount percent values: {request.form.getlist('promo_discount_percent[]')}")
+                    print(f"- Max uses values: {request.form.getlist('max_uses[]')}")
+                    
                     # Get discount percentage based on discount type
                     if discount_type == 'early_bird':
                         discount_percent = float(request.form.getlist('early_bird_discount_percent[]')[i])
                     elif discount_type == 'bulk':
                         discount_percent = float(request.form.getlist('bulk_discount_percent[]')[i])
                     elif discount_type == 'promo_code':
-                        discount_percent = float(request.form.getlist('promo_discount_percent[]')[i])
+                        try:
+                            discount_percent = float(request.form.getlist('promo_discount_percent[]')[i])
+                            promo_code = request.form.getlist('promo_code[]')[i]
+                            max_uses = int(request.form.getlist('max_uses[]')[i])
+                            
+                            print(f"Processing promo code discount:")
+                            print(f"- Discount percent: {discount_percent}")
+                            print(f"- Promo code: {promo_code}")
+                            print(f"- Max uses: {max_uses}")
+                            
+                            discount_rule = DiscountRule(
+                                event_id=event.id,
+                                discount_type='promo_code',
+                                discount_percent=discount_percent,
+                                promo_code=promo_code,
+                                max_uses=max_uses,
+                                uses_count=0
+                            )
+                            
+                            print(f"Created discount rule: {discount_rule.__dict__}")
+                            db.session.add(discount_rule)
+                            
+                        except IndexError as e:
+                            print(f"Error accessing promo code form fields: {str(e)}")
+                            print("Form field contents:")
+                            print(f"- promo_discount_percent[]: {request.form.getlist('promo_discount_percent[]')}")
+                            print(f"- promo_code[]: {request.form.getlist('promo_code[]')}")
+                            print(f"- max_uses[]: {request.form.getlist('max_uses[]')}")
+                            continue
+                        except ValueError as e:
+                            print(f"Error converting form values: {str(e)}")
+                            continue
                     else:
                         raise ValueError(f"Unknown discount type: {discount_type}")
                     
