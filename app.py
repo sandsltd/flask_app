@@ -454,7 +454,7 @@ def dashboard():
             'max_tickets': rule.max_early_bird_tickets if rule.discount_type == 'early_bird' else None,
             'code': rule.promo_code if rule.discount_type == 'promo_code' else None,
             'max_uses': rule.max_uses if rule.discount_type == 'promo_code' else None,
-            'uses_left': rule.max_uses - rule.times_used if rule.discount_type == 'promo_code' else None
+            'uses_left': rule.max_uses - rule.uses_count if rule.discount_type == 'promo_code' else None
         } for rule in discount_rules]
 
         event_data.append({
