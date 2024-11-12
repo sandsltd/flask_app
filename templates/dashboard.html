@@ -31,24 +31,16 @@
     </header>
 
     <!-- Flash Messages -->
-    <div class="notifications-container">
+    <div class="flash-messages">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                <div class="notification {{ category }} show">
-                    <div class="notification-content">
-                        {% if category == 'success' %}
-                            <i class="fas fa-check-circle"></i>
-                        {% elif category == 'error' %}
-                            <i class="fas fa-exclamation-circle"></i>
-                        {% elif category == 'warning' %}
-                            <i class="fas fa-exclamation-triangle"></i>
-                        {% else %}
-                            <i class="fas fa-info-circle"></i>
-                        {% endif %}
+                <div class="flash-message {{ category }}">
+                    <div class="flash-content">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
                         <p>{{ message }}</p>
                     </div>
-                    <button type="button" class="notification-close" onclick="this.parentElement.remove()">
+                    <button onclick="this.parentElement.remove()" class="close-button">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -325,30 +317,25 @@
         </section>
 
         <!-- Embed Code Section -->
-        <section class="embed-section">
-            <div class="embed-header" onclick="toggleEmbedCode()">
-                <div class="embed-title">
-                    <i class="fas fa-code"></i>
-                    <h3>Add Tickets to Your Website</h3>
-                </div>
-                <button class="toggle-button">
-                    <i class="fas fa-chevron-down" id="embed-chevron"></i>
-                </button>
-            </div>
+        <div class="embed-widget">
+            <button onclick="toggleEmbed()" class="embed-toggle">
+                <i class="fas fa-code"></i>
+                Add Tickets to Your Website
+                <i class="fas fa-chevron-down" id="embed-chevron"></i>
+            </button>
             
-            <div id="embed-code-container" style="display: none;">
-                <p class="embed-description">Copy this code snippet to your website to display your events:</p>
-                <div class="url-container">
+            <div id="embed-content" style="display: none;">
+                <div class="embed-box">
                     <input type="text" 
-                           id="embed-code-input" 
+                           id="embed-code" 
                            value="<script src='https://bookings.ticketrush.io/embed/{{ user.unique_id }}'></script>" 
                            readonly>
-                    <button onclick="copyEmbedCode()" class="action-btn copy">
-                        <i class="fas fa-copy"></i> Copy Code
+                    <button onclick="copyEmbed()" class="copy-btn">
+                        <i class="fas fa-copy"></i> Copy
                     </button>
                 </div>
             </div>
-        </section>
+        </div>
     </div>
 </div>
 
@@ -1305,6 +1292,139 @@
     font-size: 0.9em;
     background: #f9fafb;
 }
+
+/* Flash Messages */
+.flash-messages {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.flash-message {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    min-width: 300px;
+    animation: slideIn 0.3s ease-out;
+}
+
+.flash-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.flash-message.success {
+    border-left: 4px solid #10B981;
+}
+
+.flash-message.error {
+    border-left: 4px solid #EF4444;
+}
+
+.flash-message i {
+    font-size: 1.2em;
+}
+
+.flash-message.success i {
+    color: #10B981;
+}
+
+.flash-message.error i {
+    color: #EF4444;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.close-button:hover {
+    color: #333;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Embed Widget */
+.embed-widget {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 30px 0;
+    overflow: hidden;
+}
+
+.embed-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+    color: #333;
+    transition: background-color 0.2s;
+}
+
+.embed-toggle:hover {
+    background: #f3f4f6;
+}
+
+.embed-box {
+    display: flex;
+    gap: 10px;
+    padding: 20px;
+    border-top: 1px solid #eee;
+}
+
+.embed-box input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.9em;
+    background: #f8f9fa;
+}
+
+.copy-btn {
+    padding: 10px 20px;
+    background: #f3f4f6;
+    color: #4b5563;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.copy-btn:hover {
+    background: #e5e7eb;
+}
 </style>
 
 <script>
@@ -1443,6 +1563,49 @@ function toggleEmbedCode() {
         container.style.display = 'none';
         chevron.className = 'fas fa-chevron-down';
     }
+}
+
+// Auto-dismiss flash messages
+document.addEventListener('DOMContentLoaded', function() {
+    const messages = document.querySelectorAll('.flash-message');
+    messages.forEach(message => {
+        setTimeout(() => {
+            message.style.opacity = '0';
+            message.style.transform = 'translateX(100%)';
+            setTimeout(() => message.remove(), 300);
+        }, 5000);
+    });
+});
+
+function toggleEmbed() {
+    const content = document.getElementById('embed-content');
+    const chevron = document.getElementById('embed-chevron');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        chevron.className = 'fas fa-chevron-up';
+    } else {
+        content.style.display = 'none';
+        chevron.className = 'fas fa-chevron-down';
+    }
+}
+
+function copyEmbed() {
+    const code = document.getElementById('embed-code');
+    code.select();
+    document.execCommand('copy');
+    
+    const btn = document.querySelector('.copy-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    btn.style.background = '#10B981';
+    btn.style.color = 'white';
+    
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.style.background = '';
+        btn.style.color = '';
+    }, 2000);
 }
 </script>
 
