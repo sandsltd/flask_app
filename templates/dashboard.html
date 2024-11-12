@@ -316,22 +316,26 @@
             </div>
         </section>
 
-        <!-- Embed Code Section -->
-        <div class="embed-widget">
-            <button onclick="toggleEmbed()" class="embed-toggle">
-                <i class="fas fa-code"></i>
-                Add Tickets to Your Website
+        <!-- Add this right after the dashboard-header -->
+        <div id="toast-container"></div>
+
+        <!-- Replace the embed section -->
+        <div class="embed-section">
+            <div class="embed-header" onclick="toggleEmbed()">
+                <div class="embed-title">
+                    <i class="fas fa-code"></i>
+                    <h3>Add Tickets to Your Website</h3>
+                </div>
                 <i class="fas fa-chevron-down" id="embed-chevron"></i>
-            </button>
+            </div>
             
-            <div id="embed-content" style="display: none;">
-                <div class="embed-box">
-                    <input type="text" 
-                           id="embed-code" 
-                           value="<script src='https://bookings.ticketrush.io/embed/{{ user.unique_id }}'></script>" 
-                           readonly>
-                    <button onclick="copyEmbed()" class="copy-btn">
-                        <i class="fas fa-copy"></i> Copy
+            <div id="embed-content" class="embed-content" style="display: none;">
+                <p class="embed-description">Add this code to your website to display your events:</p>
+                <div class="code-box">
+                    <code id="embed-code">&lt;script src="https://bookings.ticketrush.io/embed/{{ user.unique_id }}"&gt;&lt;/script&gt;</code>
+                    <button onclick="copyEmbed()" class="copy-button">
+                        <i class="fas fa-copy"></i>
+                        <span>Copy</span>
                     </button>
                 </div>
             </div>
@@ -1425,6 +1429,185 @@
 .copy-btn:hover {
     background: #e5e7eb;
 }
+
+/* Toast Notifications */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 300px;
+    margin-bottom: 10px;
+    padding: 16px 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideInRight 0.3s ease-out forwards;
+}
+
+.toast.success {
+    border-left: 4px solid #10B981;
+}
+
+.toast.error {
+    border-left: 4px solid #EF4444;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.toast-content i {
+    font-size: 20px;
+}
+
+.toast.success i {
+    color: #10B981;
+}
+
+.toast.error i {
+    color: #EF4444;
+}
+
+.toast-message {
+    color: #1F2937;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.toast-close {
+    color: #9CA3AF;
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.toast-close:hover {
+    color: #1F2937;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Embed Section Styling */
+.embed-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin: 30px 0;
+    overflow: hidden;
+}
+
+.embed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.embed-header:hover {
+    background-color: #f9fafb;
+}
+
+.embed-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.embed-title i {
+    color: #2563eb;
+    font-size: 1.2em;
+}
+
+.embed-title h3 {
+    margin: 0;
+    font-size: 1.1em;
+    color: #111827;
+}
+
+.embed-content {
+    padding: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.embed-description {
+    color: #6B7280;
+    margin-bottom: 15px;
+}
+
+.code-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f9fafb;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.code-box code {
+    flex: 1;
+    font-family: monospace;
+    color: #374151;
+    font-size: 14px;
+}
+
+.copy-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    color: #374151;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.copy-button:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.copy-button.copied {
+    background: #10B981;
+    border-color: #10B981;
+    color: white;
+}
 </style>
 
 <script>
@@ -1591,22 +1774,56 @@ function toggleEmbed() {
 }
 
 function copyEmbed() {
-    const code = document.getElementById('embed-code');
-    code.select();
-    document.execCommand('copy');
-    
-    const btn = document.querySelector('.copy-btn');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-    btn.style.background = '#10B981';
-    btn.style.color = 'white';
-    
-    setTimeout(() => {
-        btn.innerHTML = originalText;
-        btn.style.background = '';
-        btn.style.color = '';
-    }, 2000);
+    const code = document.getElementById('embed-code').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        const button = document.querySelector('.copy-button');
+        button.classList.add('copied');
+        button.innerHTML = '<i class="fas fa-check"></i><span>Copied!</span>';
+        
+        setTimeout(() => {
+            button.classList.remove('copied');
+            button.innerHTML = '<i class="fas fa-copy"></i><span>Copy</span>';
+        }, 2000);
+        
+        showToast('Code copied to clipboard!', 'success');
+    }).catch(() => {
+        showToast('Failed to copy code', 'error');
+    });
 }
+
+// Toast notification function
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+            <span class="toast-message">${message}</span>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    document.getElementById('toast-container').appendChild(toast);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOutRight 0.3s ease-out forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
+
+// Initialize flash messages as toasts
+document.addEventListener('DOMContentLoaded', function() {
+    const flashesElement = document.getElementById('initial-flashes');
+    if (flashesElement) {
+        const flashes = JSON.parse(flashesElement.dataset.flashes);
+        flashes.forEach(([category, message]) => {
+            showToast(message, category);
+        });
+    }
+});
 </script>
 
 {% endblock %}
