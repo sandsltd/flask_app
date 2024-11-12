@@ -5,108 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create A New Event</title>
     <style>
-        .create-event-container {
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 30px;
+        .event-form-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
             background-color: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
-
-        h1 {
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 2.2em;
-        }
-
-        h3 {
-            color: #444;
-            margin: 25px 0 15px;
-            font-size: 1.3em;
-        }
-
-        .form-section {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f9f9f9;
-            border-radius: 8px;
-        }
-
-        .ticket-type {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 15px 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .discount-rule {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 15px 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        button {
-            padding: 10px 20px;
-            border-radius: 6px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        button[type="submit"] {
-            background-color: #ff0000;
-            color: white;
-            padding: 12px 30px;
-            font-size: 1.1em;
-            margin-top: 20px;
-        }
-
-        button[type="button"] {
-            background-color: #f0f0f0;
-            color: #333;
-        }
-
-        .remove-ticket-type-button, .remove-discount-rule {
-            background-color: #ffebeb;
+        h2, h3 {
             color: #ff0000;
         }
-
-        .info-text {
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 15px 0;
-        }
-
-        input[type="text"], 
-        input[type="date"], 
-        input[type="time"], 
-        input[type="number"], 
-        select, 
-        textarea {
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            margin: 8px 0;
-            font-size: 1em;
-        }
-
-        .questions-section {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
+        hr {
+            border: 1px solid #f5f5f5;
             margin: 20px 0;
         }
-
-        .discount-options {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        label {
+            font-weight: bold;
+            color: #333;
+        }
+        input[type="text"], input[type="date"], input[type="time"], input[type="number"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        textarea {
+            resize: vertical;
+        }
+        input[type="submit"], .add-ticket-button {
+            padding: 10px 20px;
+            background-color: #ff0000;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        input[type="submit"]:hover, .add-ticket-button:hover {
+            background-color: #cc0000;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #ff0000;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            color: #cc0000;
+        }
+        .questions-section {
+            margin-top: 20px;
+        }
+        .ticket-type {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .info-text {
+            margin: 20px 0;
+            font-size: 0.9em;
+            color: #555;
         }
     </style>
 </head>
@@ -119,129 +87,120 @@
 
     <form method="POST" action="{{ url_for('create_event') }}" enctype="multipart/form-data">
         <!-- Event Details -->
-        <div class="form-section">
-            <h3>Basic Event Information</h3>
-            <label for="name">Event Name:</label>
-            <input type="text" id="name" name="name" required>
+        <label for="name">Event Name:</label>
+        <input type="text" id="name" name="name" required>
 
-            <label for="date">Event Date:</label>
-            <input type="date" id="date" name="date" required>
+        <label for="date">Event Date:</label>
+        <input type="date" id="date" name="date" required>
 
-            <label for="start_time">Start Time:</label>
-            <input type="time" id="start_time" name="start_time">
+        <label for="start_time">Start Time:</label>
+        <input type="time" id="start_time" name="start_time">
 
-            <label for="end_time">End Time:</label>
-            <input type="time" id="end_time" name="end_time">
+        <label for="end_time">End Time:</label>
+        <input type="time" id="end_time" name="end_time">
 
-            <label for="location">Location:</label>
-            <input type="text" id="location" name="location" required>
+        <label for="location">Location:</label>
+        <input type="text" id="location" name="location" required>
 
-            <label for="description">Description:</label>
-            <textarea id="description" name="description"></textarea>
+        <label for="description">Description:</label>
+        <textarea id="description" name="description"></textarea>
 
-            <!-- File Uploads for Event Image and Business Logo -->
-            <label for="event_image">Event Image:</label>
-            <input type="file" id="event_image" name="event_image" accept="image/*">
+        <!-- File Uploads for Event Image and Business Logo -->
+        <label for="event_image">Event Image:</label>
+        <input type="file" id="event_image" name="event_image" accept="image/*">
+
+        <!-- Explanation for Ticket Limits -->
+        <div class="info-text">
+            <h3>Choose Your Ticket Strategy</h3>
+            <p>
+                You can choose to <strong>enforce individual ticket type limits</strong> or 
+                <strong>enforce total event capacity</strong>. 
+            </p>
+            <p>
+                If you enforce individual limits, you can control the number of tickets available for each ticket type (like VIP or General Admission). This is great for events with different access levels or limited availability.
+            </p>
+            <p>
+                On the other hand, if you prefer to enforce total capacity, you can simplify the ticketing process by focusing on the overall number of attendees. This option is ideal for larger events where managing multiple ticket types might not be necessary.
+            </p>
         </div>
 
-        <!-- Ticket Strategy -->
-        <div class="form-section">
-            <h3>Ticket Strategy</h3>
-            <div class="info-text">
-                <h3>Choose Your Ticket Strategy</h3>
-                <p>
-                    You can choose to <strong>enforce individual ticket type limits</strong> or 
-                    <strong>enforce total event capacity</strong>. 
-                </p>
-                <p>
-                    If you enforce individual limits, you can control the number of tickets available for each ticket type (like VIP or General Admission). This is great for events with different access levels or limited availability.
-                </p>
-                <p>
-                    On the other hand, if you prefer to enforce total capacity, you can simplify the ticketing process by focusing on the overall number of attendees. This option is ideal for larger events where managing multiple ticket types might not be necessary.
-                </p>
-            </div>
+       <!-- Option to Enforce Individual Ticket Limits -->
+       <label>
+            <input type="radio" name="enforce_individual_ticket_limits" value="on" checked onchange="toggleTicketOptions()">
+            Enforce individual ticket type limits
+       </label>
+       <label>
+            <input type="radio" name="enforce_individual_ticket_limits" value="off" onchange="toggleTicketOptions()">
+            Enforce total event capacity
+       </label>
 
-            <!-- Option to Enforce Individual Ticket Limits -->
-            <label>
-                <input type="radio" name="enforce_individual_ticket_limits" value="on" checked onchange="toggleTicketOptions()">
-                Enforce individual ticket type limits
-            </label>
-            <label>
-                <input type="radio" name="enforce_individual_ticket_limits" value="off" onchange="toggleTicketOptions()">
-                Enforce total event capacity
-            </label>
-        </div>
+       <!-- Ticket Options -->
+       <div id="ticket-types-section">
+           <h3>Ticket Types</h3>
+           <div id="ticket-types-container">
+               <div class="ticket-type">
+                   <label>Ticket Name:</label>
+                   <input type="text" name="ticket_name[]" required>
 
-        <!-- Ticket Types -->
-        <div class="form-section">
-            <h3>Ticket Types</h3>
-            <div id="ticket-types-container">
-                <div class="ticket-type">
-                    <label>Ticket Name:</label>
-                    <input type="text" name="ticket_name[]" required>
+                   <label>Price (£):</label>
+                   <input type="number" step="0.01" name="ticket_price[]" required>
 
-                    <label>Price (£):</label>
-                    <input type="number" step="0.01" name="ticket_price[]" required>
+                   <div class="ticket-quantity-field">
+                       <label>Quantity:</label>
+                       <input type="number" name="ticket_quantity[]" required>
+                   </div>
 
-                    <div class="ticket-quantity-field">
-                        <label>Quantity:</label>
-                        <input type="number" name="ticket_quantity[]" required>
-                    </div>
+                   <button type="button" class="remove-ticket-type-button">Remove</button>
+               </div>
+           </div>
+           <button type="button" id="add-ticket-type-button">Add Ticket Type</button>
+       </div>
 
-                    <button type="button" class="remove-ticket-type-button">Remove</button>
-                </div>
-            </div>
-            <button type="button" id="add-ticket-type-button">Add Ticket Type</button>
-        </div>
-
-        <!-- Total Event Capacity -->
-        <div id="total-capacity-section" style="display: none;">
-            <label for="total_ticket_quantity">Total Event Capacity:</label>
-            <input type="number" id="total_ticket_quantity" name="total_ticket_quantity" min="1" required>
-        </div>
+       <!-- Total Event Capacity -->
+       <div id="total-capacity-section" style="display: none;">
+           <label for="total_ticket_quantity">Total Event Capacity:</label>
+           <input type="number" id="total_ticket_quantity" name="total_ticket_quantity" min="1" required>
+       </div>
 
         <!-- Recurrence Pattern -->
-        <div class="form-section">
-            <h3>Event Recurrence</h3>
-            <label for="recurrence_pattern">Repeat:</label>
-            <select name="recurrence_pattern" id="recurrence_pattern">
-                <option value="none">None</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-            </select>
+        <label for="recurrence_pattern">Repeat:</label>
+        <select name="recurrence_pattern" id="recurrence_pattern">
+            <option value="none">None</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+        </select>
 
-            <!-- Number of Occurrences -->
-            <label for="occurrences">Number of Occurrences:</label>
-            <input type="number" name="occurrences" id="occurrences" min="1" placeholder="e.g., 5" />
-        </div>
+        <!-- Number of Occurrences -->
+        <label for="occurrences">Number of Occurrences:</label>
+        <input type="number" name="occurrences" id="occurrences" min="1" placeholder="e.g., 5" />
 
         <!-- Reminder Section for Default Questions -->
-        <div class="form-section">
-            <h3>Your Default Questions</h3>
-            {% if default_questions %}
-                <ul>
-                    {% for question in default_questions %}
-                        <li>{{ question.question }}</li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p>You haven't set any default questions yet. <a href="/manage-default-questions" class="back-link">Set Default Questions</a></p>
-            {% endif %}
+        <div class="questions-section">
+           <h3>Your Default Questions</h3>
+           {% if default_questions %}
+               <ul>
+                   {% for question in default_questions %}
+                       <li>{{ question.question }}</li>
+                   {% endfor %}
+               </ul>
+           {% else %}
+               <p>You haven't set any default questions yet. <a href="/manage-default-questions" class="back-link">Set Default Questions</a></p>
+           {% endif %}
         </div>
 
         <!-- Custom Questions for This Event -->
-        <div class="form-section">
-            <h3>Custom Questions for This Event</h3>
-            <p>You can add up to 10 custom questions specific to this event.</p>
-            {% for i in range(1, 11) %}
-                <label for="custom_question_{{ i }}">Custom Question {{ i }}:</label>
-                <input type="text" id="custom_question_{{ i }}" name="custom_question_{{ i }}">
-            {% endfor %}
+        <div class="questions-section">
+           <h3>Custom Questions for This Event</h3>
+           <p>You can add up to 10 custom questions specific to this event.</p>
+           {% for i in range(1, 11) %}
+               <label for="custom_question_{{ i }}">Custom Question {{ i }}:</label>
+               <input type="text" id="custom_question_{{ i }}" name="custom_question_{{ i }}">
+           {% endfor %}
         </div>
 
         <!-- Add this after the ticket types section -->
-        <div class="form-section">
+        <div class="discount-rules-section">
             <h3>Ticket Discount Rules</h3>
             <div class="info-text">
                 <p>Set up automatic discounts for your tickets. Choose from different discount types:</p>
