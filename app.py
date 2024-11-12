@@ -2904,4 +2904,78 @@ if __name__ == "__main__":
 def serve_static(filename):
     return send_from_directory('static', filename) 
 
+@app.route('/create-checkout-session/<int:event_id>', methods=['POST'])
+def create_checkout_session(event_id):
+    try:
+        # Get form data
+        data = request.get_json()
+        quantities = data.get('quantities', {})
+        full_name = data.get('full_name')
+        email = data.get('email')
+        phone_number = data.get('phone_number')
+        answers = data.get('answers', {})
+        
+        # Generate a unique session identifier
+        session_id = str(uuid4())
+        
+        # Store the full attendee data in the database first
+        attendee_data = {
+            'session_id': session_id,
+            'full_name': full_name,
+            'email': email,
+            'phone_number': phone_number,
+            'answers': answers
+        }
+        
+        # Store this in your database (you might want to create a temporary storage table)
+        # For now, we'll just store minimal metadata in Stripe
+        
+        # Create simplified metadata for Stripe
+        stripe_metadata = {
+            'session_id': session_id,
+            'event_id': str(event_id),
+            'email': email,
+            'name': full_name
+        }
+
+        # Calculate prices and create line items as before
+        line_items = []
+        for ticket_type_id, quantity in quantities.items():
+            if int(quantity) > 0:
+                ticket_type = TicketType.query.get(int(ticket_type_id))
+                if ticket_type:
+                    # Apply your discount logic here
+                    price = calculate_discounted_price(ticket_type.price, quantity, event_id)
+                    line_items.append({
+                        'price_data': {
+                            'currency': 'gbp',
+                            'unit_amount': int(price * 100),  # Convert to pence
+                            'product_data': {
+                                'name': f'{ticket_type.name}',
+                            },
+                        },
+                        'quantity': int(quantity),
+                    })
+
+        # Create Stripe checkout session with simplified metadata
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=line_items,
+            mode='payment',
+            success_url=url_for('success', session_id=session_id, _external=True),
+            cancel_url=url_for('purchase', event_id=event_id, _external=True),
+            metadata=stripe_metadata
+        )
+
+        return jsonify({'id': checkout_session.id})
+
+    except Exception as e:
+        app.logger.error(f"Error creating checkout session: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+def calculate_discounted_price(original_price, quantity, event_id):
+    # Your existing discount calculation logic here
+    # Make sure to return the discounted price per ticket
+    return discounted_price
+
      
