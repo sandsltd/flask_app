@@ -1292,12 +1292,6 @@ def purchase(event_id, promo_code=None):
                             db.session.add(attendee)
                             attendees.append(attendee)
 
-                # Get discount rules for the event
-                discount_rules = DiscountRule.query.filter_by(
-                    event_id=event.id,
-                    discount_type='bulk'
-                ).first()
-
                 # Calculate base amount (in pence)
                 base_amount = sum(
                     ticket_types[i].price * quantities[ticket_type_id] * 100
@@ -1305,21 +1299,33 @@ def purchase(event_id, promo_code=None):
                     if quantities[ticket_type_id] > 0
                 )
 
-                # Apply discount if applicable
+                # Get all discount rules and apply the most beneficial one
                 total_tickets = sum(quantities.values())
-                if discount_rules and total_tickets >= discount_rules.min_tickets:
-                    if discount_rules.apply_to == 'all':
-                        # Apply discount to all tickets
-                        discount_amount = base_amount * (discount_rules.discount_percent / 100)
-                    else:  # 'additional'
-                        # Calculate discount only for additional tickets
-                        per_ticket_amount = base_amount / total_tickets
-                        additional_tickets = total_tickets - 1
-                        discount_amount = (per_ticket_amount * additional_tickets) * (discount_rules.discount_percent / 100)
+                discount_amount = 0
+                
+                # Check all discount rules
+                discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
+                for rule in discount_rules:
+                    current_discount = 0
+                    
+                    if rule.discount_type == 'early_bird':
+                        if rule.valid_until and datetime.now() < rule.valid_until:
+                            if not rule.max_early_bird_tickets or total_tickets <= rule.max_early_bird_tickets:
+                                current_discount = base_amount * (rule.discount_percent / 100)
+                    
+                    elif rule.discount_type == 'bulk' and total_tickets >= rule.min_tickets:
+                        if rule.apply_to == 'all':
+                            current_discount = base_amount * (rule.discount_percent / 100)
+                        else:  # 'additional'
+                            per_ticket_amount = base_amount / total_tickets
+                            additional_tickets = total_tickets - 1
+                            current_discount = (per_ticket_amount * additional_tickets) * (rule.discount_percent / 100)
+                    
+                    # Keep the highest discount
+                    discount_amount = max(discount_amount, current_discount)
 
-                    total_amount_pence = int(base_amount - discount_amount)
-                else:
-                    total_amount_pence = int(base_amount)
+                # Apply the discount
+                total_amount_pence = int(base_amount - discount_amount)
 
                 if not attendees:
                     flash('Please select at least one ticket.')
