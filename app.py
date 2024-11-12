@@ -1933,31 +1933,14 @@ def view_attendees(event_id):
 def delete_event(event_id):
     event = Event.query.get_or_404(event_id)
 
-    # Security check
+    # Check if current user owns the event before deleting (for extra security)
     if event.user_id != current_user.id:
         flash("You do not have permission to delete this event.", "error")
         return redirect(url_for('dashboard'))
 
-    try:
-        # Delete all related records first
-        # Discount rules will be automatically deleted due to cascade
-        DiscountRule.query.filter_by(event_id=event_id).delete()
-        
-        # Delete all attendees for this event
-        Attendee.query.filter_by(event_id=event_id).delete()
-        
-        # Delete all ticket types
-        TicketType.query.filter_by(event_id=event_id).delete()
-        
-        # Finally delete the event
-        db.session.delete(event)
-        db.session.commit()
-        
-        flash('Event and all associated data deleted successfully!', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting event: {str(e)}', 'error')
-        
+    db.session.delete(event)
+    db.session.commit()
+    flash('Event and all associated attendees deleted successfully!')
     return redirect(url_for('dashboard'))
 
 
@@ -2377,33 +2360,14 @@ def stripe_onboarding_refresh():
 
 @app.template_filter('datetimeformat')
 def datetimeformat(value):
-    if not value:
-        return ''
-    
-    try:
-        # If value is already a datetime object
-        if isinstance(value, datetime):
-            return value.strftime('%d-%m-%Y')
-            
-        # If value is a string, try parsing it
-        try:
-            # First try the expected format YYYY-MM-DD
+    if value:
+        if isinstance(value, str):
+            # If it's a string, parse it first
             return datetime.strptime(value, '%Y-%m-%d').strftime('%d-%m-%Y')
-        except ValueError:
-            try:
-                # Try the format that's causing the error (Y-MM-DD)
-                return datetime.strptime(value, '%Y-%d-%m').strftime('%d-%m-%Y')
-            except ValueError:
-                try:
-                    # Try another possible format
-                    return datetime.strptime(value, '%d-%m-%Y').strftime('%d-%m-%Y')
-                except ValueError:
-                    # If all parsing attempts fail, return the original value
-                    return value
-                    
-    except Exception as e:
-        print(f"Error formatting date {value}: {str(e)}")
-        return value
+        else:
+            # If it's already a datetime object, just format it
+            return value.strftime('%d-%m-%Y')
+    return ""
 
 from flask import render_template, request, redirect, url_for
 import qrcode
