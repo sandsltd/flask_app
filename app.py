@@ -2209,6 +2209,46 @@ def edit_event(event_id):
             # Update total event capacity
             event.ticket_quantity = int(request.form.get('total_ticket_quantity'))
 
+        # Handle discount rules
+        DiscountRule.query.filter_by(event_id=event.id).delete()
+        discount_types = request.form.getlist('discount_type[]')
+        
+        for i, discount_type in enumerate(discount_types):
+            try:
+                # Get the appropriate discount percentage based on discount type
+                if discount_type == 'early_bird':
+                    discount_percent = float(request.form.getlist('early_bird_discount_percent[]')[i])
+                elif discount_type == 'promo_code':
+                    discount_percent = float(request.form.getlist('promo_discount[]')[i])
+                else:  # bulk discount
+                    discount_percent = float(request.form.getlist('bulk_discount[]')[i])
+
+                discount_rule = DiscountRule(
+                    event_id=event.id,
+                    discount_type=discount_type,
+                    discount_percent=discount_percent
+                )
+
+                if discount_type == 'early_bird':
+                    valid_until = request.form.getlist('valid_until[]')[i]
+                    max_tickets = request.form.getlist('max_early_bird_tickets[]')[i]
+                    discount_rule.valid_until = datetime.strptime(valid_until, '%Y-%m-%dT%H:%M')
+                    discount_rule.max_early_bird_tickets = int(max_tickets)
+
+                elif discount_type == 'bulk':
+                    discount_rule.min_tickets = int(request.form.getlist('min_tickets[]')[i])
+                    discount_rule.apply_to = request.form.getlist('apply_to[]')[i]
+
+                elif discount_type == 'promo_code':
+                    discount_rule.promo_code = request.form.getlist('promo_code[]')[i]
+                    discount_rule.max_uses = int(request.form.getlist('max_uses[]')[i])
+
+                db.session.add(discount_rule)
+
+            except (ValueError, IndexError) as e:
+                print(f"Error processing discount rule: {str(e)}")
+                continue
+
         # Update custom questions conditionally
         for i in range(1, 11):
             question_key = f'custom_question_{i}'
