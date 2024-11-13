@@ -268,7 +268,7 @@ header.dashboard-header {
     justify-content: center;
     font-size: 1.5em;
     color: #fff;
-    background-color: #5CA2DC;
+    background-color: #DC5C5C;
     border-radius: 50%;
 }
 
@@ -336,7 +336,7 @@ header.dashboard-header {
 
 .benefit-item i {
     font-size: 1.5em;
-    color: #5CA2DC;
+    color: #DC5C5C;
 }
 
 .benefit-content h3 {
@@ -389,7 +389,7 @@ header.dashboard-header {
 }
 
 .primary-button {
-    background-color: #5CA2DC;
+    background-color: #DC5C5C;
     color: #fff;
     padding: 10px 20px;
     border: none;
@@ -400,12 +400,12 @@ header.dashboard-header {
 }
 
 .primary-button:hover {
-    background-color: #4691c3;
+    background-color: #c34646;
 }
 
 /* Custom Tips and Logos */
 .tips-box h4 {
-    color: #5CA2DC;
+    color: #DC5C5C;
     margin-bottom: 5px;
 }
 
@@ -420,6 +420,37 @@ header.dashboard-header {
     border: 1px solid #ddd;
     padding: 10px;
     border-radius: 4px;
+}
+
+/* Added new clean-up styles */
+.form-section {
+    margin-bottom: 30px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 20px;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.info-card {
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+/* Improved responsive layout */
+@media (max-width: 768px) {
+    .content-grid {
+        flex-direction: column;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 </style>
