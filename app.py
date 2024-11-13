@@ -1463,69 +1463,55 @@ def purchase(event_id, promo_code=None):
                         }
                     }
 
-                    # Initialize line_items with individual tickets and separate booking fee line item
-                    line_items = []
-                    
-                    print(f"\nCreating Stripe line items:")
-                    
-                    # Handle bulk discount for 'additional' tickets differently
-                    for rule in discount_rules:
-                        if (rule.discount_type == 'bulk' and 
-                            total_tickets >= rule.min_tickets and 
-                            rule.apply_to == 'additional'):
-                        
-                            print(f"Processing bulk discount for additional tickets:")
-                            print(f"- Discount percentage: {rule.discount_percent}%")
-                            
-                            for ticket_type_id, quantity in quantities.items():
-                                ticket_type = next((t for t in ticket_types if t.id == ticket_type_id), None)
-                                if ticket_type and quantity > 0:
-                                    # Add first ticket at full price
-                                    print(f"- Adding 1 x {ticket_type.name} at full price: £{ticket_type.price:.2f}")
-                                    line_items.append({
-                                        'price_data': {
-                                            'currency': 'gbp',
-                                            'unit_amount': int(ticket_type.price * 100),
-                                            'product_data': {
-                                                'name': f"{ticket_type.name} for {event.name} - Full Price",
-                                            },
-                                        },
-                                        'quantity': 1,
-                                    })
-                                    
-                                    # Add remaining tickets at discounted price if any
-                                    if quantity > 1:
-                                        discounted_price = ticket_type.price * (1 - rule.discount_percent / 100)
-                                        print(f"- Adding {quantity-1} x {ticket_type.name} at discounted price: £{discounted_price:.2f}")
-                                        line_items.append({
-                                            'price_data': {
-                                                'currency': 'gbp',
-                                                'unit_amount': int(discounted_price * 100),
-                                                'product_data': {
-                                                    'name': f"{ticket_type.name} for {event.name} - {rule.discount_percent}% Additional",
-                                                },
-                                            },
-                                            'quantity': quantity - 1,
-                                        })
-                        else:
-                            # Handle other discount types or no discount
-                            for ticket_type_id, quantity in quantities.items():
-                                ticket_type = next((t for t in ticket_types if t.id == ticket_type_id), None)
-                                if ticket_type and quantity > 0:
-                                    final_price = (total_amount_pence / total_tickets) / 100
-                                    print(f"- Adding {quantity} x {ticket_type.name} at £{final_price:.2f} each")
-                                    line_items.append({
-                                        'price_data': {
-                                            'currency': 'gbp',
-                                            'unit_amount': int(final_price * 100),
-                                            'product_data': {
-                                                'name': f"{ticket_type.name} for {event.name}",
-                                            },
-                                        },
-                                        'quantity': quantity,
-                                    })
+                # After calculating fees and before creating the Stripe session
+                print("=== END PAYMENT CALCULATION ===")
+                print("Creating Stripe line items:")
 
-                    # Add the booking fee line item
+                # Create line items
+                line_items = []
+                try:
+                    # Handle ticket line items
+                    for ticket_type_id, quantity in quantities.items():
+                        if quantity > 0:
+                            ticket_type = next(tt for tt in ticket_types if tt.id == ticket_type_id)
+                            
+                            if active_promo:
+                                # Apply promo code discount
+                                original_price = ticket_type.price * 100
+                                discounted_price = int(original_price * (1 - active_promo.discount_percent / 100))
+                                print(f"- Adding {quantity} x {ticket_type.name} at discounted price: £{discounted_price/100:.2f}")
+                                
+                                line_items.append({
+                                    'price_data': {
+                                        'currency': 'gbp',
+                                        'unit_amount': discounted_price,
+                                        'product_data': {
+                                            'name': f"{ticket_type.name} for {event.name} ({active_promo.discount_percent}% off)",
+                                        },
+                                    },
+                                    'quantity': quantity,
+                                })
+                            else:
+                                # Handle regular pricing and other discount types
+                                price = ticket_type.price * 100  # Convert to pence
+                                if discount_amount > 0:
+                                    # Calculate the effective discount percentage
+                                    discount_percentage = (discount_amount / base_amount) * 100
+                                    price = int(price * (1 - discount_percentage / 100))
+                                
+                                print(f"- Adding {quantity} x {ticket_type.name} at £{price/100:.2f} each")
+                                line_items.append({
+                                    'price_data': {
+                                        'currency': 'gbp',
+                                        'unit_amount': price,
+                                        'product_data': {
+                                            'name': f"{ticket_type.name} for {event.name}",
+                                        },
+                                    },
+                                    'quantity': quantity,
+                                })
+
+                    # Add booking fee line item
                     print(f"- Adding booking fee: £{total_booking_fee_pence/100:.2f}")
                     line_items.append({
                         'price_data': {
@@ -1536,11 +1522,10 @@ def purchase(event_id, promo_code=None):
                         'quantity': 1,
                     })
 
-                    print("\nFinal line items breakdown:")
+                    print("Final line items breakdown:")
                     for item in line_items:
-                        print(f"- {item['price_data']['product_data']['name']}: "
-                              f"£{item['price_data']['unit_amount']/100:.2f} × {item['quantity']}")
-                    print(f"Total charge: £{total_charge_pence/100:.2f}\n")
+                        print(f"- {item['price_data']['product_data']['name']}: £{item['price_data']['unit_amount']/100:.2f} × {item['quantity']}")
+                    print(f"Total charge: £{total_charge_pence/100:.2f}")
 
                     # Create Stripe checkout session
                     checkout_session = stripe.checkout.Session.create(
@@ -1551,21 +1536,19 @@ def purchase(event_id, promo_code=None):
                         cancel_url=url_for('cancel', _external=True),
                         metadata={
                             'session_id': session_id,
-                            'promo_code': submitted_promo_code if active_promo else None,
+                            'promo_code': active_promo.promo_code if active_promo else None,
                             'discount_amount': str(discount_amount) if discount_amount > 0 else None
-                        },
-                        payment_intent_data={
-                            'application_fee_amount': adjusted_platform_fee,
-                            'on_behalf_of': organizer.stripe_connect_id,
-                            'transfer_data': {
-                                'destination': organizer.stripe_connect_id,
-                            },
-                        },
-                        billing_address_collection='required',
-                        customer_email=email
+                        }
                     )
 
+                    # Just redirect to Stripe checkout
                     return redirect(checkout_session.url)
+
+                except Exception as e:
+                    print(f"\nError creating checkout session: {str(e)}")
+                    db.session.rollback()
+                    flash('An error occurred while processing your payment. Please try again.', 'error')
+                    return redirect(url_for('purchase', event_id=event_id))
 
             except Exception as e:
                 app.logger.error(f"Error creating checkout session: {str(e)}")
