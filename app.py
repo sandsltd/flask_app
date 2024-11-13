@@ -1588,6 +1588,25 @@ def purchase(event_id, promo_code=None):
             else:
                 tickets_available = None
 
+            # Add after initializing variables and before processing tickets
+            # Around line 1211
+            if promo_code:
+                # Find matching promo code discount rule
+                promo_rule = DiscountRule.query.filter_by(
+                    event_id=event_id,
+                    discount_type='promo_code',
+                    promo_code=promo_code
+                ).first()
+                
+                if not promo_rule:
+                    flash('Invalid promo code')
+                    return redirect(url_for('purchase', event_id=event_id))
+                
+                # Store promo rule for later use
+                active_promo = promo_rule
+            else:
+                active_promo = None
+
             return render_template(
                 'purchase.html',
                 event=event,
