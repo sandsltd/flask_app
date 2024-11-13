@@ -168,6 +168,7 @@
                 <button type="button" id="check_promo" class="check-promo-btn">Check Code</button>
             </div>
             <span id="promo_message" class="promo-message"></span>
+            <input type="hidden" id="validated_promo_code" name="validated_promo_code">
         </div>
 
         <input type="submit" value="Proceed to Payment" class="submit-btn">
@@ -265,49 +266,26 @@
     }
 
     function updateTotalPrice() {
-        var total = 0;
-        var totalQuantity = 0;
-        var ticketInputs = document.querySelectorAll('.ticket-input');
-        
-        // First calculate total quantity and base price
+        const ticketInputs = document.querySelectorAll('.ticket-input');
+        let totalPrice = 0;
+        let totalQuantity = 0;
+
         ticketInputs.forEach(function(input) {
-            var quantity = parseInt(input.value) || 0;
-            var price = parseFloat(input.getAttribute('data-ticket-price'));
+            const quantity = parseInt(input.value) || 0;
+            const price = parseFloat(input.getAttribute('data-ticket-price'));
             totalQuantity += quantity;
-            total += quantity * price;
+            
+            if (discountConfig && discountConfig.type === 'promo_code') {
+                const discountedPrice = price * (1 - discountConfig.percentage/100);
+                totalPrice += discountedPrice * quantity;
+            } else {
+                totalPrice += price * quantity;
+            }
         });
 
-        // Apply discount if applicable
-        if (discountConfig && discountConfig.percentage > 0) {
-            var discountAmount = 0;
-            
-            switch(discountConfig.type) {
-                case 'early_bird':
-                    const validUntil = new Date(discountConfig.valid_until);
-                    const now = new Date();
-                    if (now < validUntil && (!discountConfig.max_tickets || totalQuantity <= discountConfig.max_tickets)) {
-                        discountAmount = total * (discountConfig.percentage / 100);
-                    }
-                    break;
-                    
-                case 'bulk':
-                    if (totalQuantity >= discountConfig.minTickets) {
-                        if (discountConfig.apply_to === 'all') {
-                            discountAmount = total * (discountConfig.percentage / 100);
-                        } else { // 'additional'
-                            const perTicketPrice = total / totalQuantity;
-                            const additionalTickets = totalQuantity - 1;
-                            discountAmount = (perTicketPrice * additionalTickets) * (discountConfig.percentage / 100);
-                        }
-                    }
-                    break;
-            }
-            
-            total -= discountAmount;
-        }
-
-        document.getElementById('total_price').textContent = `£${total.toFixed(2)}`;
-        document.querySelector('.ticket-count').textContent = `${totalQuantity} tickets selected`;
+        document.getElementById('total_price').textContent = totalPrice.toFixed(2);
+        document.querySelector('.ticket-count').textContent = 
+            `${totalQuantity} ticket${totalQuantity !== 1 ? 's' : ''} selected`;
     }
 
     // Your existing updateQuestionForms function with added updatePriceDisplays call
@@ -421,10 +399,12 @@
         const promoCode = document.getElementById('promo_code').value.trim();
         const eventId = '{{ event.id }}';
         const messageElement = document.getElementById('promo_message');
+        const validatedPromoInput = document.getElementById('validated_promo_code');
         
         if (!promoCode) {
             messageElement.textContent = 'Please enter a promo code';
             messageElement.className = 'promo-message error';
+            validatedPromoInput.value = '';  // Clear validated code
             return;
         }
 
@@ -445,22 +425,23 @@
             if (data.valid) {
                 messageElement.textContent = `Success! ${data.discount}% discount will be applied`;
                 messageElement.className = 'promo-message success';
+                validatedPromoInput.value = promoCode;  // Store validated code
                 
-                // Update the discount configuration with the promo code
+                // Update the discount configuration
                 discountConfig = {
                     type: 'promo_code',
                     percentage: data.discount,
-                    code: promoCode  // Important: store the promo code
+                    code: promoCode
                 };
                 
-                // Update all price displays
+                // Update displays
                 updatePriceDisplays(getTotalQuantity());
                 updateTotalPrice();
             } else {
                 messageElement.textContent = data.message || 'Invalid promo code';
                 messageElement.className = 'promo-message error';
+                validatedPromoInput.value = '';  // Clear validated code
                 
-                // Reset discount if promo code is invalid
                 if (discountConfig && discountConfig.type === 'promo_code') {
                     discountConfig = null;
                     updatePriceDisplays(getTotalQuantity());
@@ -470,6 +451,7 @@
         } catch (error) {
             messageElement.textContent = 'Error checking promo code';
             messageElement.className = 'promo-message error';
+            validatedPromoInput.value = '';  // Clear validated code
             console.error('Promo code verification error:', error);
         }
     });
@@ -478,6 +460,16 @@
         return Array.from(document.querySelectorAll('.ticket-input'))
             .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
     }
+
+    // Add this after your existing event listeners
+    document.querySelectorAll('.ticket-input').forEach(function(input) {
+        input.addEventListener('change', function() {
+            updateTotalPrice();
+        });
+        input.addEventListener('input', function() {
+            updateTotalPrice();
+        });
+    });
 </script>
 
 <style>
