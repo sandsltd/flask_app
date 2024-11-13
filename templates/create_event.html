@@ -328,7 +328,124 @@
         .remove-button:hover {
             background: #fecaca;
         }
-        </style>
+
+        /* Add these animation keyframes */
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-15px);}
+            60% {transform: translateY(-7px);}
+        }
+
+        @keyframes pulse {
+            0% {transform: scale(1);}
+            50% {transform: scale(1.05);}
+            100% {transform: scale(1);}
+        }
+
+        /* Enhanced Header Styles */
+        .dashboard-header {
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            border-bottom: 3px solid #ff0000;
+            animation: slideInRight 0.8s ease-out;
+        }
+
+        .business-info h1 {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #ff0000, #ff4d4d);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .business-info h1 .emoji {
+            animation: bounce 2s infinite;
+            display: inline-block;
+        }
+
+        /* Enhanced Info Section */
+        .info-card {
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            border-left: 4px solid #ff0000;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        .benefit-item {
+            animation: slideInRight 0.5s ease-out;
+            animation-fill-mode: both;
+        }
+
+        .benefit-item:nth-child(1) {animation-delay: 0.2s;}
+        .benefit-item:nth-child(2) {animation-delay: 0.4s;}
+        .benefit-item:nth-child(3) {animation-delay: 0.6s;}
+
+        .benefit-item i {
+            font-size: 2em;
+            background: linear-gradient(45deg, #ff0000, #ff4d4d);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: pulse 2s infinite;
+        }
+
+        /* Enhanced Form Sections */
+        .form-section {
+            opacity: 0;
+            animation: slideInRight 0.5s ease-out forwards;
+        }
+
+        .form-section:nth-child(1) {animation-delay: 0.3s;}
+        .form-section:nth-child(2) {animation-delay: 0.5s;}
+        .form-section:nth-child(3) {animation-delay: 0.7s;}
+
+        /* Enhanced Icons for Guide */
+        .benefit-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .animated-subtitle {
+            animation: slideInRight 0.5s ease-out;
+            animation-delay: 0.3s;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #374151;
+            margin-bottom: 5px;
+        }
+
+        .subtitle-caption {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+
+        .emoji {
+            display: inline-block;
+            animation: bounce 2s infinite;
+        }
+    </style>
 </head>
 
 {% extends "partials/base-logged-in.html" %}
@@ -340,10 +457,10 @@
         <div class="business-profile">
             <div class="business-logo-placeholder">TR</div>
             <div class="business-info">
-                <h1>Create Your Event 🎪</h1>
+                <h1>Create Your Event <span class="emoji">🎪</span></h1>
                 <div class="animated-subtitle">
-                    <p class="subtitle">Let's Get Your Event Set Up</p>
-                    <p class="subtitle-caption">Create and customize your event in minutes</p>
+                    <p class="subtitle">Let's Get Your Event Set Up <span class="emoji">✨</span></p>
+                    <p class="subtitle-caption">Create and customize your event in minutes <span class="emoji">🚀</span></p>
                 </div>
             </div>
         </div>
@@ -370,23 +487,23 @@
                 <h2>Event Creation Guide</h2>
                 <div class="benefits-grid">
                     <div class="benefit-item">
-                        <i class="fas fa-info-circle"></i>
+                        <i class="fas fa-calendar-star"></i>
                         <div class="benefit-content">
-                            <h3>Event Details</h3>
+                            <h3>Event Details <span class="emoji">📅</span></h3>
                             <p>Set your event's basic information like name, date, and location</p>
                         </div>
                     </div>
                     <div class="benefit-item">
                         <i class="fas fa-ticket-alt"></i>
                         <div class="benefit-content">
-                            <h3>Ticket Types</h3>
+                            <h3>Ticket Types <span class="emoji">🎟️</span></h3>
                             <p>Create different ticket categories with custom prices</p>
                         </div>
                     </div>
                     <div class="benefit-item">
                         <i class="fas fa-percentage"></i>
                         <div class="benefit-content">
-                            <h3>Discount Rules</h3>
+                            <h3>Discount Rules <span class="emoji">💰</span></h3>
                             <p>Set up early bird, bulk, or promo code discounts</p>
                         </div>
                     </div>
