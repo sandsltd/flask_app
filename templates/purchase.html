@@ -1035,37 +1035,6 @@
         flex-wrap: wrap;
         gap: 5px;
     }
-
-    .price-breakdown {
-        margin-top: 20px;
-        padding: 15px;
-        border-radius: 8px;
-        background-color: #f8f9fa;
-    }
-
-    .price-breakdown > div {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 10px;
-    }
-
-    .fees {
-        padding: 10px 0;
-        border-top: 1px solid #ddd;
-        border-bottom: 1px solid #ddd;
-    }
-
-    .fee-explanation {
-        display: block;
-        color: #666;
-        font-size: 0.8em;
-        margin-top: 5px;
-    }
-
-    .total {
-        font-weight: bold;
-        font-size: 1.1em;
-    }
 </style>
 
 <!-- Add after the form -->
@@ -1076,25 +1045,6 @@
             <span class="total-price">Total: £<span id="sticky_total_price">0.00</span></span>
         </div>
         <button type="submit" form="purchase-form" class="submit-btn">Continue to Payment</button>
-    </div>
-</div>
-
-<!-- Add this in the total price section -->
-<div class="price-breakdown">
-    <div class="subtotal">
-        <span>Subtotal:</span>
-        <span>£<span id="subtotal_price">0.00</span></span>
-    </div>
-    {% if show_fees %}
-    <div class="fees">
-        <span>Booking & Processing Fees:</span>
-        <span>£<span id="booking_fees">0.00</span></span>
-        <small class="fee-explanation">Includes platform fee (30p per ticket) and payment processing fee (1.4% + 20p)</small>
-    </div>
-    {% endif %}
-    <div class="total">
-        <span>Total:</span>
-        <span>£<span id="total_price">0.00</span></span>
     </div>
 </div>
 
