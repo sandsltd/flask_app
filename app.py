@@ -1316,6 +1316,18 @@ def purchase(event_id, promo_code=None):
                             db.session.add(attendee)
                             attendees.append(attendee)
 
+                # Get promo code from form
+                submitted_promo_code = request.form.get('promo_code')
+                active_promo = None
+                
+                if submitted_promo_code:
+                    # Find matching promo code discount rule
+                    active_promo = DiscountRule.query.filter_by(
+                        event_id=event_id,
+                        discount_type='promo_code',
+                        promo_code=submitted_promo_code
+                    ).first()
+
                 # Calculate base amount (in pence)
                 print("\n=== PAYMENT CALCULATION DETAILS ===")
                 print("Calculating base amount for tickets:")
@@ -1328,45 +1340,53 @@ def purchase(event_id, promo_code=None):
                         base_amount += ticket_total
                 print(f"Base amount before discounts: £{base_amount/100:.2f}")
 
-                # Check all discount rules
-                print("\nChecking discount rules:")
+                # Apply discount
                 discount_amount = 0
-                discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
-                total_tickets = sum(quantities.values())
-                
-                for rule in discount_rules:
-                    current_discount = 0
-                    print(f"\nEvaluating {rule.discount_type} discount rule:")
-                    print(f"- Discount percentage: {rule.discount_percent}%")
+                if active_promo:
+                    print(f"\nApplying promo code discount:")
+                    print(f"- Discount percentage: {active_promo.discount_percent}%")
+                    discount_amount = base_amount * (active_promo.discount_percent / 100)
+                    print(f"- Promo code discount amount: £{discount_amount/100:.2f}")
+                else:
+                    # Check other discount rules only if no promo code is active
+                    print("\nChecking other discount rules:")
+                    discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
+                    total_tickets = sum(quantities.values())
                     
-                    if rule.discount_type == 'early_bird':
-                        print(f"- Valid until: {rule.valid_until}")
-                        print(f"- Max tickets: {rule.max_early_bird_tickets}")
-                        if rule.valid_until and datetime.now() < rule.valid_until:
-                            if not rule.max_early_bird_tickets or total_tickets <= rule.max_early_bird_tickets:
-                                current_discount = base_amount * (rule.discount_percent / 100)
-                                print(f"- Early bird discount applicable: £{current_discount/100:.2f}")
-                            else:
-                                print("- Too many tickets for early bird discount")
-                        else:
-                            print("- Early bird period has expired")
-                    
-                    elif rule.discount_type == 'bulk' and total_tickets >= rule.min_tickets:
-                        print(f"- Minimum tickets required: {rule.min_tickets}")
-                        print(f"- Apply to: {rule.apply_to}")
-                        if rule.apply_to == 'all':
-                            current_discount = base_amount * (rule.discount_percent / 100)
-                            print(f"- Bulk discount on all tickets: £{current_discount/100:.2f}")
-                        else:  # 'additional'
-                            per_ticket_amount = base_amount / total_tickets
-                            additional_tickets = total_tickets - 1
-                            current_discount = (per_ticket_amount * additional_tickets) * (rule.discount_percent / 100)
-                            print(f"- Bulk discount on additional tickets: £{current_discount/100:.2f}")
-                    
-                    # Keep the highest discount
-                    if current_discount > discount_amount:
-                        discount_amount = current_discount
-                        print(f"- New highest discount found: £{discount_amount/100:.2f}")
+                    for rule in discount_rules:
+                        if rule.discount_type != 'promo_code':  # Skip promo code rules
+                            current_discount = 0
+                            print(f"\nEvaluating {rule.discount_type} discount rule:")
+                            print(f"- Discount percentage: {rule.discount_percent}%")
+                            
+                            if rule.discount_type == 'early_bird':
+                                print(f"- Valid until: {rule.valid_until}")
+                                print(f"- Max tickets: {rule.max_early_bird_tickets}")
+                                if rule.valid_until and datetime.now() < rule.valid_until:
+                                    if not rule.max_early_bird_tickets or total_tickets <= rule.max_early_bird_tickets:
+                                        current_discount = base_amount * (rule.discount_percent / 100)
+                                        print(f"- Early bird discount applicable: £{current_discount/100:.2f}")
+                                    else:
+                                        print("- Too many tickets for early bird discount")
+                                else:
+                                    print("- Early bird period has expired")
+                            
+                            elif rule.discount_type == 'bulk' and total_tickets >= rule.min_tickets:
+                                print(f"- Minimum tickets required: {rule.min_tickets}")
+                                print(f"- Apply to: {rule.apply_to}")
+                                if rule.apply_to == 'all':
+                                    current_discount = base_amount * (rule.discount_percent / 100)
+                                    print(f"- Bulk discount on all tickets: £{current_discount/100:.2f}")
+                                else:  # 'additional'
+                                    per_ticket_amount = base_amount / total_tickets
+                                    additional_tickets = total_tickets - 1
+                                    current_discount = (per_ticket_amount * additional_tickets) * (rule.discount_percent / 100)
+                                    print(f"- Bulk discount on additional tickets: £{current_discount/100:.2f}")
+                            
+                            # Keep the highest discount
+                            if current_discount > discount_amount:
+                                discount_amount = current_discount
+                                print(f"- New highest discount found: £{discount_amount/100:.2f}")
 
                 # Apply the discount
                 total_amount_pence = int(base_amount - discount_amount)
@@ -1527,7 +1547,11 @@ def purchase(event_id, promo_code=None):
                         mode='payment',
                         success_url=url_for('success', session_id=session_id, _external=True),
                         cancel_url=url_for('cancel', _external=True),
-                        metadata={'session_id': session_id},
+                        metadata={
+                            'session_id': session_id,
+                            'promo_code': submitted_promo_code if active_promo else None,
+                            'discount_amount': str(discount_amount) if discount_amount > 0 else None
+                        },
                         payment_intent_data={
                             'application_fee_amount': adjusted_platform_fee,
                             'on_behalf_of': organizer.stripe_connect_id,
