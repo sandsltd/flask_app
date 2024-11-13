@@ -752,6 +752,7 @@ def create_event():
                             flash('Invalid ticket price or quantity. Please ensure they are valid numbers.', 'danger')
                             db.session.rollback()
                             return redirect(url_for('create_event'))
+                            
                 db.session.commit()
 
                 # Update current_date for next recurrence
@@ -1332,12 +1333,14 @@ def purchase(event_id, promo_code=None):
                 print("\n=== PAYMENT CALCULATION DETAILS ===")
                 print("Calculating base amount for tickets:")
                 base_amount = 0
+                total_tickets = 0  # Add this line
                 for ticket_type_id, quantity in quantities.items():
                     if quantity > 0:
                         ticket_type = next(tt for tt in ticket_types if tt.id == ticket_type_id)
                         ticket_total = ticket_type.price * quantity * 100
                         print(f"- {ticket_type.name}: {quantity} x £{ticket_type.price:.2f} = £{ticket_total/100:.2f}")
                         base_amount += ticket_total
+                        total_tickets += quantity  # Add this line
                 print(f"Base amount before discounts: £{base_amount/100:.2f}")
 
                 # Apply discount
@@ -1351,7 +1354,6 @@ def purchase(event_id, promo_code=None):
                     # Check other discount rules only if no promo code is active
                     print("\nChecking other discount rules:")
                     discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
-                    total_tickets = sum(quantities.values())
                     
                     for rule in discount_rules:
                         if rule.discount_type != 'promo_code':  # Skip promo code rules
