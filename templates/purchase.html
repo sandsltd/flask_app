@@ -60,7 +60,7 @@
         <p>Please select the number of tickets for each ticket type:</p>
     {% endif %}
 
-    <form method="POST" action="{{ url_for('purchase', event_id=event.id) }}" enctype="multipart/form-data">
+    <form id="purchase-form" method="POST" action="{{ url_for('purchase', event_id=event.id) }}" enctype="multipart/form-data">
         <!-- Buyer Information -->
         <h2>Your Information</h2>
 
@@ -274,18 +274,62 @@
             const quantity = parseInt(input.value) || 0;
             const price = parseFloat(input.getAttribute('data-ticket-price'));
             totalQuantity += quantity;
-            
-            if (discountConfig && discountConfig.type === 'promo_code') {
-                const discountedPrice = price * (1 - discountConfig.percentage/100);
-                totalPrice += discountedPrice * quantity;
-            } else {
-                totalPrice += price * quantity;
+
+            if (quantity > 0) {
+                let ticketPrice = price;
+                
+                // Apply discount if applicable
+                if (discountConfig && discountConfig.percentage > 0) {
+                    let applyDiscount = false;
+
+                    switch(discountConfig.type) {
+                        case 'early_bird':
+                            const validUntil = new Date(discountConfig.valid_until);
+                            applyDiscount = new Date() < validUntil && 
+                                (!discountConfig.max_tickets || totalQuantity <= discountConfig.max_tickets);
+                            break;
+                        
+                        case 'bulk':
+                            if (totalQuantity >= discountConfig.minTickets) {
+                                if (discountConfig.apply_to === 'all') {
+                                    applyDiscount = true;
+                                } else { // 'additional'
+                                    if (totalQuantity > 1) {
+                                        ticketPrice = (price + (price * (1 - discountConfig.percentage/100) * (quantity - 1))) / quantity;
+                                    }
+                                }
+                            }
+                            break;
+
+                        case 'promo_code':
+                            applyDiscount = true;
+                            break;
+                    }
+
+                    if (applyDiscount) {
+                        ticketPrice = price * (1 - discountConfig.percentage/100);
+                    }
+                }
+
+                totalPrice += quantity * ticketPrice;
             }
         });
 
-        document.getElementById('total_price').textContent = totalPrice.toFixed(2);
-        document.querySelector('.ticket-count').textContent = 
-            `${totalQuantity} ticket${totalQuantity !== 1 ? 's' : ''} selected`;
+        // Update ticket count in sticky total
+        const ticketCountElement = document.querySelector('.ticket-count');
+        ticketCountElement.textContent = `${totalQuantity} ticket${totalQuantity !== 1 ? 's' : ''} selected`;
+
+        // Update total price displays
+        const totalPriceElements = document.querySelectorAll('.total-price span');
+        totalPriceElements.forEach(element => {
+            element.textContent = totalPrice.toFixed(2);
+        });
+
+        // Show/hide sticky total
+        const stickyTotal = document.querySelector('.sticky-total');
+        stickyTotal.classList.toggle('visible', totalQuantity > 0);
+
+        return totalQuantity;
     }
 
     // Your existing updateQuestionForms function with added updatePriceDisplays call
@@ -470,6 +514,37 @@
             updateTotalPrice();
         });
     });
+
+    function initializeDiscountBanner() {
+        const banner = document.getElementById('discount-banner');
+        const message = document.getElementById('discount-message');
+        const subtitle = document.querySelector('.discount-subtitle');
+
+        if (!discountConfig || !discountConfig.type) return;
+
+        banner.style.display = 'block';
+        banner.className = `discount-banner discount-banner-${discountConfig.type}`;
+
+        switch(discountConfig.type) {
+            case 'early_bird':
+                message.textContent = `Early Bird Offer: ${discountConfig.percentage}% OFF!`;
+                const validUntil = new Date(discountConfig.valid_until);
+                subtitle.textContent = `Offer ends ${validUntil.toLocaleDateString()}`;
+                break;
+
+            case 'bulk':
+                message.textContent = `Bulk Discount: ${discountConfig.percentage}% OFF`;
+                subtitle.textContent = discountConfig.apply_to === 'all' 
+                    ? `When you buy ${discountConfig.minTickets} or more tickets`
+                    : `On additional tickets when you buy ${discountConfig.minTickets} or more`;
+                break;
+
+            case 'promo_code':
+                message.textContent = `Promo Code Applied: ${discountConfig.percentage}% OFF`;
+                subtitle.textContent = `Using code: ${discountConfig.code}`;
+                break;
+        }
+    }
 </script>
 
 <style>
@@ -967,9 +1042,9 @@
     <div class="total-content">
         <div class="total-details">
             <span class="ticket-count">0 tickets selected</span>
-            <span class="total-price">Total: £<span id="total_price">0.00</span></span>
+            <span class="total-price">Total: £<span id="sticky_total_price">0.00</span></span>
         </div>
-        <button type="submit" class="submit-btn">Continue to Payment</button>
+        <button type="submit" form="purchase-form" class="submit-btn">Continue to Payment</button>
     </div>
 </div>
 
