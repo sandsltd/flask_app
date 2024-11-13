@@ -785,9 +785,14 @@ def create_event():
                             uses_count=0
                         )
                         db.session.add(discount_rule)
-                    else:
-                        raise ValueError(f"Unknown discount type: {discount_type}")
-                    
+                        continue  # Skip the rest of the loop for promo codes
+
+                    # Get the appropriate discount percentage based on discount type
+                    if discount_type == 'early_bird':
+                        discount_percent = float(request.form.getlist('early_bird_discount_percent[]')[i])
+                    else:  # bulk discount
+                        discount_percent = float(request.form.getlist('discount_percent[]')[i])
+                        
                     print(f"Discount percentage: {discount_percent}")
 
                     discount_rule = DiscountRule(
@@ -813,14 +818,6 @@ def create_event():
                         print(f"Bulk discount details:")
                         print(f"- Min tickets: {discount_rule.min_tickets}")
                         print(f"- Apply to: {discount_rule.apply_to}")
-
-                    elif discount_type == 'promo_code':
-                        discount_rule.promo_code = request.form.getlist('promo_code[]')[i]
-                        discount_rule.max_uses = int(request.form.getlist('max_uses[]')[i])
-                        discount_rule.uses_count = 0
-                        print(f"Promo code details:")
-                        print(f"- Code: {discount_rule.promo_code}")
-                        print(f"- Max uses: {discount_rule.max_uses}")
 
                     print(f"Adding discount rule to session: {discount_rule.__dict__}")
                     db.session.add(discount_rule)
@@ -3062,5 +3059,51 @@ def verify_promo_code():
         'valid': True,
         'discount': discount_rule.discount_percent
     })
+
+@app.route('/verify_promo_code', methods=['POST'])
+def verify_promo_code():
+    try:
+        data = request.get_json()
+        event_id = data.get('event_id')
+        promo_code = data.get('promo_code')
+
+        if not event_id or not promo_code:
+            return jsonify({
+                'valid': False,
+                'message': 'Missing event ID or promo code'
+            })
+
+        # Find the discount rule for this promo code
+        discount_rule = DiscountRule.query.filter_by(
+            event_id=event_id,
+            discount_type='promo_code',
+            promo_code=promo_code
+        ).first()
+
+        if not discount_rule:
+            return jsonify({
+                'valid': False,
+                'message': 'Invalid promo code'
+            })
+
+        # Check if the promo code has reached its maximum uses
+        if discount_rule.max_uses and discount_rule.uses_count >= discount_rule.max_uses:
+            return jsonify({
+                'valid': False,
+                'message': 'This promo code has expired'
+            })
+
+        # Return success with discount percentage
+        return jsonify({
+            'valid': True,
+            'discount': discount_rule.discount_percent
+        })
+
+    except Exception as e:
+        print(f"Error verifying promo code: {str(e)}")
+        return jsonify({
+            'valid': False,
+            'message': 'Error checking promo code'
+        }), 500
 
     
