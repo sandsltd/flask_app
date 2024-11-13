@@ -1315,11 +1315,23 @@ def purchase(event_id, promo_code=None):
                             db.session.add(attendee)
                             attendees.append(attendee)
 
+                # Get promo code from form and initialize active_promo
+                submitted_promo_code = request.form.get('promo_code')
+                active_promo = None
+
+                if submitted_promo_code:
+                    # Find matching promo code discount rule
+                    active_promo = DiscountRule.query.filter_by(
+                        event_id=event_id,
+                        discount_type='promo_code',
+                        promo_code=submitted_promo_code
+                    ).first()
+
                 # Calculate base amount (in pence)
                 print("\n=== PAYMENT CALCULATION DETAILS ===")
                 print("Calculating base amount for tickets:")
                 base_amount = 0
-                total_tickets = 0  # Add this line
+                total_tickets = 0
                 for ticket_type_id, quantity in quantities.items():
                     if quantity > 0:
                         ticket_type = next(tt for tt in ticket_types if tt.id == ticket_type_id)
@@ -1527,7 +1539,7 @@ def purchase(event_id, promo_code=None):
                         cancel_url=url_for('cancel', _external=True),
                         metadata={
                             'session_id': session_id,
-                            'promo_code': active_promo.promo_code if active_promo else None,
+                            'promo_code': submitted_promo_code if submitted_promo_code else None,  # Changed from active_promo
                             'discount_amount': str(discount_amount) if discount_amount > 0 else None
                         },
                         payment_intent_data={
