@@ -3021,44 +3021,9 @@ def check_in_attendee(event_id):
         }
     })
 
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
-
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory('static', filename)
-
-@app.route('/verify_promo_code', methods=['POST'])
-def verify_promo_code():
-    data = request.get_json()
-    event_id = data.get('event_id')
-    promo_code = data.get('promo_code')
-
-    # Find the discount rule
-    discount_rule = DiscountRule.query.filter_by(
-        event_id=event_id,
-        discount_type='promo_code',
-        promo_code=promo_code
-    ).first()
-
-    if not discount_rule:
-        return jsonify({
-            'valid': False,
-            'message': 'Invalid promo code'
-        })
-
-    if discount_rule.max_uses and discount_rule.uses_count >= discount_rule.max_uses:
-        return jsonify({
-            'valid': False,
-            'message': 'This promo code has reached its maximum uses'
-        })
-
-    return jsonify({
-        'valid': True,
-        'discount': discount_rule.discount_percent
-    })
 
 @app.route('/verify_promo_code', methods=['POST'])
 def verify_promo_code():
@@ -3105,5 +3070,11 @@ def verify_promo_code():
             'valid': False,
             'message': 'Error checking promo code'
         }), 500
+
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
 
     
