@@ -1318,6 +1318,7 @@ def purchase(event_id, promo_code=None):
                 # Get promo code from form and initialize active_promo
                 submitted_promo_code = request.form.get('promo_code')
                 active_promo = None
+                discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
 
                 if submitted_promo_code:
                     # Find matching promo code discount rule
