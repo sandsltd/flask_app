@@ -555,58 +555,6 @@
                 transform: translateY(0);
             }
         }
-
-        /* Add these new styles for step navigation */
-        .step-container {
-            display: none;
-        }
-
-        .step-container.active {
-            display: block;
-            animation: fadeIn 0.5s ease-in-out;
-        }
-
-        .step-navigation {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-
-        .step-indicator {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 30px;
-            gap: 10px;
-        }
-
-        .step-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #ddd;
-            position: relative;
-        }
-
-        .step-dot.active {
-            background: #ff0000;
-        }
-
-        .step-dot.completed {
-            background: #00ff00;
-        }
-
-        .step-title {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #333;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
     </style>
 </head>
 
@@ -676,201 +624,227 @@
         <!-- Event Creation Form -->
         <section class="form-section">
             <div class="form-card">
-                <div class="step-indicator">
-                    <div class="step-dot active" data-step="1"></div>
-                    <div class="step-dot" data-step="2"></div>
-                    <div class="step-dot" data-step="3"></div>
-                    <div class="step-dot" data-step="4"></div>
-                </div>
-
-                <form method="POST" action="{{ url_for('create_event') }}" enctype="multipart/form-data" id="event-form">
-                    <!-- Step 1: Event Details -->
-                    <div class="step-container active" id="step1">
-                        <h2 class="step-title">Step 1: Event Details</h2>
-                        <div class="form-section">
-                            <div class="form-grid">
-                                <!-- Event Name -->
-                                <div class="form-group full-width">
-                                    <label for="event_name">Event Name:</label>
-                                    <input type="text" id="event_name" name="event_name" required>
-                                </div>
-
-                                <!-- Event Description -->
-                                <div class="form-group full-width">
-                                    <label for="event_description">Event Description:</label>
-                                    <textarea id="event_description" name="event_description" rows="4" required></textarea>
-                                </div>
-
-                                <!-- Event Date -->
-                                <div class="form-group">
-                                    <label for="event_date">Event Date:</label>
-                                    <input type="date" id="event_date" name="event_date" required>
-                                </div>
-
-                                <!-- Event Time -->
-                                <div class="form-group">
-                                    <label for="event_time">Event Time:</label>
-                                    <input type="time" id="event_time" name="event_time" required>
-                                </div>
-
-                                <!-- Venue Name -->
-                                <div class="form-group">
-                                    <label for="venue_name">Venue Name:</label>
-                                    <input type="text" id="venue_name" name="venue_name" required>
-                                </div>
-
-                                <!-- Venue Address -->
-                                <div class="form-group">
-                                    <label for="venue_address">Venue Address:</label>
-                                    <input type="text" id="venue_address" name="venue_address" required>
-                                </div>
-
-                                <!-- Venue City -->
-                                <div class="form-group">
-                                    <label for="venue_city">City:</label>
-                                    <input type="text" id="venue_city" name="venue_city" required>
-                                </div>
-
-                                <!-- Venue Postcode -->
-                                <div class="form-group">
-                                    <label for="venue_postcode">Postcode:</label>
-                                    <input type="text" id="venue_postcode" name="venue_postcode" required>
-                                </div>
+                <form method="POST" action="{{ url_for('create_event') }}" enctype="multipart/form-data">
+                    <!-- Event Details Section -->
+                    <div class="form-section">
+                        <h3>Event Details</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="name">Event Name</label>
+                                <input type="text" id="name" name="name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="date">Event Date</label>
+                                <input type="date" id="date" name="date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="start_time">Start Time</label>
+                                <input type="time" id="start_time" name="start_time">
+                            </div>
+                            <div class="form-group">
+                                <label for="end_time">End Time</label>
+                                <input type="time" id="end_time" name="end_time">
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="location">Location</label>
+                                <input type="text" id="location" name="location" required>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="description">Description</label>
+                                <textarea id="description" name="description" rows="4"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="event_image">Event Image</label>
+                                <input type="file" id="event_image" name="event_image" accept="image/*">
                             </div>
                         </div>
                     </div>
 
-                    <!-- Step 2: Ticket Strategy -->
-                    <div class="step-container" id="step2">
-                        <h2 class="step-title">Step 2: Ticket Strategy</h2>
-                        <div class="form-section strategy-section">
+                    <!-- Ticket Strategy Section -->
+                    <div class="form-section strategy-section">
+                        <h3><i class="fas fa-cog"></i> Ticket Strategy</h3>
+                        <div class="info-card">
+                            <p class="info-text">Choose how you want to manage your ticket capacity:</p>
+                            
                             <div class="strategy-options">
                                 <div class="radio-option">
-                                    <input type="radio" id="enforce_limits_yes" name="enforce_individual_ticket_limits" value="on" checked>
-                                    <label for="enforce_limits_yes" class="radio-label">
-                                        <span class="option-title">Individual Ticket Limits</span>
-                                        <span class="option-description">Set specific quantities for each ticket type</span>
+                                    <input type="radio" name="enforce_individual_ticket_limits" id="individual_limits" checked>
+                                    <label for="individual_limits" class="radio-label">
+                                        <span class="option-title"><i class="fas fa-layer-group"></i> Individual Ticket Limits</span>
+                                        <span class="option-description">Set specific quantities for each ticket type. Best for events with different tiers or categories of tickets.</span>
+                                        <span class="example-text">Example: 50 VIP tickets, 100 Standard tickets, 20 Early Entry tickets</span>
                                     </label>
                                 </div>
-
+                                
                                 <div class="radio-option">
-                                    <input type="radio" id="enforce_limits_no" name="enforce_individual_ticket_limits" value="off">
-                                    <label for="enforce_limits_no" class="radio-label">
-                                        <span class="option-title">Total Event Capacity</span>
-                                        <span class="option-description">Set one total capacity for all ticket types combined</span>
+                                    <input type="radio" name="enforce_individual_ticket_limits" id="total_capacity">
+                                    <label for="total_capacity" class="radio-label">
+                                        <span class="option-title"><i class="fas fa-users"></i> Total Event Capacity</span>
+                                        <span class="option-description">Set one total capacity for all tickets. Best for simple events where tickets are interchangeable.</span>
+                                        <span class="example-text">Example: 200 total tickets available, any combination of ticket types</span>
                                     </label>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Step 3: Ticket Types -->
-                    <div class="step-container" id="step3">
-                        <h2 class="step-title">Step 3: Ticket Types</h2>
-                        <div class="form-section" id="ticket-types-section">
-                            <div id="ticket-types-container">
-                                <div class="ticket-type">
+                    <!-- Ticket Types Section -->
+                    <div class="form-section" id="ticket-types-section">
+                        <h3><i class="fas fa-ticket-alt"></i> Ticket Types</h3>
+                        <div class="info-card">
+                            <p class="info-text">Create different types of tickets for your event. Each type can have its own name, price, and quantity.</p>
+                            <div class="tips-box">
+                                <h4><i class="fas fa-lightbulb"></i> Tips:</h4>
+                                <ul>
+                                    <li>Use clear, descriptive names (e.g., "VIP Access", "Early Bird", "Standard Entry")</li>
+                                    <li>Consider different price points to appeal to various audiences</li>
+                                    <li>Set appropriate quantities based on your venue or capacity</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div id="ticket-types-container">
+                            <div class="ticket-type">
+                                <div class="form-grid">
                                     <div class="form-group">
-                                        <label>Ticket Name:</label>
+                                        <label>Ticket Name</label>
                                         <input type="text" name="ticket_name[]" required>
                                     </div>
-
                                     <div class="form-group">
-                                        <label>Price (£):</label>
+                                        <label>Price (£)</label>
                                         <input type="number" step="0.01" name="ticket_price[]" required>
                                     </div>
-
                                     <div class="form-group ticket-quantity-field">
-                                        <label>Quantity:</label>
+                                        <label>Quantity</label>
                                         <input type="number" name="ticket_quantity[]" required>
                                     </div>
                                 </div>
+                                <button type="button" class="remove-button remove-ticket-type-button">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
                             </div>
-                            <button type="button" id="add-ticket-type-button" class="add-button">
-                                <i class="fas fa-plus"></i> Add Another Ticket Type
-                            </button>
                         </div>
+                        <button type="button" id="add-ticket-type-button" class="add-button">
+                            <i class="fas fa-plus"></i> Add Ticket Type
+                        </button>
+                    </div>
 
-                        <div class="form-section" id="total-capacity-section" style="display: none;">
-                            <div class="form-group">
-                                <label for="total_ticket_quantity">Total Event Capacity:</label>
-                                <input type="number" id="total_ticket_quantity" name="total_ticket_quantity">
-                            </div>
+                    <!-- Total Capacity Section -->
+                    <div class="form-section" id="total-capacity-section" style="display: none;">
+                        <div class="form-group">
+                            <label for="total_ticket_quantity">Total Event Capacity</label>
+                            <input type="number" id="total_ticket_quantity" name="total_ticket_quantity" min="1">
                         </div>
                     </div>
 
-                    <!-- Step 4: Discount Rules -->
-                    <div class="step-container" id="step4">
-                        <h2 class="step-title">Step 4: Discount Rules</h2>
-                        <div class="form-section">
-                            <div id="discount-rules-container">
-                                <div class="discount-rule">
+                    <!-- Discount Rules Section -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-percentage"></i> Discount Rules (Optional)</h3>
+                        <div class="info-card">
+                            <p class="info-text">Encourage early bookings and larger group purchases with strategic discounts.</p>
+                            
+                            <div class="discount-types-explanation">
+                                <div class="discount-type-card">
+                                    <h4><i class="fas fa-users"></i> Bulk Purchase</h4>
+                                    <p>Offer discounts for multiple tickets bought together</p>
+                                    <span class="example-text">Example: 10% off when buying 5+ tickets</span>
+                                </div>
+                                
+                                <div class="discount-type-card">
+                                    <h4><i class="fas fa-clock"></i> Early Bird</h4>
+                                    <p>Reward early bookings with special rates</p>
+                                    <span class="example-text">Example: 15% off until 1 month before event</span>
+                                </div>
+                                
+                                <div class="discount-type-card">
+                                    <h4><i class="fas fa-tag"></i> Promo Code</h4>
+                                    <p>Create custom codes for specific promotions</p>
+                                    <span class="example-text">Example: Use "LAUNCH20" for 20% off</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="discount-rules-container">
+                            <div class="discount-rule">
+                                <div class="form-grid">
                                     <div class="form-group">
-                                        <label>Discount Type:</label>
-                                        <select name="discount_type[]" class="discount-type-select" required>
-                                            <option value="">Select a discount type</option>
-                                            <option value="early_bird">Early Bird</option>
+                                        <label>Discount Type</label>
+                                        <select class="discount-type-select">
                                             <option value="bulk">Bulk Purchase</option>
+                                            <option value="early_bird">Early Bird</option>
                                             <option value="promo_code">Promo Code</option>
                                         </select>
                                     </div>
+                                </div>
 
-                                    <!-- Early Bird Options -->
-                                    <div class="discount-options early-bird-options" style="display: none;">
+                                <!-- Bulk Options -->
+                                <div class="bulk-options discount-options">
+                                    <div class="form-grid">
                                         <div class="form-group">
-                                            <label>End Date:</label>
-                                            <input type="date" name="early_bird_end_date[]">
+                                            <label>Minimum Tickets</label>
+                                            <input type="number" name="min_tickets[]" min="2">
                                         </div>
                                         <div class="form-group">
-                                            <label>Discount Percentage:</label>
-                                            <input type="number" name="early_bird_discount[]" min="0" max="100">
-                                        </div>
-                                    </div>
-
-                                    <!-- Bulk Purchase Options -->
-                                    <div class="discount-options bulk-options" style="display: none;">
-                                        <div class="form-group">
-                                            <label>Minimum Tickets:</label>
-                                            <input type="number" name="bulk_min_tickets[]" min="2">
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Discount Percentage:</label>
+                                            <label>Discount (%)</label>
                                             <input type="number" name="bulk_discount[]" min="0" max="100">
                                         </div>
-                                    </div>
-
-                                    <!-- Promo Code Options -->
-                                    <div class="discount-options promo-code-options" style="display: none;">
                                         <div class="form-group">
-                                            <label>Promo Code:</label>
+                                            <label>Apply To</label>
+                                            <select name="apply_to[]">
+                                                <option value="all">All Tickets</option>
+                                                <option value="additional">Additional Tickets Only</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Early Bird Options -->
+                                <div class="early-bird-options discount-options" style="display: none;">
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Valid Until</label>
+                                            <input type="datetime-local" name="valid_until[]">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Discount (%)</label>
+                                            <input type="number" name="early_bird_discount_percent[]" min="0" max="100">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Maximum Tickets</label>
+                                            <input type="number" name="max_early_bird_tickets[]" min="1">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Promo Code Options -->
+                                <div class="promo-code-options discount-options" style="display: none;">
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Promo Code</label>
                                             <input type="text" name="promo_code[]">
                                         </div>
                                         <div class="form-group">
-                                            <label>Discount Percentage:</label>
+                                            <label>Discount (%)</label>
                                             <input type="number" name="promo_discount[]" min="0" max="100">
                                         </div>
+                                        <div class="form-group">
+                                            <label>Maximum Uses</label>
+                                            <input type="number" name="max_uses[]" min="1">
+                                        </div>
                                     </div>
-
-                                    <button type="button" class="remove-discount-rule remove-button">
-                                        <i class="fas fa-trash"></i> Remove Rule
-                                    </button>
                                 </div>
+
+                                <button type="button" class="remove-button remove-discount-rule">
+                                    <i class="fas fa-trash"></i> Remove Rule
+                                </button>
                             </div>
-                            <button type="button" id="add-discount-rule" class="add-button">
-                                <i class="fas fa-plus"></i> Add Another Discount Rule
-                            </button>
                         </div>
+                        <button type="button" id="add-discount-rule" class="add-button">
+                            <i class="fas fa-plus"></i> Add Discount Rule
+                        </button>
                     </div>
 
-                    <!-- Navigation Buttons -->
-                    <div class="step-navigation">
-                        <button type="button" class="primary-button" id="prevBtn" style="display: none;">
-                            <i class="fas fa-arrow-left"></i> Previous
-                        </button>
-                        <button type="button" class="primary-button" id="nextBtn">
-                            Next <i class="fas fa-arrow-right"></i>
-                        </button>
-                        <button type="submit" class="primary-button" id="submitBtn" style="display: none;">
+                    <!-- Submit Button -->
+                    <div class="form-actions">
+                        <button type="submit" class="primary-button">
                             <i class="fas fa-calendar-plus"></i> Create Event
                         </button>
                     </div>
@@ -1020,77 +994,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-
-let currentStep = 1;
-const totalSteps = 4;
-
-function showStep(step) {
-    // Hide all steps
-    document.querySelectorAll('.step-container').forEach(container => {
-        container.classList.remove('active');
-    });
-    
-    // Show current step
-    document.getElementById(`step${step}`).classList.add('active');
-    
-    // Update dots
-    document.querySelectorAll('.step-dot').forEach((dot, index) => {
-        dot.classList.remove('active', 'completed');
-        if (index + 1 === step) {
-            dot.classList.add('active');
-        } else if (index + 1 < step) {
-            dot.classList.add('completed');
-        }
-    });
-    
-    // Update buttons
-    document.getElementById('prevBtn').style.display = step === 1 ? 'none' : 'block';
-    document.getElementById('nextBtn').style.display = step === totalSteps ? 'none' : 'block';
-    document.getElementById('submitBtn').style.display = step === totalSteps ? 'block' : 'none';
-}
-
-document.getElementById('nextBtn').addEventListener('click', () => {
-    if (currentStep < totalSteps) {
-        currentStep++;
-        showStep(currentStep);
-    }
-});
-
-document.getElementById('prevBtn').addEventListener('click', () => {
-    if (currentStep > 1) {
-        currentStep--;
-        showStep(currentStep);
-    }
-});
-
-// Initialize form validation for each step
-document.getElementById('nextBtn').addEventListener('click', function() {
-    const currentStepContainer = document.getElementById(`step${currentStep}`);
-    const inputs = currentStepContainer.querySelectorAll('input[required]');
-    let isValid = true;
-
-    inputs.forEach(input => {
-        if (!input.value) {
-            isValid = false;
-            input.classList.add('invalid');
-        } else {
-            input.classList.remove('invalid');
-        }
-    });
-
-    if (isValid) {
-        if (currentStep < totalSteps) {
-            currentStep++;
-            showStep(currentStep);
-        }
-    } else {
-        alert('Please fill in all required fields before proceeding.');
-    }
-});
-
-// Initialize the first step
-showStep(1);
 </script>
 
 {% endblock %}
 </html>
+
