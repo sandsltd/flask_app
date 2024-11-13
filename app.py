@@ -183,6 +183,7 @@ class Event(db.Model):
     enforce_individual_ticket_limits = db.Column(db.Boolean, default=True)
     image_url = db.Column(db.String(255), nullable=True)  # To store the image file path
     discount_rules = db.relationship('DiscountRule', backref='event', lazy=True)
+    fees_paid_by = db.Column(db.String(10), nullable=False, default='buyer')
 
 class Attendee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1388,21 +1389,35 @@ def purchase(event_id, promo_code=None):
                 booking_fee_pence = 30 * total_tickets  # 30p per ticket
                 print(f"- Base booking fee: {total_tickets} tickets × 30p = £{booking_fee_pence/100:.2f}")
 
-                subtotal_before_stripe = total_amount_pence + booking_fee_pence
-                print(f"- Subtotal before Stripe fee: £{subtotal_before_stripe/100:.2f}")
+                if event.fees_paid_by == 'buyer':
+                    # Add fees to the total amount
+                    subtotal_before_stripe = total_amount_pence + booking_fee_pence
+                    print(f"- Subtotal before Stripe fee: £{subtotal_before_stripe/100:.2f}")
 
-                stripe_fee_pence = int(subtotal_before_stripe * 0.014) + 20  # 1.4% + 20p
-                print(f"- Stripe fee: 1.4% + 20p = £{stripe_fee_pence/100:.2f}")
+                    stripe_fee_pence = int(subtotal_before_stripe * 0.014) + 20  # 1.4% + 20p
+                    print(f"- Stripe fee: 1.4% + 20p = £{stripe_fee_pence/100:.2f}")
 
-                total_booking_fee_pence = booking_fee_pence + stripe_fee_pence
-                print(f"- Total booking fee: £{total_booking_fee_pence/100:.2f}")
+                    total_booking_fee_pence = booking_fee_pence + stripe_fee_pence
+                    print(f"- Total booking fee: £{total_booking_fee_pence/100:.2f}")
 
-                # Adjust platform fee to cover Stripe's processing cut
-                adjusted_platform_fee = int(booking_fee_pence / 0.971)  # Adjust for Stripe's cut
-                print(f"- Adjusted platform fee: £{adjusted_platform_fee/100:.2f}")
+                    # Adjust platform fee to cover Stripe's processing cut when buyer pays
+                    adjusted_platform_fee = int(booking_fee_pence / 0.971)  # Adjust for Stripe's cut
+                    print(f"- Adjusted platform fee: £{adjusted_platform_fee/100:.2f}")
 
-                # Final charge amount
-                total_charge_pence = total_amount_pence + total_booking_fee_pence
+                    # Final charge amount includes fees
+                    total_charge_pence = total_amount_pence + total_booking_fee_pence
+                else:
+                    # Organizer pays fees - don't add to customer total
+                    total_charge_pence = total_amount_pence
+                    
+                    # Calculate fees for internal use and display
+                    stripe_fee_pence = int(total_amount_pence * 0.014) + 20
+                    total_booking_fee_pence = booking_fee_pence + stripe_fee_pence
+                    
+                    # When organizer pays, platform fee doesn't need adjustment since it's taken from their revenue
+                    adjusted_platform_fee = booking_fee_pence
+                    print(f"- Platform fee (paid by organizer): £{adjusted_platform_fee/100:.2f}")
+
                 print(f"\nFinal charge amount: £{total_charge_pence/100:.2f}")
                 print("=== END PAYMENT CALCULATION ===\n")
 
@@ -1625,7 +1640,9 @@ def purchase(event_id, promo_code=None):
                 ticket_types=ticket_types,
                 enforce_individual_ticket_limits=event.enforce_individual_ticket_limits,
                 tickets_available=tickets_available,
-                discount_config=active_discount
+                discount_config=active_discount,
+                show_fees=event.fees_paid_by == 'buyer',
+                booking_fee=total_booking_fee_pence/100
             )
 
     except Exception as e:
