@@ -7,11 +7,27 @@
         <div class="business-profile">
             <div class="business-logo-placeholder">TR</div>
             <div class="business-info">
-                <h1>TicketRush</h1>
-                <p class="subtitle">Create Your Account</p>
+                <h1>Welcome to TicketRush! 🎉</h1>
+                <div class="animated-subtitle">
+                    <p class="subtitle">Let's Get Your Events Online in Minutes</p>
+                    <p class="subtitle-caption">Join thousands of event organizers selling tickets with ease</p>
+                </div>
             </div>
         </div>
     </header>
+
+    <!-- Flash Messages -->
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} fade-in">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
 
     <!-- Main Content Section -->
     <div class="content-grid">
@@ -350,6 +366,121 @@
         align-items: center;
     }
 }
+
+/* Enhanced Header Styles */
+.business-info h1 {
+    margin: 0;
+    font-size: 2.2em;
+    color: #333;
+    background: linear-gradient(45deg, #ff0000, #ff4d4d);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: fadeIn 0.8s ease-out;
+}
+
+.animated-subtitle {
+    margin-top: 10px;
+}
+
+.subtitle {
+    margin: 5px 0 0;
+    font-size: 1.2em;
+    color: #4a5568;
+    animation: slideIn 0.8s ease-out;
+}
+
+.subtitle-caption {
+    margin: 5px 0 0;
+    color: #718096;
+    font-size: 0.9em;
+    animation: slideIn 1s ease-out;
+}
+
+/* Flash Messages Styling */
+.flash-messages {
+    max-width: 1200px;
+    margin: 0 auto 20px;
+    padding: 0 20px;
+}
+
+.alert {
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.alert::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+}
+
+.alert-success {
+    background-color: #def7ec;
+    color: #03543f;
+    border-left: 4px solid #0e9f6e;
+}
+
+.alert-success::before {
+    content: "\f00c";
+    color: #0e9f6e;
+}
+
+.alert-danger {
+    background-color: #fde8e8;
+    color: #9b1c1c;
+    border-left: 4px solid #f05252;
+}
+
+.alert-danger::before {
+    content: "\f071";
+    color: #f05252;
+}
+
+.alert-warning {
+    background-color: #fdf6b2;
+    color: #723b13;
+    border-left: 4px solid #c27803;
+}
+
+.alert-warning::before {
+    content: "\f06a";
+    color: #c27803;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Make error message visible when there's content */
+.error-msg:not(:empty) {
+    display: block;
+    animation: fadeIn 0.5s ease-out;
+}
 </style>
 
 <script>
@@ -363,13 +494,23 @@ function validateForm() {
 
     const passwordPattern = /^(?=.*[A-Z]).{8,}$/;
     if (!passwordPattern.test(password)) {
-        errorMessage.innerHTML = "Password must be at least 8 characters long and include at least one uppercase letter.";
+        errorMessage.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                Password must be at least 8 characters long and include at least one uppercase letter.
+            </div>
+        `;
         errorMessage.style.display = "block";
         return false;
     }
 
     if (password !== confirmPassword) {
-        errorMessage.innerHTML = "Passwords do not match.";
+        errorMessage.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                Passwords do not match.
+            </div>
+        `;
         errorMessage.style.display = "block";
         return false;
     }
