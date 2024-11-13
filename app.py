@@ -183,7 +183,7 @@ class Event(db.Model):
     enforce_individual_ticket_limits = db.Column(db.Boolean, default=True)
     image_url = db.Column(db.String(255), nullable=True)  # To store the image file path
     discount_rules = db.relationship('DiscountRule', backref='event', lazy=True)
-    fees_paid_by = db.Column(db.String(10), nullable=False, default='buyer')
+    fees_paid_by = db.Column(db.String(10), nullable=True, default='buyer')
 
 class Attendee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
