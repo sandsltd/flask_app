@@ -288,6 +288,10 @@
                 case 'bulk':
                     applyDiscount = totalQuantity >= discountConfig.minTickets;
                     break;
+
+                case 'promo_code':
+                    applyDiscount = true;  // Always apply promo code discount if it exists
+                    break;
             }
         }
 
@@ -303,14 +307,26 @@
                 originalPriceSpan.classList.add('strikethrough');
                 discountedPriceSpan.textContent = `£${discountedPrice.toFixed(2)}`;
                 discountedPriceSpan.style.display = 'inline';
+                
+                // Add a discount label
+                let discountLabel = priceDisplay.querySelector('.discount-label');
+                if (!discountLabel) {
+                    discountLabel = document.createElement('span');
+                    discountLabel.className = 'discount-label';
+                    priceDisplay.appendChild(discountLabel);
+                }
+                discountLabel.textContent = ` (${discountConfig.percentage}% off)`;
             } else {
                 originalPriceSpan.classList.remove('strikethrough');
                 discountedPriceSpan.style.display = 'none';
+                
+                // Remove discount label if it exists
+                const discountLabel = priceDisplay.querySelector('.discount-label');
+                if (discountLabel) {
+                    discountLabel.remove();
+                }
             }
         });
-
-        // Update total price display
-        updateTotalPrice();
     }
 
     function updateTotalPrice() {
@@ -505,21 +521,26 @@
             if (data.valid) {
                 messageElement.textContent = `Success! ${data.discount}% discount will be applied`;
                 messageElement.className = 'promo-message success';
+                
                 // Update the discount configuration
                 discountConfig = {
                     type: 'promo_code',
                     percentage: data.discount,
                     code: promoCode
                 };
-                // Update prices
+                
+                // Update all price displays
                 updatePriceDisplays(getTotalQuantity());
+                updateTotalPrice();
             } else {
                 messageElement.textContent = data.message || 'Invalid promo code';
                 messageElement.className = 'promo-message error';
+                
                 // Reset discount if promo code is invalid
-                if (discountConfig.type === 'promo_code') {
+                if (discountConfig && discountConfig.type === 'promo_code') {
                     discountConfig = null;
                     updatePriceDisplays(getTotalQuantity());
+                    updateTotalPrice();
                 }
             }
         } catch (error) {
@@ -996,6 +1017,31 @@
 
     .promo-message.error {
         color: #dc3545;
+    }
+
+    /* Add these styles to your existing CSS */
+    .strikethrough {
+        text-decoration: line-through;
+        color: #999;
+        margin-right: 8px;
+    }
+
+    .discounted-price {
+        color: #28a745;
+        font-weight: bold;
+    }
+
+    .discount-label {
+        color: #28a745;
+        font-size: 0.9em;
+        margin-left: 5px;
+    }
+
+    .ticket-price-display {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 5px;
     }
 </style>
 
