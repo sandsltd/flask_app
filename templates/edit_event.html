@@ -114,137 +114,297 @@
 {% extends "partials/base-logged-in.html" %}
 
 {% block content %}
-<div class="edit-event-container">
-    <h1>Edit Event: {{ event.name }}</h1>
-
-    <form method="POST" action="{{ url_for('edit_event', event_id=event.id) }}" enctype="multipart/form-data" id="edit-event-form">
-        <!-- Current Event Image Section -->
-        <h3>Current Event Image:</h3>
-        {% if event.image_url %}
-            <img src="{{ event.image_url }}" alt="Current Event Image" style="max-width: 300px;">
-        {% else %}
-            <p>No custom event image uploaded. Using default event image.</p>
-            <img src="{{ url_for('static', filename='images/event-placeholder.png') }}" alt="Default Event Image" style="max-width: 300px;">
-        {% endif %}
-    
-        <!-- Upload New Event Image -->
-        <h3>Upload New Event Image</h3>
-        <p>Recommended size: 800x600px. Maximum file size: 5MB.</p>
-        <label for="event_image">Choose an image file</label>
-        <input type="file" id="event_image" name="event_image" accept="image/*" title="Upload an image file for the event. Max size 5MB.">
-        
-        <!-- Event Details -->
-        <label for="name">Event Name:</label>
-        <input type="text" id="name" name="name" value="{{ event.name }}" required>
-
-        <label for="date">Event Date:</label>
-        <input type="date" id="date" name="date" value="{{ event.date }}" required>
-
-        <label for="start_time">Start Time:</label>
-        <input type="time" id="start_time" name="start_time" value="{{ event.start_time }}">
-
-        <label for="end_time">End Time:</label>
-        <input type="time" id="end_time" name="end_time" value="{{ event.end_time }}">
-
-        <label for="location">Location:</label>
-        <input type="text" id="location" name="location" value="{{ event.location }}" required>
-
-        <label for="description">Description:</label>
-        <textarea id="description" name="description">{{ event.description }}</textarea>
-
-
-        <!-- Option to Enforce Individual Ticket Limits -->
-        <div>
-            <label>
-                <input type="radio" name="enforce_individual_ticket_limits" value="on"
-                    {% if event.enforce_individual_ticket_limits %}checked{% endif %}
-                    onclick="toggleTicketOptions()">
-                Enforce individual ticket type limits
-            </label>
-            <label>
-                <input type="radio" name="enforce_individual_ticket_limits" value="off"
-                    {% if not event.enforce_individual_ticket_limits %}checked{% endif %}
-                    onclick="toggleTicketOptions()">
-                Enforce total event capacity
-            </label>
-        </div>
-
-        <!-- Ticket Types with Limits Section -->
-        <div id="ticket-types-section" {% if not event.enforce_individual_ticket_limits %}style="display: none;"{% endif %}>
-            <h3>Ticket Types with Limits</h3>
-            <div id="ticket-types-container">
-                {% for ticket_type in ticket_types_with_limits %}
-                    <div class="ticket-type">
-                        <input type="hidden" name="existing_ticket_type_id" value="{{ ticket_type.id }}">
-                        <label>Ticket Name:</label>
-                        <input type="text" name="name_{{ ticket_type.id }}" value="{{ ticket_type.name }}" required>
-
-                        <label>Price (£):</label>
-                        <input type="number" step="0.01" name="price_{{ ticket_type.id }}" value="{{ ticket_type.price }}" required>
-
-                        <label>Quantity:</label>
-                        <input type="number" name="quantity_{{ ticket_type.id }}" value="{{ ticket_type.quantity }}" required>
-
-                        <label>
-                            Delete:
-                            <input type="checkbox" class="delete-checkbox" name="delete_{{ ticket_type.id }}">
-                        </label>
-                    </div>
-                {% endfor %}
-            </div>
-            <button type="button" id="add-ticket-type-button">Add Ticket Type</button>
-        </div>
-
-        <!-- Ticket Types without Limits Section -->
-        <div id="ticket-types-no-limit-section" {% if event.enforce_individual_ticket_limits %}style="display: none;"{% endif %}>
-            <h3>Ticket Types without Quantities</h3>
-            <div id="ticket-types-no-limit-container">
-                {% for ticket_type in ticket_types_no_limits %}
-                <div class="ticket-type">
-                    <input type="hidden" name="existing_ticket_type_id_no_limit" value="{{ ticket_type.id }}">
-                    <label>Ticket Name:</label>
-                    <input type="text" name="name_no_limit_{{ ticket_type.id }}" value="{{ ticket_type.name }}" required>
-
-                    <label>Price (£):</label>
-                    <input type="number" step="0.01" name="price_no_limit_{{ ticket_type.id }}" value="{{ ticket_type.price }}" required>
-
-                    <label>
-                        Delete:
-                        <input type="checkbox" class="delete-checkbox-no-limit" name="delete_no_limit_{{ ticket_type.id }}">
-                    </label>
+<div class="dashboard-wrapper">
+    <!-- Header Section -->
+    <header class="dashboard-header">
+        <div class="business-profile">
+            <div class="business-info">
+                <h1>Edit Event: {{ event.name }} <span class="emoji">✏️</span></h1>
+                <div class="animated-subtitle">
+                    <p class="subtitle">Update Your Event Details <span class="emoji">🎯</span></p>
+                    <p class="subtitle-caption">Modify event information, tickets, and discounts <span class="emoji">✨</span></p>
                 </div>
-                {% endfor %}
             </div>
-            <button type="button" id="add-ticket-type-no-limit-button">Add Ticket Type</button>
         </div>
+    </header>
 
-        <!-- Total Event Capacity Section -->
-        <div id="total-capacity-section" {% if event.enforce_individual_ticket_limits %}style="display: none;"{% endif %}>
-            <label for="total_ticket_quantity">Total Event Capacity:</label>
-            <input type="number" id="total_ticket_quantity" name="total_ticket_quantity" value="{{ event.ticket_quantity }}" {% if not event.enforce_individual_ticket_limits %}required{% endif %}>
-        </div>
-
-        <!-- Custom Questions Section -->
-        <h3>Custom Questions</h3>
-        {% for i in range(1, 11) %}
-            <div class="form-group">
-                <label for="custom_question_{{ i }}">Custom Question {{ i }}:</label>
-                <input type="text" id="custom_question_{{ i }}" name="custom_question_{{ i }}" 
-                       value="{{ custom_questions['custom_question_' + i|string] }}">
-                <small>Leave blank to delete this question</small>
+    <!-- Main Content Section -->
+    <div class="content-grid">
+        <!-- Info Section -->
+        <section class="info-section">
+            <div class="info-card">
+                <h2>Event Management Guide</h2>
+                <div class="benefits-grid">
+                    <div class="benefit-item">
+                        <i class="fas fa-calendar"></i>
+                        <div class="benefit-content">
+                            <h3>Event Details</h3>
+                            <p>Update basic event information</p>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <i class="fas fa-ticket-alt"></i>
+                        <div class="benefit-content">
+                            <h3>Ticket Management</h3>
+                            <p>Modify ticket types and pricing</p>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <i class="fas fa-percentage"></i>
+                        <div class="benefit-content">
+                            <h3>Discount Rules</h3>
+                            <p>Set up promotional discounts</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-        {% endfor %}
+        </section>
 
-        <button type="submit">Save Changes</button>
-    </form>
+        <!-- Form Section -->
+        <section class="form-section">
+            <div class="form-card">
+                <form method="POST" action="{{ url_for('edit_event', event_id=event.id) }}" enctype="multipart/form-data" id="edit-event-form">
+                    <!-- Event Image Section -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-image"></i> Event Image</h3>
+                        <div class="info-card">
+                            <p class="info-text">Current Event Image:</p>
+                            {% if event.image_url %}
+                                <img src="{{ event.image_url }}" alt="Current Event Image" style="max-width: 300px;">
+                            {% else %}
+                                <p>No custom event image uploaded. Using default event image.</p>
+                                <img src="{{ url_for('static', filename='images/event-placeholder.png') }}" alt="Default Event Image" style="max-width: 300px;">
+                            {% endif %}
+                            
+                            <div class="form-group">
+                                <label for="event_image">Upload New Image</label>
+                                <p class="info-text">Recommended size: 800x600px. Maximum file size: 5MB.</p>
+                                <input type="file" id="event_image" name="event_image" accept="image/*">
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- Warning for Deletion Restriction -->
-    <div id="delete-warning" style="display: none; color: red; text-align: center; margin-top: 20px;">
-        You must have at least one ticket type. If you wish to delete the event entirely, please do so from your dashboard.
+                    <!-- Event Details Section -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-info-circle"></i> Event Details</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="name">Event Name</label>
+                                <input type="text" id="name" name="name" value="{{ event.name }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="date">Event Date</label>
+                                <input type="date" id="date" name="date" value="{{ event.date }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="start_time">Start Time</label>
+                                <input type="time" id="start_time" name="start_time" value="{{ event.start_time }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="end_time">End Time</label>
+                                <input type="time" id="end_time" name="end_time" value="{{ event.end_time }}">
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="location">Location</label>
+                                <input type="text" id="location" name="location" value="{{ event.location }}" required>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="description">Description</label>
+                                <textarea id="description" name="description">{{ event.description }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ticket Management Section -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-ticket-alt"></i> Ticket Management</h3>
+                        <div class="strategy-options">
+                            <label class="radio-option">
+                                <input type="radio" name="enforce_individual_ticket_limits" value="on"
+                                    {% if event.enforce_individual_ticket_limits %}checked{% endif %}
+                                    onclick="toggleTicketOptions()">
+                                <span class="radio-label">Enforce individual ticket type limits</span>
+                                <span class="radio-description">Set specific quantities for each ticket type</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="enforce_individual_ticket_limits" value="off"
+                                    {% if not event.enforce_individual_ticket_limits %}checked{% endif %}
+                                    onclick="toggleTicketOptions()">
+                                <span class="radio-label">Enforce total event capacity</span>
+                                <span class="radio-description">Set one total capacity for all ticket types</span>
+                            </label>
+                        </div>
+
+                        <!-- Ticket Types with Limits -->
+                        <div id="ticket-types-section">
+                            <div id="ticket-types-container">
+                                {% for ticket_type in ticket_types_with_limits %}
+                                    <div class="ticket-type">
+                                        <input type="hidden" name="existing_ticket_type_id" value="{{ ticket_type.id }}">
+                                        <div class="form-grid">
+                                            <div class="form-group">
+                                                <label>Ticket Name</label>
+                                                <input type="text" name="name_{{ ticket_type.id }}" value="{{ ticket_type.name }}" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Price (£)</label>
+                                                <input type="number" step="0.01" name="price_{{ ticket_type.id }}" value="{{ ticket_type.price }}" required>
+                                            </div>
+                                            <div class="form-group ticket-quantity-field">
+                                                <label>Quantity</label>
+                                                <input type="number" name="quantity_{{ ticket_type.id }}" value="{{ ticket_type.quantity }}" required>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="remove-button">
+                                            <i class="fas fa-trash"></i> Remove
+                                        </button>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <button type="button" id="add-ticket-type-button" class="add-button">
+                                <i class="fas fa-plus"></i> Add Ticket Type
+                            </button>
+                        </div>
+
+                        <!-- Total Capacity Section -->
+                        <div id="total-capacity-section">
+                            <div class="form-group">
+                                <label for="total_ticket_quantity">Total Event Capacity</label>
+                                <input type="number" id="total_ticket_quantity" name="total_ticket_quantity" 
+                                       value="{{ event.ticket_quantity }}" min="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Discount Rules Section -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-percentage"></i> Discount Rules</h3>
+                        <div class="info-card">
+                            <p class="info-text">Manage promotional discounts for your event</p>
+                            <div class="discount-types-explanation">
+                                <div class="discount-type-card">
+                                    <h4><i class="fas fa-users"></i> Bulk Purchase</h4>
+                                    <p>Offer discounts for multiple tickets bought together</p>
+                                </div>
+                                <div class="discount-type-card">
+                                    <h4><i class="fas fa-clock"></i> Early Bird</h4>
+                                    <p>Reward early bookings with special rates</p>
+                                </div>
+                                <div class="discount-type-card">
+                                    <h4><i class="fas fa-tag"></i> Promo Code</h4>
+                                    <p>Create custom codes for specific promotions</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="discount-rules-container">
+                            {% for rule in event.discount_rules %}
+                            <div class="discount-rule">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Discount Type</label>
+                                        <select class="discount-type-select" name="discount_type[]">
+                                            <option value="bulk" {% if rule.discount_type == 'bulk' %}selected{% endif %}>Bulk Purchase</option>
+                                            <option value="early_bird" {% if rule.discount_type == 'early_bird' %}selected{% endif %}>Early Bird</option>
+                                            <option value="promo_code" {% if rule.discount_type == 'promo_code' %}selected{% endif %}>Promo Code</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Bulk Options -->
+                                <div class="bulk-options discount-options" {% if rule.discount_type != 'bulk' %}style="display: none;"{% endif %}>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Minimum Tickets</label>
+                                            <input type="number" name="min_tickets[]" min="2" value="{{ rule.min_tickets }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Discount (%)</label>
+                                            <input type="number" name="bulk_discount[]" min="0" max="100" value="{{ rule.discount_percent }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Apply To</label>
+                                            <select name="apply_to[]">
+                                                <option value="all" {% if rule.apply_to == 'all' %}selected{% endif %}>All Tickets</option>
+                                                <option value="additional" {% if rule.apply_to == 'additional' %}selected{% endif %}>Additional Tickets Only</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Early Bird Options -->
+                                <div class="early-bird-options discount-options" {% if rule.discount_type != 'early_bird' %}style="display: none;"{% endif %}>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Valid Until</label>
+                                            <input type="datetime-local" name="valid_until[]" value="{{ rule.valid_until.strftime('%Y-%m-%dT%H:%M') if rule.valid_until else '' }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Discount (%)</label>
+                                            <input type="number" name="early_bird_discount_percent[]" min="0" max="100" value="{{ rule.discount_percent }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Maximum Tickets</label>
+                                            <input type="number" name="max_early_bird_tickets[]" min="1" value="{{ rule.max_early_bird_tickets }}">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Promo Code Options -->
+                                <div class="promo-code-options discount-options" {% if rule.discount_type != 'promo_code' %}style="display: none;"{% endif %}>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Promo Code</label>
+                                            <input type="text" name="promo_code[]" value="{{ rule.promo_code }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Discount (%)</label>
+                                            <input type="number" name="promo_discount[]" min="0" max="100" value="{{ rule.discount_percent }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Maximum Uses</label>
+                                            <input type="number" name="max_uses[]" min="1" value="{{ rule.max_uses }}">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button type="button" class="remove-button remove-discount-rule">
+                                    <i class="fas fa-trash"></i> Remove Rule
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" id="add-discount-rule" class="add-button">
+                            <i class="fas fa-plus"></i> Add Discount Rule
+                        </button>
+                    </div>
+
+                    <!-- Custom Questions Section -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-question-circle"></i> Custom Questions</h3>
+                        {% for i in range(1, 11) %}
+                            <div class="form-group">
+                                <label for="custom_question_{{ i }}">Question {{ i }}</label>
+                                <input type="text" id="custom_question_{{ i }}" name="custom_question_{{ i }}" 
+                                       value="{{ custom_questions['custom_question_' + i|string] }}">
+                                <small>Leave blank to remove this question</small>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="form-actions">
+                        <button type="submit" class="primary-button">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
     </div>
 </div>
 
-<!-- JavaScript to Handle Form Logic -->
+<!-- Keep existing JavaScript and add new discount rule handling -->
 <script>
     function toggleTicketOptions() {
         const enforceLimits = document.querySelector('input[name="enforce_individual_ticket_limits"]:checked').value === 'on';
@@ -341,6 +501,70 @@
             document.getElementById('delete-warning').style.display = 'none';
         }
     });
+
+    // Add this JavaScript for discount rules
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle discount type selection
+        document.body.addEventListener('change', function(e) {
+            if (e.target.classList.contains('discount-type-select')) {
+                const ruleDiv = e.target.closest('.discount-rule');
+                const options = ruleDiv.querySelectorAll('.discount-options');
+                options.forEach(opt => opt.style.display = 'none');
+                
+                switch(e.target.value) {
+                    case 'bulk':
+                        ruleDiv.querySelector('.bulk-options').style.display = 'block';
+                        break;
+                    case 'early_bird':
+                        ruleDiv.querySelector('.early-bird-options').style.display = 'block';
+                        break;
+                    case 'promo_code':
+                        ruleDiv.querySelector('.promo-code-options').style.display = 'block';
+                        break;
+                }
+            }
+        });
+
+        // Add new discount rule
+        document.getElementById('add-discount-rule').addEventListener('click', function() {
+            const container = document.getElementById('discount-rules-container');
+            const ruleTemplate = container.querySelector('.discount-rule')?.cloneNode(true) || 
+                createNewDiscountRuleTemplate();
+            
+            // Clear input values
+            ruleTemplate.querySelectorAll('input').forEach(input => input.value = '');
+            
+            // Reset select values
+            ruleTemplate.querySelectorAll('select').forEach(select => {
+                select.selectedIndex = 0;
+                select.dispatchEvent(new Event('change'));
+            });
+            
+            container.appendChild(ruleTemplate);
+        });
+
+        // Remove discount rule
+        document.body.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-discount-rule')) {
+                const rulesContainer = document.getElementById('discount-rules-container');
+                if (rulesContainer.children.length > 1) {
+                    e.target.closest('.discount-rule').remove();
+                } else {
+                    alert('You must have at least one discount rule section.');
+                }
+            }
+        });
+    });
+
+    function createNewDiscountRuleTemplate() {
+        const div = document.createElement('div');
+        div.classList.add('discount-rule');
+        div.innerHTML = `
+            <!-- Add the HTML template for a new discount rule here -->
+            <!-- Copy the structure from the existing discount rule HTML -->
+        `;
+        return div;
+    }
 </script>
 
 {% endblock %}
