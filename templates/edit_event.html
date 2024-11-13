@@ -5,109 +5,168 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Event</title>
     <style>
-        /* Global Styling */
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f8f8f8;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
-
-        /* Container Styling */
-        .edit-event-container {
-            max-width: 600px;
-            margin: 30px auto;
+        .dashboard-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
             padding: 20px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
         }
 
-        /* Heading Styling */
-        h1 {
-            color: #d9534f;
-            text-align: center;
-            font-size: 1.75em;
+        .form-card {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        h1, h2, h3 {
+            color: #ff0000;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
             margin-bottom: 20px;
         }
 
-        /* Form Styling */
-        form {
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .benefit-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .strategy-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .radio-option {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
             display: flex;
             flex-direction: column;
+        }
+
+        .radio-label {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .radio-description {
+            font-size: 0.9em;
+            color: #6b7280;
+        }
+
+        .add-button, .remove-button {
+            background: #ff0000;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .remove-button {
+            background: #dc3545;
+        }
+
+        .add-button:hover, .remove-button:hover {
+            opacity: 0.9;
+        }
+
+        .discount-types-explanation {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 15px;
+            margin-top: 15px;
         }
 
-        label {
-            font-weight: bold;
-            color: #555;
+        .discount-type-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
+        .discount-rule {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 15px;
+        }
+
+        .discount-options {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        /* Update form inputs styling */
         input[type="text"],
         input[type="date"],
-        input[type="number"] {
+        input[type="time"],
+        input[type="number"],
+        input[type="datetime-local"],
+        select,
+        textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
-            background-color: #f5f5f5;
-            box-sizing: border-box;
-        }
-
-        /* Button Styling */
-        button[type="submit"] {
-            padding: 12px 20px;
-            background-color: #d9534f;
-            color: #ffffff;
-            font-weight: bold;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
             font-size: 1em;
         }
 
-        button[type="submit"]:hover {
-            background-color: #c9302c;
+        textarea {
+            min-height: 100px;
+            resize: vertical;
         }
 
-        /* Link Styling */
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            color: #d9534f;
-            text-decoration: none;
-            font-weight: bold;
-            text-align: center;
+        /* Update header styling */
+        .dashboard-header {
+            margin-bottom: 30px;
         }
 
-        .back-link:hover {
-            color: #c9302c;
+        .animated-subtitle {
+            color: #666;
+            font-size: 1.1em;
         }
 
-            /* Additional Styles */
-    .ticket-type {
-        border: 1px solid #ddd;
-        padding: 15px;
-        margin-bottom: 15px;
-        border-radius: 5px;
-        background-color: #f9f9f9;
-    }
-
-    .ticket-type label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-    }
-
-    .ticket-type input[type="text"],
-    .ticket-type input[type="number"] {
-        width: 100%;
-        padding: 8px;
-        margin-bottom: 10px;
-        box-sizing: border-box;
-    }
+        .subtitle-caption {
+            font-size: 0.9em;
+            color: #888;
+        }
     </style>
 </head>
 
