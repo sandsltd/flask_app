@@ -294,6 +294,176 @@
 .login-footer a:hover {
     text-decoration: underline;
 }
+
+/* Responsive Styles */
+@media (max-width: 1024px) {
+    .login-card {
+        max-width: 380px;
+        padding: 30px;
+    }
+
+    .gradient-circle {
+        filter: blur(60px);
+    }
+
+    .circle-1, .circle-2 {
+        width: 400px;
+        height: 400px;
+    }
+}
+
+@media (max-width: 768px) {
+    .login-container {
+        padding: 20px;
+    }
+
+    .login-card {
+        max-width: 100%;
+        padding: 25px;
+        margin: 20px;
+    }
+
+    .login-logo {
+        width: 150px;
+    }
+
+    .login-header h1 {
+        font-size: 22px;
+    }
+
+    .subtitle {
+        font-size: 0.9em;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-group label {
+        font-size: 0.9em;
+    }
+
+    .form-group input {
+        padding: 10px;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+
+    .login-button {
+        padding: 12px;
+        font-size: 0.95em;
+        min-height: 44px; /* Better touch target */
+    }
+
+    /* Adjust floating tickets for mobile */
+    .floating-ticket {
+        font-size: 1.5rem;
+    }
+
+    .gradient-circle {
+        filter: blur(40px);
+    }
+}
+
+@media (max-width: 480px) {
+    .login-container {
+        padding: 15px;
+    }
+
+    .login-card {
+        padding: 20px;
+        margin: 15px;
+        border-radius: 15px;
+    }
+
+    .login-logo {
+        width: 120px;
+    }
+
+    .login-header h1 {
+        font-size: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 14px;
+    }
+
+    .forgot-password {
+        font-size: 13px;
+        top: 2px;
+    }
+
+    .login-footer {
+        margin-top: 20px;
+        font-size: 0.9em;
+    }
+
+    /* Reduce animation complexity for better performance */
+    .floating-ticket {
+        font-size: 1.2rem;
+    }
+
+    .gradient-circle {
+        filter: blur(30px);
+    }
+}
+
+/* Touch Device Optimization */
+@media (hover: none) {
+    .login-button {
+        min-height: 44px;
+    }
+
+    .login-button:active {
+        transform: scale(0.98);
+    }
+
+    input[type="email"],
+    input[type="password"] {
+        min-height: 44px;
+    }
+}
+
+/* iOS Specific Fixes */
+@supports (-webkit-touch-callout: none) {
+    input[type="email"],
+    input[type="password"] {
+        font-size: 16px !important;
+    }
+
+    .login-container {
+        min-height: -webkit-fill-available;
+    }
+}
+
+/* Improved Form Accessibility */
+.form-group input:focus {
+    border-color: #ff0000;
+    box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.1);
+}
+
+/* Alert Messages */
+.alert {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: #fff3f3;
+    color: #dc2626;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Reduce Animation for Users Who Prefer Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .floating-ticket {
+        animation: none;
+    }
+
+    .login-button {
+        transition: none;
+    }
+}
 </style>
 
 <script>

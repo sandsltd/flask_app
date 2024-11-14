@@ -723,6 +723,213 @@
         .info-card.warning strong {
             color: #856404;
         }
+
+        /* Tablet & Mobile Responsive Styles */
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .info-section {
+                position: static;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-wrapper {
+                padding: 15px;
+            }
+
+            .discount-types-explanation {
+                grid-template-columns: 1fr;
+            }
+
+            .form-card {
+                padding: 20px;
+            }
+
+            .info-card {
+                margin-bottom: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                padding: 15px;
+            }
+
+            .business-info h1 {
+                font-size: 1.5em;
+            }
+
+            .subtitle {
+                font-size: 1em;
+            }
+
+            .form-section {
+                padding: 15px;
+            }
+
+            .custom-question {
+                padding: 12px;
+            }
+
+            .question-controls {
+                gap: 8px;
+            }
+
+            .question-controls button {
+                padding: 8px;
+            }
+
+            .discount-rule {
+                padding: 15px;
+            }
+
+            .form-actions {
+                padding: 15px;
+            }
+
+            .primary-button {
+                width: 100%;
+            }
+
+            .add-button, .remove-button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-wrapper {
+                padding: 10px;
+            }
+
+            .form-card {
+                padding: 15px;
+            }
+
+            .form-section {
+                padding: 10px;
+            }
+
+            .business-info h1 {
+                font-size: 1.3em;
+            }
+
+            .subtitle {
+                font-size: 0.9em;
+            }
+
+            .form-group label {
+                font-size: 0.9em;
+            }
+
+            input[type="text"],
+            input[type="date"],
+            input[type="time"],
+            input[type="number"],
+            select,
+            textarea {
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 12px;
+            }
+
+            .tips-box {
+                padding: 12px;
+            }
+
+            .tips-box ul {
+                padding-left: 15px;
+            }
+
+            .discount-type-card {
+                padding: 12px;
+            }
+        }
+
+        /* Touch Device Optimization */
+        @media (hover: none) {
+            .add-button,
+            .remove-button,
+            .primary-button,
+            input[type="submit"],
+            select {
+                min-height: 44px;
+            }
+
+            .question-controls button {
+                min-width: 44px;
+                min-height: 44px;
+            }
+
+            .radio-option {
+                padding: 15px;
+            }
+
+            input[type="radio"] {
+                width: 20px;
+                height: 20px;
+            }
+        }
+
+        /* iOS Specific Fixes */
+        @supports (-webkit-touch-callout: none) {
+            input,
+            select,
+            textarea {
+                font-size: 16px !important;
+            }
+
+            .form-section {
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        /* Improved Form Controls for Mobile */
+        @media (max-width: 768px) {
+            .form-group {
+                margin-bottom: 15px;
+            }
+
+            .custom-question-input {
+                margin-top: 10px;
+            }
+
+            .discount-options {
+                margin-top: 15px;
+            }
+
+            .strategy-options {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .radio-option {
+                margin-bottom: 10px;
+            }
+
+            /* Improve date/time input spacing */
+            input[type="date"],
+            input[type="time"] {
+                padding-right: 8px;
+            }
+
+            /* Better spacing for remove buttons */
+            .remove-button {
+                margin-top: 10px;
+            }
+
+            /* Adjust file input for mobile */
+            input[type="file"] {
+                width: 100%;
+                padding: 10px 0;
+            }
+        }
     </style>
 </head>
 

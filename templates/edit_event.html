@@ -340,9 +340,11 @@
                             <!-- Individual Tickets Section -->
                             <div id="ticket-types-section">
                                 <div id="ticket-types-container">
-                                    {% for ticket_type in ticket_types_with_limits %}
+                                    {% for ticket_type in ticket_types %}
                                         <div class="ticket-type">
-                                            <input type="hidden" name="existing_ticket_type_id" value="{{ ticket_type.id }}">
+                                            <!-- Hidden input to store the number of tickets sold -->
+                                            <input type="hidden" class="tickets-sold" value="{{ ticket_type.tickets_sold }}">
+                                
                                             <div class="form-grid">
                                                 <div class="form-group">
                                                     <label>Ticket Name</label>
@@ -352,20 +354,22 @@
                                                     <label>Price (£)</label>
                                                     <input type="number" step="0.01" name="price_{{ ticket_type.id }}" value="{{ ticket_type.price }}" required>
                                                 </div>
-                                                <div class="form-group ticket-quantity-field">
-                                                    <label>Quantity</label>
-                                                    <input type="number" name="quantity_{{ ticket_type.id }}" value="{{ ticket_type.quantity }}" required>
-                                                    <div class="quantity-info">
-                                                        <span class="remaining">
-                                                            {% if ticket_type.quantity %}
-                                                                {{ ticket_type.quantity - (ticket_type.tickets_sold|default(0)) }} remaining
-                                                            {% else %}
-                                                                0 remaining
-                                                            {% endif %}
-                                                        </span>
-                                                        <span class="sold">({{ ticket_type.tickets_sold|default(0) }} sold)</span>
+                                                {% if event.enforce_individual_ticket_limits %}
+                                                    <div class="form-group ticket-quantity-field">
+                                                        <label>Quantity</label>
+                                                        <input type="number" name="quantity_{{ ticket_type.id }}" value="{{ ticket_type.quantity }}" required>
+                                                        <div class="quantity-info">
+                                                            <span class="remaining">
+                                                                {% if ticket_type.quantity %}
+                                                                    {{ ticket_type.quantity - (ticket_type.tickets_sold|default(0)) }} remaining
+                                                                {% else %}
+                                                                    0 remaining
+                                                                {% endif %}
+                                                            </span>
+                                                            <span class="sold">({{ ticket_type.tickets_sold|default(0) }} sold)</span>
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                {% endif %}
                                             </div>
                                             <button type="button" class="remove-button" {% if ticket_type.tickets_sold > 0 %}disabled{% endif %}>
                                                 <i class="fas fa-trash"></i> Remove
@@ -378,7 +382,7 @@
                                 </div>
                                 <button type="button" id="add-ticket-type-button" class="add-button">
                                     <i class="fas fa-plus"></i> Add New Ticket Type
-                                </button>
+                                </button>                                
                             </div>
                         {% else %}
                             <!-- Event Capacity Section -->
@@ -449,7 +453,6 @@
                                 </div>
                             </div>
                         </div>
-
                         <div id="discount-rules-container">
                             {% for rule in event.discount_rules %}
                             <div class="discount-rule">
@@ -559,90 +562,149 @@
     </div>
 </div>
 
-<!-- Keep existing JavaScript and add new discount rule handling -->
+<!-- Place this script tag before your JavaScript code -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Remove the toggleTicketOptions call
-        // toggleTicketOptions();
-        
-        // Keep other initialization code
-    });
+    var enforceIndividualTicketLimits = "{{ 'true' if event.enforce_individual_ticket_limits else 'false' }}";
+    enforceIndividualTicketLimits = (enforceIndividualTicketLimits === 'true');
+</script>
 
-    // Add Ticket Type with Quantity
-    // Update the add ticket type functionality
-    document.getElementById('add-ticket-type-button').addEventListener('click', function() {
-        const container = document.getElementById('ticket-types-container');
-        const div = document.createElement('div');
-        div.classList.add('ticket-type');
-        
-        div.innerHTML = `
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Ticket Name</label>
-                    <input type="text" name="new_ticket_name" required>
-                </div>
-                <div class="form-group">
-                    <label>Price (£)</label>
-                    <input type="number" step="0.01" name="new_ticket_price" required>
-                </div>
-                ${event.enforce_individual_ticket_limits ? `
-                    <div class="form-group ticket-quantity-field">
-                        <label>Quantity</label>
-                        <input type="number" name="new_ticket_quantity" required>
+<!-- Your JavaScript code -->
+<script>
+    var enforceIndividualTicketLimits = "{{ 'true' if event.enforce_individual_ticket_limits else 'false' }}";
+    enforceIndividualTicketLimits = (enforceIndividualTicketLimits === 'true');
+</script>
+
+<script>
+    console.log('Enforce Individual Ticket Limits:', enforceIndividualTicketLimits);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Function to handle removal of ticket types
+        function handleRemoveButtonClick(event) {
+            const removeButton = event.target.closest('.remove-button');
+            if (removeButton) {
+                const ticketTypeDiv = removeButton.closest('.ticket-type');
+                const ticketsSoldInput = ticketTypeDiv.querySelector('.tickets-sold');
+                const ticketsSold = parseInt(ticketsSoldInput.value) || 0;
+
+                if (ticketsSold > 0) {
+                    alert('Cannot remove ticket type with sales');
+                    return;
+                }
+
+                const confirmed = confirm('Are you sure you want to remove this ticket type?');
+                if (confirmed) {
+                    ticketTypeDiv.remove();
+                }
+            }
+        }
+
+        // Attach event listeners to existing remove buttons
+        const ticketTypesContainer = document.getElementById('ticket-types-container');
+        if (ticketTypesContainer) {
+            // Use event delegation to handle clicks on remove buttons within the container
+            ticketTypesContainer.addEventListener('click', function(event) {
+                if (event.target.closest('.remove-button')) {
+                    handleRemoveButtonClick(event);
+                }
+            });
+        }
+
+        // Existing code for adding new ticket types...
+
+        // When adding new ticket types dynamically, attach event listeners to their remove buttons
+        const addTicketButton = document.getElementById('add-ticket-type-button');
+        if (addTicketButton) {
+            addTicketButton.addEventListener('click', function() {
+                const container = document.getElementById('ticket-types-container');
+                const div = document.createElement('div');
+                div.classList.add('ticket-type');
+
+                const requiresQuantity = enforceIndividualTicketLimits;
+
+                div.innerHTML = `
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Ticket Name</label>
+                            <input type="text" name="new_ticket_name[]" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Price (£)</label>
+                            <input type="number" step="0.01" name="new_ticket_price[]" required>
+                        </div>
+                        ${requiresQuantity ? `
+                            <div class="form-group ticket-quantity-field">
+                                <label>Quantity</label>
+                                <input type="number" name="new_ticket_quantity[]" min="1" required>
+                            </div>
+                        ` : ''}
                     </div>
-                ` : ''}
-            </div>
-            <button type="button" class="remove-button">
-                <i class="fas fa-trash"></i> Remove
-            </button>
-        `;
-        
-        container.appendChild(div);
-    });
+                    <button type="button" class="remove-button">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                `;
 
-    // Add Ticket Type without Quantity
-    document.getElementById('add-ticket-type-no-limit-button').addEventListener('click', function() {
-        const container = document.getElementById('ticket-types-no-limit-container');
-        const div = document.createElement('div');
-        div.classList.add('ticket-type');
-        div.innerHTML = `
-            <input type="hidden" name="new_ticket_type_id_no_limit" value="new">
-            <label>Ticket Name:</label>
-            <input type="text" name="new_ticket_name_no_limit" required>
-            <label>Price (£):</label>
-            <input type="number" step="0.01" name="new_ticket_price_no_limit" required>
-            <button type="button" class="remove-ticket-type-button">Remove</button>
-        `;
-        container.appendChild(div);
-        div.querySelector('.remove-ticket-type-button').addEventListener('click', function() {
-            container.removeChild(div);
-        });
-    });
+                container.appendChild(div);
 
-    // Form submission validation for ticket types
-    document.getElementById('edit-event-form').addEventListener('submit', function(event) {
-        const enforceLimits = document.querySelector('input[name="enforce_individual_ticket_limits"]:checked').value === 'on';
-        let ticketTypesPresent = false;
-
-        if (enforceLimits) {
-            const ticketNames = document.querySelectorAll('input[name^="name_"], input[name="new_ticket_name"]');
-            ticketTypesPresent = ticketNames.length > 0;
-        } else {
-            const existingTicketNamesNoLimit = document.querySelectorAll('input[name^="name_no_limit_"]');
-            const newTicketNamesNoLimit = document.querySelectorAll('input[name="new_ticket_name_no_limit"]');
-            ticketTypesPresent = (existingTicketNamesNoLimit.length + newTicketNamesNoLimit.length) > 0;
+                // No need to attach an event listener here since we're using event delegation
+            });
         }
 
-        if (!ticketTypesPresent) {
-            event.preventDefault();
-            document.getElementById('delete-warning').style.display = 'block';
-        } else {
-            document.getElementById('delete-warning').style.display = 'none';
-        }
-    });
+        // Form submission validation for ticket types
+        const form = document.getElementById('edit-event-form');
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                const requiresQuantity = enforceIndividualTicketLimits;
+                let ticketTypesPresent = false;
 
-    // Add this JavaScript for discount rules
-    document.addEventListener('DOMContentLoaded', function() {
+                if (requiresQuantity) {
+                    const ticketNames = document.querySelectorAll('input[name^="name_"], input[name="new_ticket_name[]"]');
+                    ticketTypesPresent = ticketNames.length > 0;
+                } else {
+                    const existingTicketNamesNoLimit = document.querySelectorAll('input[name^="name_no_limit_"]');
+                    const newTicketNamesNoLimit = document.querySelectorAll('input[name="new_ticket_name_no_limit[]"]');
+                    ticketTypesPresent = (existingTicketNamesNoLimit.length + newTicketNamesNoLimit.length) > 0;
+                }
+
+                if (!ticketTypesPresent) {
+                    event.preventDefault();
+                    const deleteWarning = document.getElementById('delete-warning');
+                    if (deleteWarning) {
+                        deleteWarning.style.display = 'block';
+                    }
+                } else {
+                    const deleteWarning = document.getElementById('delete-warning');
+                    if (deleteWarning) {
+                        deleteWarning.style.display = 'none';
+                    }
+                }
+            });
+        }
+        // Add new discount rule
+        const addDiscountRuleButton = document.getElementById('add-discount-rule');
+        if (addDiscountRuleButton) {
+            addDiscountRuleButton.addEventListener('click', function() {
+                const container = document.getElementById('discount-rules-container');
+                const ruleTemplate = container.querySelector('.discount-rule')?.cloneNode(true);
+
+                if (ruleTemplate) {
+                    // Clear input values
+                    ruleTemplate.querySelectorAll('input').forEach(input => input.value = '');
+
+                    // Reset select values
+                    ruleTemplate.querySelectorAll('select').forEach(select => {
+                        select.selectedIndex = 0;
+                        select.dispatchEvent(new Event('change'));
+                    });
+
+                    container.appendChild(ruleTemplate);
+                } else {
+                    // If no template exists, create one
+                    const newRuleDiv = createNewDiscountRuleTemplate();
+                    container.appendChild(newRuleDiv);
+                }
+            });
+        }
+
         // Handle discount type selection
         document.body.addEventListener('change', function(e) {
             if (e.target.classList.contains('discount-type-select')) {
@@ -664,47 +726,95 @@
             }
         });
 
-        // Add new discount rule
-        document.getElementById('add-discount-rule').addEventListener('click', function() {
-            const container = document.getElementById('discount-rules-container');
-            const ruleTemplate = container.querySelector('.discount-rule')?.cloneNode(true) || 
-                createNewDiscountRuleTemplate();
-            
-            // Clear input values
-            ruleTemplate.querySelectorAll('input').forEach(input => input.value = '');
-            
-            // Reset select values
-            ruleTemplate.querySelectorAll('select').forEach(select => {
-                select.selectedIndex = 0;
-                select.dispatchEvent(new Event('change'));
-            });
-            
-            container.appendChild(ruleTemplate);
-        });
-
         // Remove discount rule
         document.body.addEventListener('click', function(e) {
             if (e.target.classList.contains('remove-discount-rule')) {
                 const rulesContainer = document.getElementById('discount-rules-container');
-                if (rulesContainer.children.length > 1) {
-                    e.target.closest('.discount-rule').remove();
-                } else {
-                    alert('You must have at least one discount rule section.');
-                }
+                e.target.closest('.discount-rule').remove();
             }
         });
-    });
 
-    function createNewDiscountRuleTemplate() {
-        const div = document.createElement('div');
-        div.classList.add('discount-rule');
-        div.innerHTML = `
-            <!-- Add the HTML template for a new discount rule here -->
-            <!-- Copy the structure from the existing discount rule HTML -->
-        `;
-        return div;
-    }
+        function createNewDiscountRuleTemplate() {
+            const div = document.createElement('div');
+            div.classList.add('discount-rule');
+            div.innerHTML = `
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Discount Type</label>
+                        <select class="discount-type-select" name="discount_type[]">
+                            <option value="bulk">Bulk Purchase</option>
+                            <option value="early_bird">Early Bird</option>
+                            <option value="promo_code">Promo Code</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Bulk Options -->
+                <div class="bulk-options discount-options" style="display: none;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Minimum Tickets</label>
+                            <input type="number" name="min_tickets[]" min="2">
+                        </div>
+                        <div class="form-group">
+                            <label>Discount (%)</label>
+                            <input type="number" name="bulk_discount[]" min="0" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label>Apply To</label>
+                            <select name="apply_to[]">
+                                <option value="all">All Tickets</option>
+                                <option value="additional">Additional Tickets Only</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Early Bird Options -->
+                <div class="early-bird-options discount-options" style="display: none;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Valid Until</label>
+                            <input type="datetime-local" name="valid_until[]">
+                        </div>
+                        <div class="form-group">
+                            <label>Discount (%)</label>
+                            <input type="number" name="early_bird_discount_percent[]" min="0" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label>Maximum Tickets</label>
+                            <input type="number" name="max_early_bird_tickets[]" min="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Promo Code Options -->
+                <div class="promo-code-options discount-options" style="display: none;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Promo Code</label>
+                            <input type="text" name="promo_code[]">
+                        </div>
+                        <div class="form-group">
+                            <label>Discount (%)</label>
+                            <input type="number" name="promo_discount[]" min="0" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label>Maximum Uses</label>
+                            <input type="number" name="max_uses[]" min="1">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="remove-button remove-discount-rule">
+                    <i class="fas fa-trash"></i> Remove Rule
+                </button>
+            `;
+            return div;
+        }
+    });
 </script>
+
 
 {% endblock %}
 </html>

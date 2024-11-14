@@ -19,11 +19,18 @@
 
         .attendees-container {
             max-width: 1200px;
-            margin: 20px auto;
-            padding: 30px;
+            margin: 10px;
+            padding: 15px;
             background-color: #fff;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (min-width: 768px) {
+            .attendees-container {
+                margin: 20px auto;
+                padding: 30px;
+            }
         }
 
         h1 {
@@ -32,10 +39,26 @@
             margin-bottom: 10px;
         }
 
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 24px;
+            }
+        }
+
         h2, h3 {
             color: #555;
             font-size: 20px;
             margin-bottom: 5px;
+        }
+
+        @media (max-width: 768px) {
+            h2 {
+                font-size: 18px;
+            }
+
+            h3 {
+                font-size: 16px;
+            }
         }
 
         hr {
@@ -46,8 +69,7 @@
         }
 
         .ticket-info {
-            margin-top: 20px;
-            margin-bottom: 20px;
+            margin: 15px 0;
             font-size: 16px;
             color: #333;
         }
@@ -56,25 +78,46 @@
             margin-bottom: 5px;
         }
 
+        .ticket-info ul {
+            padding-left: 20px;
+        }
+
         .action-buttons {
-            margin: 20px 0;
             display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            align-items: center;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        @media (min-width: 768px) {
+            .action-buttons {
+                flex-direction: row;
+                align-items: center;
+            }
         }
 
         .button {
-            padding: 10px 20px;
+            width: 100%;
+            min-height: 44px;
+            padding: 12px 20px;
             background-color: #f00;
             color: white;
-            border-radius: 4px;
+            border-radius: 6px;
             text-decoration: none;
             font-weight: bold;
-            transition: background-color 0.3s ease;
             border: none;
             cursor: pointer;
-            display: inline-block;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        @media (min-width: 768px) {
+            .button {
+                width: auto;
+            }
         }
 
         .button:hover {
@@ -96,15 +139,17 @@
 
         /* Search Box Styling */
         .search-box {
-            flex-grow: 1;
             position: relative;
+            width: 100%;
+            margin: 10px 0;
         }
 
         .search-box input {
             width: 100%;
-            padding: 10px 40px 10px 15px;
+            min-height: 44px;
+            padding: 12px 40px 12px 15px;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 16px;
         }
 
@@ -149,39 +194,144 @@
         }
 
         /* Responsive Table */
-        @media screen and (max-width: 768px) {
-            .attendees-table, .attendees-table thead, .attendees-table tbody, .attendees-table th, .attendees-table td, .attendees-table tr {
+        @media (max-width: 768px) {
+            .attendees-table {
                 display: block;
+                width: 100%;
+            }
+
+            .attendees-table thead {
+                display: none;
             }
 
             .attendees-table tr {
-                margin-bottom: 15px;
-            }
-
-            .attendees-table th {
-                background-color: transparent;
-                position: relative;
-                padding: 10px 5px;
+                display: block;
+                margin: 0 0 15px 0;
+                background: #fff;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                padding: 12px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             }
 
             .attendees-table td {
-                padding: 10px 5px;
-                text-align: right;
-                position: relative;
+                display: block;
+                width: 100%;
+                padding: 6px 0;
+                border: none;
+                font-size: 14px;
             }
 
-            .attendees-table td::before {
+            /* Compact header style */
+            td::before {
                 content: attr(data-label);
-                position: absolute;
-                left: 0;
-                width: 50%;
-                padding-left: 15px;
-                font-weight: bold;
-                text-align: left;
+                font-size: 12px;
+                color: #666;
+                display: block;
+                margin-bottom: 2px;
             }
 
+            /* Primary info styling */
+            td[data-label="Ticket ID"],
+            td[data-label="Full Name"],
+            td[data-label="Email"] {
+                padding-bottom: 8px;
+            }
+
+            /* Hide less important info by default */
+            td[data-label="Phone Number"],
+            td[data-label="Address"],
+            td[data-label="Ticket Questions & Answers"] {
+                display: none;
+            }
+
+            /* Action buttons */
             .action-cell {
-                justify-content: flex-end;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                margin-top: 15px;
+            }
+
+            .action-cell .button,
+            .action-cell form .button {
+                width: 100%;
+                padding: 12px;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                text-align: center;
+                border: none;
+                cursor: pointer;
+                transition: opacity 0.2s ease;
+            }
+
+            /* Button colors and order */
+            .action-cell .button {
+                background-color: #f00; /* Default red */
+            }
+
+            /* Add separator before delete button */
+            .action-cell form {
+                margin-top: 15px;        /* Extra space above delete */
+                padding-top: 15px;       /* Extra padding */
+                border-top: 1px solid #eee;  /* Visual separator */
+                order: 3;                /* Keep at bottom */
+            }
+
+            .action-cell .button.delete {
+                background-color: #DC3545; /* Brighter red for delete */
+            }
+
+            /* Hover/active states */
+            .action-cell .button:active {
+                opacity: 0.8;
+            }
+
+            /* Form reset */
+            .action-cell form {
+                width: 100%;
+                margin: 0;
+            }
+
+            /* Show More button */
+            .mobile-expand-btn {
+                width: 100%;
+                padding: 8px;
+                margin: 8px 0;
+                background: #f5f5f5;
+                border: none;
+                border-radius: 4px;
+                text-align: center;
+                font-size: 13px;
+            }
+        }
+
+        /* Add a collapsible section for less important information */
+        @media (max-width: 768px) {
+            .mobile-expandable {
+                display: none;
+            }
+
+            .mobile-expand-btn {
+                display: block;
+                width: 100%;
+                text-align: center;
+                padding: 8px;
+                background: #f5f5f5;
+                border: none;
+                border-radius: 4px;
+                margin: 10px 0;
+                color: #666;
+            }
+
+            .mobile-expand-btn:after {
+                content: '▼';
+                margin-left: 5px;
+            }
+
+            .mobile-expand-btn.expanded:after {
+                content: '▲';
             }
         }
 
@@ -199,12 +349,142 @@
         .ticket-answers li {
             margin-bottom: 5px;
         }
+
+        /* iOS Specific Fixes */
+        @supports (-webkit-touch-callout: none) {
+            input[type="text"],
+            input[type="search"] {
+                font-size: 16px !important;
+            }
+
+            .attendees-container {
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        /* Touch Device Optimization */
+        @media (hover: none) {
+            .button:active {
+                transform: scale(0.98);
+                opacity: 0.9;
+            }
+
+            .search-box input:focus {
+                outline: none;
+                border-color: #f00;
+                box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.1);
+            }
+        }
+
+        /* Better Table Scrolling */
+        @media (max-width: 1024px) {
+            .attendees-table-wrapper {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin: 0 -15px;
+                padding: 0 15px;
+            }
+
+            .attendees-table {
+                min-width: 750px;
+            }
+        }
+
+        /* Print Optimization */
+        @media print {
+            .action-buttons,
+            .button {
+                display: none;
+            }
+
+            .attendees-table {
+                border-collapse: collapse;
+            }
+
+            .attendees-table th,
+            .attendees-table td {
+                border: 1px solid #000;
+            }
+        }
+
+        /* Tablet Optimizations */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .action-buttons {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+
+            .button {
+                flex: 1;
+                min-width: 200px;
+            }
+
+            .search-box {
+                flex-basis: 100%;
+                order: -1;
+                margin-bottom: 15px;
+            }
+
+            .attendees-table {
+                font-size: 14px;
+            }
+
+            .attendees-table th,
+            .attendees-table td {
+                padding: 10px;
+            }
+        }
+
+        /* Better Typography */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 20px;
+                margin-bottom: 10px;
+            }
+
+            h2 {
+                font-size: 18px;
+                margin-bottom: 8px;
+            }
+
+            h3 {
+                font-size: 16px;
+                margin-bottom: 6px;
+            }
+
+            .ticket-info {
+                font-size: 14px;
+            }
+        }
+
+        /* Mobile notice styling */
+        .mobile-notice {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-notice {
+                display: block;
+                background-color: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 6px;
+                padding: 12px;
+                margin-bottom: 15px;
+                text-align: center;
+                font-size: 14px;
+                color: #666;
+            }
+        }
     </style>
 </head>
 {% extends "partials/base-logged-in.html" %}
 
 {% block content %}
 <div class="attendees-container">
+    <div class="mobile-notice">
+        For full attendee details, please view on a desktop or laptop
+    </div>
+
     <h1>Attendees for Event: {{ event.name }}</h1>
     <h2>Date: {{ event_date }}</h2>
     <h3>Location: {{ event.location }}</h3>
@@ -332,6 +612,39 @@
                     rows[i].style.display = 'none';
                 }
             }
+        }
+    });
+
+    // Mobile expandable sections
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.innerWidth <= 768) {
+            const rows = document.querySelectorAll('.attendees-table tr:not(:first-child)');
+            
+            rows.forEach(row => {
+                // Get less important cells
+                const lessImportantCells = row.querySelectorAll('td[data-label="Phone Number"], td[data-label="Address"], td[data-label="Ticket Questions & Answers"]');
+                
+                lessImportantCells.forEach(cell => {
+                    cell.classList.add('mobile-expandable');
+                });
+
+                // Create and insert expand button
+                const expandBtn = document.createElement('button');
+                expandBtn.className = 'mobile-expand-btn';
+                expandBtn.textContent = 'Show More Details';
+                
+                // Insert before the actions cell
+                const actionsCell = row.querySelector('td[data-label="Actions"]');
+                actionsCell.parentNode.insertBefore(expandBtn, actionsCell);
+
+                expandBtn.addEventListener('click', function() {
+                    lessImportantCells.forEach(cell => {
+                        cell.style.display = cell.style.display === 'block' ? 'none' : 'block';
+                    });
+                    this.classList.toggle('expanded');
+                    this.textContent = this.classList.contains('expanded') ? 'Show Less Details' : 'Show More Details';
+                });
+            });
         }
     });
 </script>
