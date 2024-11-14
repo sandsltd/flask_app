@@ -3029,11 +3029,6 @@ def upload_to_s3(file, folder_prefix="event-logos"):
 def start_event_scanner(event_id):
     event = Event.query.get_or_404(event_id)
     
-    # Check if user owns this event
-    if event.user_id != current_user.id:
-        flash('Unauthorized access', 'error')
-        return redirect(url_for('dashboard'))
-    
     # Get all attendees for this event
     attendees = Attendee.query.filter_by(
         event_id=event_id,
