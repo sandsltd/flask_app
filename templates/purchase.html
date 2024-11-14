@@ -113,6 +113,7 @@
                                 value="0"
                                 data-ticket-type-id="{{ ticket_type.id }}"
                                 data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
+                                data-ticket-type-name="{{ ticket_type.name }}"
                                 class="ticket-input"
                             >
                         {% else %}
@@ -124,6 +125,7 @@
                                 value="0"
                                 data-ticket-type-id="{{ ticket_type.id }}"
                                 data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
+                                data-ticket-type-name="{{ ticket_type.name }}"
                                 class="ticket-input"
                             >
                         {% endif %}
@@ -132,16 +134,47 @@
             {% endfor %}
         </div>
 
-        <!-- Total Price -->
-        <div class="form-group">
-            <label>Total Price:</label>
-            <p id="total_price">£0.00</p>
+
+
+        <!-- Question Fields -->
+        <div id="question_forms">
+            {% if default_questions or custom_questions %}
+                <h2>Additional Information</h2>
+                
+                <!-- Default Questions -->
+                {% if default_questions %}
+                    {% for question in default_questions %}
+                        <div class="form-group question-group">
+                            <label for="default_{{ question.id }}">
+                                {{ question.question_text }}
+                                {% if question.required %}<span class="required">*</span>{% endif %}
+                            </label>
+                            <input type="text" 
+                                name="default_answer_{{ question.id }}" 
+                                id="default_{{ question.id }}"
+                                {% if question.required %}required{% endif %}>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- Custom Questions -->
+                {% if custom_questions %}
+                    {% for question in custom_questions %}
+                        <div class="form-group question-group">
+                            <label for="custom_{{ question.id }}">
+                                {{ question.question_text }}
+                                {% if question.required %}<span class="required">*</span>{% endif %}
+                            </label>
+                            <input type="text" 
+                                name="custom_answer_{{ question.id }}" 
+                                id="custom_{{ question.id }}"
+                                {% if question.required %}required{% endif %}>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endif %}
         </div>
 
-        <!-- Add this after the total price div -->
-        <div id="question_forms">
-            <!-- Question forms will be dynamically added here -->
-        </div>
 
         <!-- Terms and Conditions Checkboxes -->
         <h2>Terms and Conditions</h2>
@@ -190,6 +223,23 @@
 
 <script>
     var discountConfig = JSON.parse(document.getElementById('discount-config').textContent || '{}');
+    var questions = JSON.parse(document.getElementById('questions-data').textContent || '[]');
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Only initialize non-promo discounts
+        if (discountConfig && discountConfig.type !== 'promo_code') {
+            initializeDiscountBanner();
+            updatePriceDisplays(getTotalQuantity());
+        }
+        
+        var ticketInputs = document.querySelectorAll('.ticket-input');
+        ticketInputs.forEach(function(input) {
+            input.addEventListener('change', updateQuestionForms);
+            input.addEventListener('input', updateQuestionForms);
+        });
+});
+
     
     // Initialize when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
@@ -206,10 +256,12 @@
         });
     });
 
-    // Update the updatePriceDisplays function
     function updatePriceDisplays(totalQuantity) {
-        var ticketInputs = document.querySelectorAll('.ticket-input');
-        var applyDiscount = false;
+    var ticketInputs = document.querySelectorAll('.ticket-input');
+    // For bulk discounts, we care about total quantity across ALL ticket types
+    var applyDiscount = discountConfig && 
+                       discountConfig.type === 'bulk' && 
+                       totalQuantity >= discountConfig.minTickets;
         
         if (discountConfig && discountConfig.percentage > 0) {
             switch(discountConfig.type) {
@@ -266,139 +318,131 @@
     }
 
     function updateTotalPrice() {
-        const ticketInputs = document.querySelectorAll('.ticket-input');
-        let totalPrice = 0;
-        let totalQuantity = 0;
+    const ticketInputs = document.querySelectorAll('.ticket-input');
+    let totalPrice = 0;
+    let totalQuantity = getTotalQuantity();
+    let originalTotalPrice = 0; // Original price before discounts
 
-        ticketInputs.forEach(function(input) {
-            const quantity = parseInt(input.value) || 0;
-            const price = parseFloat(input.getAttribute('data-ticket-price'));
-            totalQuantity += quantity;
+    ticketInputs.forEach(function(input) {
+        const quantity = parseInt(input.value) || 0;
+        const originalPrice = parseFloat(input.getAttribute('data-ticket-price'));
+        originalTotalPrice += quantity * originalPrice;
 
-            if (quantity > 0) {
-                let ticketPrice = price;
-                
-                // Apply discount if applicable
-                if (discountConfig && discountConfig.percentage > 0) {
-                    let applyDiscount = false;
+        let discountedPrice = originalPrice;
 
-                    switch(discountConfig.type) {
-                        case 'early_bird':
-                            const validUntil = new Date(discountConfig.valid_until);
-                            applyDiscount = new Date() < validUntil && 
-                                (!discountConfig.max_tickets || totalQuantity <= discountConfig.max_tickets);
-                            break;
-                        
-                        case 'bulk':
-                            if (totalQuantity >= discountConfig.minTickets) {
-                                if (discountConfig.apply_to === 'all') {
-                                    applyDiscount = true;
-                                } else { // 'additional'
-                                    if (totalQuantity > 1) {
-                                        ticketPrice = (price + (price * (1 - discountConfig.percentage/100) * (quantity - 1))) / quantity;
-                                    }
-                                }
-                            }
-                            break;
+        if (shouldApplyDiscount(totalQuantity)) {
+            discountedPrice = originalPrice * (1 - discountConfig.percentage / 100);
+        }
 
-                        case 'promo_code':
-                            applyDiscount = true;
-                            break;
-                    }
+        totalPrice += quantity * discountedPrice;
+    });
 
-                    if (applyDiscount) {
-                        ticketPrice = price * (1 - discountConfig.percentage/100);
-                    }
-                }
+    // Calculate discount amount
+    let discountAmount = originalTotalPrice - totalPrice;
 
-                totalPrice += quantity * ticketPrice;
-            }
-        });
+    // Update total price display
+    const totalPriceElement = document.getElementById('sticky_total_price');
+    totalPriceElement.textContent = totalPrice.toFixed(2);
 
-        // Update ticket count in sticky total
-        const ticketCountElement = document.querySelector('.ticket-count');
-        ticketCountElement.textContent = `${totalQuantity} ticket${totalQuantity !== 1 ? 's' : ''} selected`;
+    // Update original price and discount amount if discount is applied
+    const originalPriceElement = document.getElementById('sticky_original_price');
+    const discountAmountElement = document.getElementById('sticky_discount_amount');
 
-        // Update total price displays
-        const totalPriceElements = document.querySelectorAll('.total-price span');
-        totalPriceElements.forEach(element => {
-            element.textContent = totalPrice.toFixed(2);
-        });
+    if (discountAmount > 0) {
+        originalPriceElement.textContent = originalTotalPrice.toFixed(2);
+        discountAmountElement.textContent = discountAmount.toFixed(2);
 
-        // Show/hide sticky total
-        const stickyTotal = document.querySelector('.sticky-total');
-        stickyTotal.classList.toggle('visible', totalQuantity > 0);
-
-        return totalQuantity;
+        // Show the elements
+        originalPriceElement.parentElement.style.display = 'block';
+        discountAmountElement.parentElement.style.display = 'block';
+    } else {
+        // Hide the elements if no discount
+        originalPriceElement.parentElement.style.display = 'none';
+        discountAmountElement.parentElement.style.display = 'none';
     }
 
-    // Your existing updateQuestionForms function with added updatePriceDisplays call
+    // Update ticket count display
+    const ticketCountElement = document.querySelector('.ticket-count');
+    ticketCountElement.textContent = totalQuantity + ' tickets selected';
+
+    // Update sticky total visibility
+    const stickyTotal = document.querySelector('.sticky-total');
+    stickyTotal.classList.toggle('visible', totalQuantity > 0);
+}
+
+function shouldApplyDiscount(totalQuantity) {
+    if (!discountConfig || discountConfig.percentage <= 0) {
+        return false;
+    }
+
+    switch (discountConfig.type) {
+        case 'early_bird':
+            const validUntil = new Date(discountConfig.valid_until);
+            const now = new Date();
+            return now < validUntil;
+        case 'bulk':
+            return totalQuantity >= discountConfig.minTickets;
+        case 'promo_code':
+            return Boolean(discountConfig.code);
+        default:
+            return false;
+    }
+}
+
+
+
     function updateQuestionForms() {
-        var ticketInputs = document.querySelectorAll('.ticket-input');
-        var formsContainer = document.getElementById('question_forms');
-        formsContainer.innerHTML = '';
+    var ticketInputs = document.querySelectorAll('.ticket-input');
+    var formsContainer = document.getElementById('question_forms');
+    formsContainer.innerHTML = '';
 
-        var totalQuantity = 0;
-        var totalPrice = 0;
+    var totalQuantity = 0;
 
-        // First pass: calculate total quantity for bulk discount determination
-        ticketInputs.forEach(function(input) {
-            totalQuantity += parseInt(input.value) || 0;
-        });
+    // First pass: calculate total quantity
+    ticketInputs.forEach(function(input) {
+        totalQuantity += parseInt(input.value) || 0;
+    });
 
-        // Second pass: calculate prices with discounts
-        ticketInputs.forEach(function(input) {
-            var quantity = parseInt(input.value) || 0;
-            var ticketTypeId = input.getAttribute('data-ticket-type-id');
-            var ticketTypePrice = parseFloat(input.getAttribute('data-ticket-price'));
+    // Second pass: create forms for each ticket
+    ticketInputs.forEach(function(input) {
+        var quantity = parseInt(input.value) || 0;
+        var ticketTypeId = input.getAttribute('data-ticket-type-id');
+        var ticketTypeName = input.getAttribute('data-ticket-type-name'); // Get the ticket type name
 
-            // Calculate price based on discount configuration
-            if (totalQuantity >= discountConfig.minTickets) {
-                if (discountConfig.apply_to === 'additional') {
-                    // First ticket at full price, rest discounted
-                    totalPrice += ticketTypePrice + 
-                        (quantity - 1) * (ticketTypePrice * (1 - discountConfig.percentage/100));
-                } else if (discountConfig.apply_to === 'all') {
-                    // All tickets discounted
-                    totalPrice += quantity * (ticketTypePrice * (1 - discountConfig.percentage/100));
-                } else {
-                    // No discount
-                    totalPrice += quantity * ticketTypePrice;
-                }
-            } else {
-                totalPrice += quantity * ticketTypePrice;
-            }
+        // Create question forms for each ticket
+        for (var i = 0; i < quantity; i++) {
+            var ticketDiv = document.createElement('div');
+            ticketDiv.classList.add('attendee-group');
 
-            // Create question forms for each ticket
-            for (var i = 0; i < quantity; i++) {
-                var ticketDiv = document.createElement('div');
-                ticketDiv.classList.add('attendee-group');
+            // Update the heading text to be more user-friendly
+            var attendeeHeader = document.createElement('h3');
+            attendeeHeader.textContent = 'Please provide information for ' + ticketTypeName + ' - Ticket ' + (i + 1);
+            ticketDiv.appendChild(attendeeHeader);
 
-                var attendeeHeader = document.createElement('h3');
-                attendeeHeader.textContent = 'Ticket Type: ' + input.previousElementSibling.textContent + ' - Ticket ' + (i + 1);
-                ticketDiv.appendChild(attendeeHeader);
+            // In updateQuestionForms function
+            questions.forEach(function(question, j) {
+                var formGroup = document.createElement('div');
+                formGroup.classList.add('form-group');
 
-                questions.forEach(function(question, j) {
-                    var formGroup = document.createElement('div');
-                    formGroup.classList.add('form-group');
+                var label = document.createElement('label');
+                label.setAttribute('for', 'ticket_' + ticketTypeId + '_' + i + '_question_' + j);
+                label.textContent = question.question_text;
 
-                    var label = document.createElement('label');
-                    label.setAttribute('for', 'ticket_' + ticketTypeId + '_' + i + '_question_' + j);
-                    label.textContent = question;
+                var inputField = document.createElement('input');
+                inputField.type = 'text';
+                inputField.name = 'ticket_' + ticketTypeId + '_' + i + '_question_' + j;
+                inputField.required = question.required;
 
-                    var inputField = document.createElement('input');
-                    inputField.type = 'text';
-                    inputField.name = 'ticket_' + ticketTypeId + '_' + i + '_question_' + j;
-                    inputField.required = true;
+                formGroup.appendChild(label);
+                formGroup.appendChild(inputField);
+                ticketDiv.appendChild(formGroup);
+            });
 
-                    formGroup.appendChild(label);
-                    formGroup.appendChild(inputField);
-                    ticketDiv.appendChild(formGroup);
-                });
 
-                formsContainer.appendChild(ticketDiv);
-            }
-        });
+            formsContainer.appendChild(ticketDiv);
+        }
+    });
+
 
         // Update total price display
         var totalPriceElement = document.getElementById('total_price');
@@ -424,6 +468,19 @@
             }
         }
     });
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeDiscountBanner();
+        updateQuestionForms();
+        
+        var ticketInputs = document.querySelectorAll('.ticket-input');
+        ticketInputs.forEach(function(input) {
+            input.addEventListener('change', updateQuestionForms);
+            input.addEventListener('input', updateQuestionForms);
+        });
+    });
+
 
     function initializeCountdown() {
         const eventDate = new Date('{{ event.date }}');
@@ -548,11 +605,40 @@
 </script>
 
 <style>
+
+    .total-details .price-breakdown {
+        display: flex;
+        flex-direction: column;
+        margin-top: 0.5rem;
+    }
+
+    .total-details .original-price,
+    .total-details .discount-amount {
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .total-details .original-price {
+        text-decoration: line-through;
+    }
+
+    .total-details .discount-amount {
+        color: #28a745; /* Green color for discount amount */
+    }
+
+    .total-details .total-price {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #ff0000;
+        margin-top: 0.5rem;
+    }
+
     /* Modern styles for the purchase page */
     .purchase-container {
         max-width: 1200px;
         margin: 0 auto;
-        padding: 0;
+        padding: 1rem;  /* Add base padding */
+        width: 100%;    /* Ensure full width on mobile */
         background: #fff;
         box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
         border-radius: 20px;
@@ -569,8 +655,14 @@
     .event-image-container {
         position: relative;
         width: 100%;
-        height: 400px;
+        height: 300px;  /* Reduce height on mobile */
         overflow: hidden;
+    }
+
+    @media (min-width: 768px) {
+        .event-image-container {
+            height: 400px;  /* Larger height on tablet+ */
+        }
     }
 
     .event-image {
@@ -590,13 +682,20 @@
     }
 
     .event-info {
-        padding: 2rem;
+        padding: 1.5rem;
         position: relative;
         z-index: 2;
-        margin-top: -100px;
+        margin-top: -50px;  /* Reduced overlap on mobile */
         background: #fff;
         border-radius: 20px 20px 0 0;
         box-shadow: 0 -20px 30px rgba(0,0,0,0.1);
+    }
+
+    @media (min-width: 768px) {
+        .event-info {
+            padding: 2rem;
+            margin-top: -100px;  /* More overlap on larger screens */
+        }
     }
 
     .organizer-badge {
@@ -637,9 +736,21 @@
 
     .event-details {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
+        grid-template-columns: 1fr;  /* Single column on mobile */
+        gap: 0.75rem;
         margin-top: 2rem;
+    }
+
+    @media (min-width: 576px) {
+        .event-details {
+            grid-template-columns: repeat(2, 1fr);  /* 2 columns on tablet */
+        }
+    }
+
+    @media (min-width: 992px) {
+        .event-details {
+            grid-template-columns: repeat(3, 1fr);  /* 3 columns on desktop */
+        }
     }
 
     .detail-item {
@@ -794,32 +905,56 @@
     .purchase-form {
         max-width: 800px;
         margin: 2rem auto;
-        padding: 2rem;
+        padding: 1rem;
         background: #fff;
         border-radius: 20px;
         box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
     }
 
+    @media (min-width: 768px) {
+        .purchase-form {
+            padding: 2rem;
+            margin: 2rem auto;
+        }
+    }
+
     .form-group {
-        margin-bottom: 1.5rem;
+        display: flex;
+        flex-direction: column;  /* Stack on mobile */
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    @media (min-width: 768px) {
+        .form-group {
+            display: grid;
+            grid-template-columns: 200px 1fr;  /* Side by side on tablet+ */
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
     }
 
     .form-group label {
         font-weight: 500;
         color: #333;
-        margin-bottom: 0.5rem;
     }
 
-    .form-group input {
+    .form-group input,
+    .form-group select {
+        width: 100%;
         padding: 0.8rem 1rem;
         border: 2px solid #eee;
         border-radius: 12px;
         transition: border-color 0.3s ease;
     }
 
-    .form-group input:focus {
-        border-color: #ff0000;
-        outline: none;
+    /* For mobile responsiveness */
+    @media (max-width: 768px) {
+        .form-group {
+            grid-template-columns: 1fr;  /* Stack labels and inputs on small screens */
+            gap: 0.5rem;
+        }
     }
 
     .submit-btn {
@@ -841,9 +976,15 @@
     .ticket-type {
         background: #f8f9fa;
         border-radius: 16px;
-        padding: 1.5rem;
+        padding: 1rem;  /* Smaller padding on mobile */
         margin-bottom: 1rem;
         transition: transform 0.2s ease;
+    }
+
+    @media (min-width: 576px) {
+        .ticket-type {
+            padding: 1.5rem;
+        }
     }
 
     .ticket-type:hover {
@@ -855,6 +996,14 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 1rem;
+    }
+
+    @media (min-width: 576px) {
+        .ticket-header {
+            flex-direction: row;  /* Stack on mobile */
+            justify-content: space-between;
+            align-items: center;
+        }
     }
 
     .ticket-price-display {
@@ -879,7 +1028,7 @@
         right: 0;
         background: white;
         box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
-        padding: 1rem;
+        padding: 0.75rem;
         z-index: 1000;
         transform: translateY(100%);
         transition: transform 0.3s ease;
@@ -895,6 +1044,21 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        padding: 0 1rem;
+        gap: 1rem;
+        flex-direction: column;  /* Stack on mobile */
+    }
+
+    @media (min-width: 768px) {
+        .sticky-total {
+            padding: 1rem;
+        }
+        
+        .total-content {
+            flex-direction: row;  /* Side by side on tablet+ */
+            justify-content: space-between;
+            align-items: center;
+        }
     }
 
     .total-details {
@@ -1035,6 +1199,275 @@
         flex-wrap: wrap;
         gap: 5px;
     }
+
+    /* Question Group Styles */
+.question-group {
+    margin-bottom: 1.5rem;
+}
+
+.question-group label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: block;
+    color: #333;
+}
+
+.question-group .required {
+    color: #ff0000;
+    margin-left: 0.2rem;
+}
+
+.question-group input[type="text"],
+.question-group select {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+    background-color: #fafafa;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    transition: border-color 0.3s ease;
+}
+
+.question-group input[type="text"]:focus,
+.question-group select:focus {
+    background-color: #fff;
+    border-color: #ff0000;
+    box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.1);
+}
+
+.question-group input[type="text"]::placeholder {
+    color: #aaa;
+}
+
+
+
+@media (max-width: 600px) {
+    .question-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .question-group label {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .question-group .question-input {
+        width: 100%;
+    }
+}
+
+/* Base container styles */
+.purchase-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;  /* Add base padding */
+    width: 100%;    /* Ensure full width on mobile */
+}
+
+/* Event header responsive adjustments */
+.event-image-container {
+    height: 300px;  /* Reduce height on mobile */
+}
+
+@media (min-width: 768px) {
+    .event-image-container {
+        height: 400px;  /* Larger height on tablet+ */
+    }
+}
+
+/* Event info responsive styling */
+.event-info {
+    padding: 1.5rem;
+    margin-top: -50px;  /* Reduced overlap on mobile */
+}
+
+@media (min-width: 768px) {
+    .event-info {
+        padding: 2rem;
+        margin-top: -100px;  /* More overlap on larger screens */
+    }
+}
+
+/* Event details grid responsiveness */
+.event-details {
+    display: grid;
+    grid-template-columns: 1fr;  /* Single column on mobile */
+    gap: 0.75rem;
+}
+
+@media (min-width: 576px) {
+    .event-details {
+        grid-template-columns: repeat(2, 1fr);  /* 2 columns on tablet */
+    }
+}
+
+@media (min-width: 992px) {
+    .event-details {
+        grid-template-columns: repeat(3, 1fr);  /* 3 columns on desktop */
+    }
+}
+
+/* Ticket type responsive styling */
+.ticket-type {
+    padding: 1rem;  /* Smaller padding on mobile */
+}
+
+.ticket-header {
+    flex-direction: column;  /* Stack on mobile */
+    gap: 1rem;
+}
+
+@media (min-width: 576px) {
+    .ticket-type {
+        padding: 1.5rem;
+    }
+    
+    .ticket-header {
+        flex-direction: row;  /* Side by side on tablet+ */
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+/* Form responsiveness */
+.purchase-form {
+    padding: 1rem;
+    margin: 1rem auto;
+}
+
+@media (min-width: 768px) {
+    .purchase-form {
+        padding: 2rem;
+        margin: 2rem auto;
+    }
+}
+
+/* Form group responsiveness */
+.form-group {
+    display: flex;
+    flex-direction: column;  /* Stack on mobile */
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+    .form-group {
+        display: grid;
+        grid-template-columns: 200px 1fr;  /* Side by side on tablet+ */
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+}
+
+/* Discount banner responsiveness */
+.discount-banner {
+    margin: 1rem auto;
+    padding: 1.5rem;
+}
+
+#discount-message {
+    font-size: 1.5rem;  /* Smaller on mobile */
+}
+
+@media (min-width: 768px) {
+    .discount-banner {
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+    
+    #discount-message {
+        font-size: 2rem;
+    }
+}
+
+/* Sticky total responsiveness */
+.sticky-total {
+    padding: 0.75rem;
+}
+
+.total-content {
+    padding: 0 1rem;
+    gap: 1rem;
+    flex-direction: column;  /* Stack on mobile */
+}
+
+@media (min-width: 768px) {
+    .sticky-total {
+        padding: 1rem;
+    }
+    
+    .total-content {
+        flex-direction: row;  /* Side by side on tablet+ */
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+/* Question forms responsiveness */
+.attendee-group {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #f8f9fa;
+    border-radius: 12px;
+}
+
+@media (min-width: 768px) {
+    .attendee-group {
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+}
+
+/* Promo code section responsiveness */
+.promo-code-section {
+    margin: 1rem 0;
+}
+
+.promo-code-input-group {
+    flex-direction: column;  /* Stack on mobile */
+    gap: 0.5rem;
+}
+
+@media (min-width: 576px) {
+    .promo-code-input-group {
+        flex-direction: row;  /* Side by side on tablet+ */
+        gap: 1rem;
+    }
+}
+
+/* Font size adjustments for mobile */
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }
+
+@media (min-width: 768px) {
+    h1 { font-size: 2.5rem; }
+    h2 { font-size: 2rem; }
+    h3 { font-size: 1.75rem; }
+}
+
+/* Add smooth scrolling for better mobile experience */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Improve touch targets for mobile */
+button, 
+input[type="submit"],
+.check-promo-btn {
+    min-height: 44px;  /* Minimum touch target size */
+    min-width: 44px;
+}
+
+/* Improve input experience on mobile */
+input, 
+select, 
+textarea {
+    font-size: 16px !important;  /* Prevent zoom on focus in iOS */
+}
 </style>
 
 <!-- Add after the form -->
@@ -1042,10 +1475,13 @@
     <div class="total-content">
         <div class="total-details">
             <span class="ticket-count">0 tickets selected</span>
+            <div class="price-breakdown">
+                <span class="original-price" style="display: none;">Original Price: £<span id="sticky_original_price">0.00</span></span>
+                <span class="discount-amount" style="display: none;">Discount: -£<span id="sticky_discount_amount">0.00</span></span>
+            </div>
             <span class="total-price">Total: £<span id="sticky_total_price">0.00</span></span>
         </div>
         <button type="submit" form="purchase-form" class="submit-btn">Continue to Payment</button>
     </div>
 </div>
-
 {% endblock %} 

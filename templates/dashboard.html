@@ -95,9 +95,9 @@
                 <div class="filter-controls">
                     <form method="GET" action="{{ url_for('dashboard') }}" class="filter-form">
                         <select name="filter" id="filter" onchange="this.form.submit()">
-                            <option value="all" {% if request.args.get('filter') == 'all' %}selected{% endif %}>All Events</option>
-                            <option value="upcoming" {% if request.args.get('filter') == 'upcoming' %}selected{% endif %}>Upcoming Events</option>
-                            <option value="past" {% if request.args.get('filter') == 'past' %}selected{% endif %}>Past Events</option>
+                            <option value="all" {% if request.args.get('filter', 'upcoming') == 'all' %}selected{% endif %}>All Events</option>
+                            <option value="upcoming" {% if request.args.get('filter', 'upcoming') == 'upcoming' %}selected{% endif %}>Upcoming Events</option>
+                            <option value="past" {% if request.args.get('filter', 'upcoming') == 'past' %}selected{% endif %}>Past Events</option>
                         </select>
                     </form>
                 </div>
@@ -145,7 +145,13 @@
                                 </div>
                                 <div class="info-group">
                                     <label><i class="fas fa-clock"></i> Time</label>
-                                    <p>{{ event_data.start_time }} - {{ event_data.end_time }}</p>
+                                    <p>
+                                        {% if event_data.start_time and event_data.end_time %}
+                                            {{ event_data.start_time }} - {{ event_data.end_time }}
+                                        {% else %}
+                                            Time not specified
+                                        {% endif %}
+                                    </p>
                                 </div>
                                 <div class="info-group">
                                     <label><i class="fas fa-info-circle"></i> Description</label>
@@ -338,6 +344,13 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
+    object-fit: cover;
+    padding: 5px;
+    background: white;
+}
+
+.business-logo {
+    object-position: center;
 }
 
 .business-logo-placeholder {

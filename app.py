@@ -71,7 +71,11 @@ login_manager.init_app(app)
  
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 
+# Update the database URL configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
+    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 print("Database URI:", app.config['SQLALCHEMY_DATABASE_URI'])
@@ -366,7 +370,6 @@ def login():
 
 
 
-
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -460,6 +463,8 @@ def dashboard():
             'date': event.date,
             'location': event.location,
             'description': event.description,
+            'start_time': event.start_time,  # Already a string, no need for strftime
+            'end_time': event.end_time,      # Already a string, no need for strftime
             'tickets_sold': tickets_sold,
             'ticket_quantity': total_ticket_quantity,
             'tickets_remaining': tickets_remaining,
@@ -572,7 +577,26 @@ def register():
 
 
 
-
+def get_next_date(current_date, pattern):
+                if pattern == 'daily':
+                    return current_date + timedelta(days=1)
+                elif pattern == 'weekly':
+                    return current_date + timedelta(weeks=1)
+                elif pattern == 'monthly':
+                    # Properly handle month increments, accounting for year changes and varying month lengths
+                    month = current_date.month
+                    year = current_date.year
+                    if month == 12:
+                        month = 1
+                        year += 1
+                    else:
+                        month += 1
+                    # Handle day overflow (e.g., February 30th)
+                    day = min(current_date.day, [31,
+                        29 if (year % 4 == 0 and not year % 100 == 0) or (year % 400 == 0) else 28,
+                        31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1])
+                    return datetime(year, month, day)
+                return current_date  # No recurrence
 
 
 
@@ -598,12 +622,41 @@ def create_event():
                 flash('Please fill in all required fields for the event.', 'danger')
                 return redirect(url_for('create_event'))
 
-            # Parse event date
+            # Validate event date
             try:
                 event_date = datetime.strptime(date_str, '%Y-%m-%d')
+                today = datetime.now().date()
+                
+                if event_date.date() < today:
+                    flash('Event date cannot be in the past.', 'danger')
+                    return redirect(url_for('create_event'))
             except ValueError:
                 flash('Invalid date format. Please use YYYY-MM-DD.', 'danger')
                 return redirect(url_for('create_event'))
+
+            # Validate event times
+            try:
+                start_datetime = datetime.strptime(start_time, '%H:%M')
+                end_datetime = datetime.strptime(end_time, '%H:%M')
+                
+                if end_datetime <= start_datetime:
+                    flash('End time must be after start time.', 'danger')
+                    return redirect(url_for('create_event'))
+
+                # If event is today, check if start time hasn't already passed
+                if event_date.date() == today:
+                    current_time = datetime.now().time()
+                    if start_datetime.time() < current_time:
+                        flash('For events today, start time must be in the future.', 'danger')
+                        return redirect(url_for('create_event'))
+
+            except ValueError:
+                flash('Invalid time format. Please use HH:MM.', 'danger')
+                return redirect(url_for('create_event'))
+
+            # Handle recurrence details
+            recurrence = request.form.get('recurrence', 'none')  # Default to 'none'
+            occurrences_str = request.form.get('occurrences', '1')  # Get as string
 
             # Handle recurrence details
             recurrence = request.form.get('recurrence', 'none')  # Default to 'none'
@@ -625,41 +678,52 @@ def create_event():
                 occurrences = 1  # Default to 1 if no recurrence
 
             # Enforce individual ticket limits
-            enforce_limits = request.form.get('enforce_individual_ticket_limits') == 'on'
-            total_ticket_quantity = None
+            enforce_limits = request.form.get('enforce_individual_ticket_limits') == 'on'  # Changed this line
+            total_capacity = None  # Default to None
             if not enforce_limits:
-                total_ticket_quantity = request.form.get('total_ticket_quantity', type=int)
-                if not total_ticket_quantity or total_ticket_quantity < 1:
-                    flash('Total ticket quantity must be a positive integer.', 'danger')
+                # Only check total capacity if using event capacity strategy
+                total_capacity_str = request.form.get('total_ticket_quantity', '').strip()
+                if total_capacity_str:
+                    try:
+                        total_capacity = int(total_capacity_str)
+                        if total_capacity < 1:
+                            flash('Total ticket quantity must be a positive integer.', 'danger')
+                            return redirect(url_for('create_event'))
+                    except ValueError:
+                        flash('Invalid total capacity value.', 'danger')
+                        return redirect(url_for('create_event'))
+                else:
+                    flash('Total capacity is required when not using individual limits.', 'danger')
                     return redirect(url_for('create_event'))
+
+            print(f"Enforce limits: {enforce_limits}")  # Debug print
+            print(f"Total capacity: {total_capacity}")  # Debug print
 
             # Process ticket types
             ticket_names = request.form.getlist('ticket_name[]')
             ticket_prices = request.form.getlist('ticket_price[]')
-            ticket_quantities = []
-            if enforce_limits:
-                ticket_quantities = request.form.getlist('ticket_quantity[]')
-                # Validate ticket quantities
-                for qty in ticket_quantities:
-                    if qty:
-                        try:
-                            qty_int = int(qty)
-                            if qty_int < 1:
-                                flash('Ticket quantities must be positive integers.', 'danger')
-                                return redirect(url_for('create_event'))
-                        except ValueError:
-                            flash('Invalid ticket quantity. Please enter valid integers.', 'danger')
-                            return redirect(url_for('create_event'))
-            else:
-                ticket_quantities = [None] * len(ticket_names)  # No individual limits
+            ticket_quantities = request.form.getlist('ticket_quantity[]')
+
+            # Debug prints
+            print(f"Ticket names received: {ticket_names}")
+            print(f"Ticket prices received: {ticket_prices}")
+            print(f"Ticket quantities received: {ticket_quantities}")
 
             # Ensure at least one ticket type is provided
             if not ticket_names or not any(ticket_names):
                 flash('Please provide at least one ticket type.', 'danger')
                 return redirect(url_for('create_event'))
+        
+
 
             # Capture custom questions for the event
-            custom_questions = [request.form.get(f'custom_question_{i}') for i in range(1, 11)]
+            custom_questions = []
+            for i in range(1, 11):
+                question = request.form.get(f'custom_question_{i}')
+                if question and question.strip():  # Only add non-empty questions
+                    custom_questions.append(question.strip())
+
+            print(f"Captured custom questions: {custom_questions}")  # Debug print
 
             # Fetch default questions from the database
             default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
@@ -669,26 +733,7 @@ def create_event():
             # 2. Define Date Increment Based on Recurrence
             # ------------------------------
             
-            def get_next_date(current_date, pattern):
-                if pattern == 'daily':
-                    return current_date + timedelta(days=1)
-                elif pattern == 'weekly':
-                    return current_date + timedelta(weeks=1)
-                elif pattern == 'monthly':
-                    # Properly handle month increments, accounting for year changes and varying month lengths
-                    month = current_date.month
-                    year = current_date.year
-                    if month == 12:
-                        month = 1
-                        year += 1
-                    else:
-                        month += 1
-                    # Handle day overflow (e.g., February 30th)
-                    day = min(current_date.day, [31,
-                        29 if (year % 4 == 0 and not year % 100 == 0) or (year % 400 == 0) else 28,
-                        31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1])
-                    return datetime(year, month, day)
-                return current_date  # No recurrence
+            
 
             # ------------------------------
             # 3. Handle Image Upload
@@ -707,7 +752,7 @@ def create_event():
             # 4. Create Each Event Occurrence
             # ------------------------------
             
-            current_date = event_date
+            current_date = event_date  # This is already a datetime object from your validation
             for i in range(occurrences):
                 # Create event instance with custom and default questions
                 event = Event(
@@ -718,123 +763,92 @@ def create_event():
                     end_time=end_time,
                     location=location,
                     description=description,
-                    ticket_quantity=total_ticket_quantity,
+                    image_url=image_url,
                     enforce_individual_ticket_limits=enforce_limits,
-                    image_url=image_url,  # Store the image URL in the event record
-                    custom_question_1=custom_questions[0] or (default_question_texts[0] if len(default_question_texts) > 0 else None),
-                    custom_question_2=custom_questions[1] or (default_question_texts[1] if len(default_question_texts) > 1 else None),
-                    custom_question_3=custom_questions[2] or (default_question_texts[2] if len(default_question_texts) > 2 else None),
-                    custom_question_4=custom_questions[3] or (default_question_texts[3] if len(default_question_texts) > 3 else None),
-                    custom_question_5=custom_questions[4] or (default_question_texts[4] if len(default_question_texts) > 4 else None),
-                    custom_question_6=custom_questions[5] or (default_question_texts[5] if len(default_question_texts) > 5 else None),
-                    custom_question_7=custom_questions[6] or (default_question_texts[6] if len(default_question_texts) > 6 else None),
-                    custom_question_8=custom_questions[7] or (default_question_texts[7] if len(default_question_texts) > 7 else None),
-                    custom_question_9=custom_questions[8] or (default_question_texts[8] if len(default_question_texts) > 8 else None),
-                    custom_question_10=custom_questions[9] or (default_question_texts[9] if len(default_question_texts) > 9 else None),
+                    ticket_quantity=total_capacity
                 )
+
+                # Add custom questions to event
+                # ... (custom questions code) ...
+
                 db.session.add(event)
-                db.session.commit()
+                db.session.flush()  # Get the event ID
 
                 # Add ticket types for this event
                 for t_name, t_price, t_quantity in zip(ticket_names, ticket_prices, ticket_quantities):
                     if t_name and t_price:
                         try:
+                            quantity = None
+                            if enforce_limits:
+                                quantity = int(t_quantity) if t_quantity else None
+                            
+                            print(f"Creating ticket type: {t_name} - £{t_price} - Qty: {quantity}")  # Debug print
+
                             ticket_type = TicketType(
                                 event_id=event.id,
-                                name=t_name,
+                                name=t_name.strip(),
                                 price=float(t_price),
-                                quantity=int(t_quantity) if enforce_limits and t_quantity else None
+                                quantity=quantity
                             )
                             db.session.add(ticket_type)
-                        except ValueError:
-                            flash('Invalid ticket price or quantity. Please ensure they are valid numbers.', 'danger')
+                        except ValueError as e:
+                            print(f"Error creating ticket type: {str(e)}")  # Debug print
+                            flash('Invalid ticket price or quantity.', 'danger')
                             db.session.rollback()
                             return redirect(url_for('create_event'))
-                            
+                # Process discount rules
+                print("\n=== Starting Discount Rules Processing ===")
+                discount_types = request.form.getlist('discount_types[]')
+                print(f"Found discount types: {discount_types}")
+
+                for i, discount_type in enumerate(discount_types):
+                    try:
+                        # Create base discount rule
+                        discount_rule = DiscountRule(
+                            event_id=event.id,
+                            discount_type=discount_type
+                        )
+
+                        # Handle specific discount type fields
+                        if discount_type == 'promo_code':
+                            discount_rule.promo_code = request.form.getlist('promo_code[]')[i]
+                            discount_rule.discount_percent = float(request.form.getlist('promo_discount[]')[i])
+                            discount_rule.max_uses = int(request.form.getlist('max_uses[]')[i])
+                            discount_rule.uses_count = 0
+                            print(f"Added promo code rule: {discount_rule.promo_code}, {discount_rule.discount_percent}%")
+
+                        elif discount_type == 'early_bird':
+                            discount_rule.discount_percent = float(request.form.getlist('early_bird_discount_percent[]')[i])
+                            valid_until = request.form.getlist('valid_until[]')[i]
+                            discount_rule.valid_until = datetime.strptime(valid_until, '%Y-%m-%dT%H:%M')
+                            discount_rule.max_early_bird_tickets = int(request.form.getlist('max_early_bird_tickets[]')[i])
+                            print(f"Added early bird rule: {discount_rule.discount_percent}%, valid until {discount_rule.valid_until}")
+
+                        elif discount_type == 'bulk':
+                            discount_rule.discount_percent = float(request.form.getlist('discount_percent[]')[i])
+                            discount_rule.min_tickets = int(request.form.getlist('min_tickets[]')[i])
+                            discount_rule.apply_to = request.form.getlist('apply_to[]')[i]
+                            print(f"Added bulk discount rule: {discount_rule.discount_percent}%, min tickets: {discount_rule.min_tickets}")
+
+                        # Add the rule to the session
+                        db.session.add(discount_rule)
+                        print(f"Added discount rule to session: {discount_rule.__dict__}")
+
+                    except (ValueError, IndexError) as e:
+                        print(f"Error processing discount rule: {str(e)}")
+                        continue
+
+                # Commit all changes
+                print("\nCommitting all changes to database...")
                 db.session.commit()
+                print("Successfully committed changes!")
+                print("=== Finished Discount Rules Processing ===\n")
 
                 # Update current_date for next recurrence
                 if i < occurrences - 1:
                     current_date = get_next_date(current_date, recurrence)
 
-            # Process discount rules
-            discount_types = request.form.getlist('discount_type[]')
-            print("\n=== Starting Discount Rules Processing ===")
-            print(f"Found discount types: {discount_types}")
-
-            # Clear any existing discount rules for this event
-            DiscountRule.query.filter_by(event_id=event.id).delete()
-
-            for i, discount_type in enumerate(discount_types):
-                try:
-                    print(f"\nProcessing discount rule {i+1}:")
-                    print(f"Discount type: {discount_type}")
-                    
-                    if discount_type == 'promo_code':
-                        promo_code = request.form.getlist('promo_code[]')[i]
-                        discount_percent = float(request.form.getlist('promo_discount[]')[i])  # Note the field name
-                        max_uses = int(request.form.getlist('max_uses[]')[i])
-                        
-                        discount_rule = DiscountRule(
-                            event_id=event.id,
-                            discount_type='promo_code',
-                            discount_percent=discount_percent,
-                            promo_code=promo_code,
-                            max_uses=max_uses,
-                            uses_count=0
-                        )
-                        db.session.add(discount_rule)
-                        continue  # Skip the rest of the loop for promo codes
-
-                    # Get the appropriate discount percentage based on discount type
-                    if discount_type == 'early_bird':
-                        discount_percent = float(request.form.getlist('early_bird_discount_percent[]')[i])
-                    else:  # bulk discount
-                        discount_percent = float(request.form.getlist('discount_percent[]')[i])
-                        
-                    print(f"Discount percentage: {discount_percent}")
-
-                    discount_rule = DiscountRule(
-                        event_id=event.id,
-                        discount_type=discount_type,
-                        discount_percent=discount_percent
-                    )
-
-                    if discount_type == 'early_bird':
-                        valid_until = request.form.getlist('valid_until[]')[i]
-                        max_tickets = request.form.getlist('max_early_bird_tickets[]')[i]
-                        print(f"Early Bird details:")
-                        print(f"- Valid until: {valid_until}")
-                        print(f"- Max tickets: {max_tickets}")
-                        
-                        discount_rule.valid_until = datetime.strptime(valid_until, '%Y-%m-%dT%H:%M')
-                        discount_rule.max_early_bird_tickets = int(max_tickets)
-                        print(f"Processed Early Bird rule: valid until {discount_rule.valid_until}, max tickets: {discount_rule.max_early_bird_tickets}")
-
-                    elif discount_type == 'bulk':
-                        discount_rule.min_tickets = int(request.form.getlist('min_tickets[]')[i])
-                        discount_rule.apply_to = request.form.getlist('discount_apply_to[]')[i]
-                        print(f"Bulk discount details:")
-                        print(f"- Min tickets: {discount_rule.min_tickets}")
-                        print(f"- Apply to: {discount_rule.apply_to}")
-
-                    print(f"Adding discount rule to session: {discount_rule.__dict__}")
-                    db.session.add(discount_rule)
-
-                except (ValueError, IndexError) as e:
-                    print(f"ERROR processing discount rule: {str(e)}")
-                    print(f"Form data for debugging:")
-                    print(f"- All discount_percent values: {request.form.getlist('discount_percent[]')}")
-                    print(f"- All valid_until values: {request.form.getlist('valid_until[]')}")
-                    print(f"- All max_tickets values: {request.form.getlist('max_early_bird_tickets[]')}")
-                    continue
-
-            print("\nCommitting all changes to database...")
-            db.session.commit()
-            print("Successfully committed changes!")
-            print("=== Finished Discount Rules Processing ===\n")
-
-            flash(f'{occurrences} occurrence(s) of the event "{name}" created successfully!', 'success')
+            flash(f'Event "{name}" created successfully!', 'success')
             return redirect(url_for('dashboard'))
 
         except Exception as e:
@@ -856,7 +870,7 @@ def create_event():
 
 
 
-
+"""
 
 @app.route('/reset_db')
 def reset_db():
@@ -867,8 +881,7 @@ def reset_db():
     except Exception as e:
         return f"An error occurred during reset: {str(e)}"
 
-
-
+"""
 from markupsafe import escape
 
 from datetime import datetime
@@ -1183,10 +1196,7 @@ def calculate_total_charge_and_booking_fee(n_tickets, ticket_price_gbp):
 def purchase(event_id, promo_code=None):
     try:
         event = Event.query.get_or_404(event_id)
-        print(f"Event ID: {event.id}, Ticket Quantity: {event.ticket_quantity}")
         organizer = User.query.get(event.user_id)
-        if not organizer:
-            return "Event organizer not found", 404
         
         # Assign the business logo URL to logo_url
         organizer.logo_url = organizer.business_logo_url
@@ -1198,11 +1208,29 @@ def purchase(event_id, promo_code=None):
         total_tickets_requested = 0
         total_tickets_sold = 0  # Initialize to 0
 
-        # Collect questions - Move this up before the GET/POST split
-        default_questions = DefaultQuestion.query.filter_by(user_id=organizer.id).order_by(DefaultQuestion.id).all()
-        default_question_texts = [dq.question for dq in default_questions]
-        custom_questions = [getattr(event, f'custom_question_{i}') for i in range(1, 11) if getattr(event, f'custom_question_{i}', None)]
-        all_questions = default_question_texts + [q for q in custom_questions if q not in default_question_texts]
+        # Collect custom questions from event
+        custom_questions = []
+        for i in range(1, 11):
+            question_text = getattr(event, f'custom_question_{i}')
+            if question_text:
+                custom_questions.append({
+                    'id': f'custom_{i}',
+                    'question_text': question_text,
+                    'question_type': 'text',
+                    'required': True  # Adjust based on your requirements
+                })
+
+        # Collect default questions from organizer
+        default_questions_query = DefaultQuestion.query.filter_by(user_id=organizer.id).order_by(DefaultQuestion.id).all()
+        default_questions = [{
+            'id': f'default_{dq.id}',
+            'question_text': dq.question,
+            'question_type': 'text',
+            'required': True  # Adjust based on your requirements
+        } for dq in default_questions_query]
+
+        # Combine all questions
+        all_questions = default_questions + custom_questions
 
         # Fetch ticket types
         ticket_types = event.ticket_types
@@ -1234,6 +1262,27 @@ def purchase(event_id, promo_code=None):
                 line_items = []
                 booking_fee_pence = 0  # Initialize booking fee
                 total_tickets_requested = 0
+
+                # Collect custom questions from event
+                custom_questions = []
+                for i in range(1, 11):
+                    question = getattr(event, f'custom_question_{i}')
+                    if question:  # Only add non-empty questions
+                        custom_questions.append({
+                            'id': i,
+                            'question_text': question,
+                            'question_type': 'text',  # Default to text type
+                            'required': True  # Default to required
+                        })
+
+                # Collect default questions from organizer
+                default_questions = DefaultQuestion.query.filter_by(user_id=organizer.id).all()
+                default_questions = [{
+                    'id': q.id,
+                    'question_text': q.question,
+                    'question_type': 'text',  # Default to text type
+                    'required': True  # Default to required
+                } for q in default_questions]
 
                 # Collect quantities for each ticket type
                 quantities = {}
@@ -1314,6 +1363,28 @@ def purchase(event_id, promo_code=None):
                             )
                             db.session.add(attendee)
                             attendees.append(attendee)
+
+                # Collect custom questions from event
+                custom_questions = []
+                for i in range(1, 11):
+                    question = getattr(event, f'custom_question_{i}')
+                    if question:  # Only add non-empty questions
+                        custom_questions.append({
+                            'id': i,
+                            'question_text': question,
+                            'question_type': 'text',  # Default to text type
+                            'required': True  # Default to required
+                        })
+
+                # Collect default questions from organizer
+                default_questions_query = DefaultQuestion.query.filter_by(user_id=organizer.id).all()
+                default_questions = [{
+                    'id': q.id,
+                    'question_text': q.question,
+                    'question_type': 'text',  # Default to text type
+                    'required': True  # Default to required
+                } for q in default_questions_query]
+            
 
                 # Get promo code from form and initialize active_promo
                 submitted_promo_code = request.form.get('promo_code')
@@ -1603,7 +1674,7 @@ def purchase(event_id, promo_code=None):
             else:
                 tickets_available = None
 
-            # Get promo code from form
+            # Get promo code from form (though on GET request, this will be None)
             submitted_promo_code = request.form.get('promo_code')
             active_promo = None
 
@@ -1614,6 +1685,33 @@ def purchase(event_id, promo_code=None):
                     discount_type='promo_code',
                     promo_code=submitted_promo_code
                 ).first()
+
+            # Collect custom questions from event
+            custom_questions = []
+            for i in range(1, 11):
+                question_text = getattr(event, f'custom_question_{i}')
+                if question_text:
+                    custom_questions.append({
+                        'id': f'custom_{i}',
+                        'question_text': question_text,
+                        'question_type': 'text',
+                        'required': True  # Adjust as needed
+                    })
+
+            # Collect default questions from organizer
+            default_questions_query = DefaultQuestion.query.filter_by(user_id=organizer.id).order_by(DefaultQuestion.id).all()
+            default_questions = [{
+                'id': f'default_{dq.id}',
+                'question_text': dq.question,
+                'question_type': 'text',
+                'required': True  # Adjust as needed
+            } for dq in default_questions_query]
+
+            # Combine all questions
+            all_questions = default_questions + custom_questions
+
+            # Print questions for debugging
+            print("Questions being passed to template:", all_questions)
 
             return render_template(
                 'purchase.html',
@@ -1627,6 +1725,8 @@ def purchase(event_id, promo_code=None):
                 tickets_available=tickets_available,
                 discount_config=active_discount
             )
+                                
+        
 
     except Exception as e:
         app.logger.error(f"Error in purchase route: {str(e)}")
@@ -2104,17 +2204,34 @@ def view_attendees(event_id):
 @app.route('/delete_event/<int:event_id>', methods=['POST'])
 @login_required
 def delete_event(event_id):
-    event = Event.query.get_or_404(event_id)
+    try:
+        event = Event.query.get_or_404(event_id)
 
-    # Check if current user owns the event before deleting (for extra security)
-    if event.user_id != current_user.id:
-        flash("You do not have permission to delete this event.", "error")
-        return redirect(url_for('dashboard'))
+        # Check if current user owns the event
+        if event.user_id != current_user.id:
+            flash("You do not have permission to delete this event.", "error")
+            return redirect(url_for('dashboard'))
 
-    db.session.delete(event)
-    db.session.commit()
-    flash('Event and all associated attendees deleted successfully!')
-    return redirect(url_for('dashboard'))
+        # Delete all attendees associated with the event first
+        Attendee.query.filter_by(event_id=event_id).delete()
+        
+        # Delete all ticket types associated with the event
+        TicketType.query.filter_by(event_id=event_id).delete()
+        
+        # Delete all discount rules associated with the event
+        DiscountRule.query.filter_by(event_id=event_id).delete()
+        
+        # Finally delete the event
+        db.session.delete(event)
+        db.session.commit()
+        
+        flash('Event and all associated data deleted successfully!')
+        return jsonify({'success': True})
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting event: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 
@@ -2122,171 +2239,105 @@ def delete_event(event_id):
 @login_required
 def edit_event(event_id):
     event = Event.query.get_or_404(event_id)
-
-    # Ensure the user has permission to edit the event
+    
     if event.user_id != current_user.id:
-        flash("You don't have permission to edit this event.")
+        flash('You do not have permission to edit this event.', 'danger')
         return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
-        # Update basic event details
-        event.name = request.form['name']
-        event.date = request.form['date']
-        event.start_time = request.form.get('start_time')
-        event.end_time = request.form.get('end_time')
-        event.location = request.form['location']
-        event.description = request.form.get('description')
+        try:
+            # Handle image upload
+            if 'event_image' in request.files:
+                file = request.files['event_image']
+                if file and file.filename:
+                    # Generate a secure filename
+                    filename = secure_filename(file.filename)
+                    # Create a unique filename to avoid conflicts
+                    unique_filename = f"{uuid.uuid4()}_{filename}"
+                    
+                    # Save the file
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                    file.save(file_path)
+                    
+                    # Update the event's image URL
+                    event.image_url = url_for('static', filename=f'uploads/{unique_filename}')
 
-        # Update event image if a new one is uploaded
-        image_file = request.files.get('event_image')
-        if image_file and allowed_file(image_file.filename):
-            image_url = upload_to_s3(image_file, 'events')
-            if image_url:
-                event.image_url = image_url
-            else:
-                flash("Error uploading the event image. Please try again.", "danger")
-
-        # Determine if individual ticket limits are enforced
-        enforce_limits = request.form.get('enforce_individual_ticket_limits') == 'on'
-        event.enforce_individual_ticket_limits = enforce_limits
-
-        # Process ticket types and limits
-        if enforce_limits:
-            # Handle existing ticket types with limits
-            existing_ticket_types = TicketType.query.filter_by(event_id=event.id).all()
-            for ticket_type in existing_ticket_types:
-                delete_key = f'delete_{ticket_type.id}'
-                if request.form.get(delete_key):
-                    db.session.delete(ticket_type)
-                else:
+            # Update existing ticket types
+            for ticket_type in event.ticket_types:
+                # Get the price using the correct form field name
+                price_field = f'price_{ticket_type.id}'
+                if price_field in request.form:
+                    ticket_type.price = float(request.form[price_field])
                     ticket_type.name = request.form.get(f'name_{ticket_type.id}')
-                    ticket_type.price = float(request.form.get(f'price_{ticket_type.id}'))
-                    ticket_type.quantity = int(request.form.get(f'quantity_{ticket_type.id}'))
+                    if event.enforce_individual_ticket_limits:
+                        ticket_type.quantity = int(request.form.get(f'quantity_{ticket_type.id}'))
 
-            # Handle new ticket types with limits
+            # Handle new ticket types
             new_names = request.form.getlist('new_ticket_name')
             new_prices = request.form.getlist('new_ticket_price')
-            new_quantities = request.form.getlist('new_ticket_quantity')
-            
-            for name, price, quantity in zip(new_names, new_prices, new_quantities):
-                if name and price and quantity:
+            new_quantities = request.form.getlist('new_ticket_quantity') if event.enforce_individual_ticket_limits else None
+
+            for i in range(len(new_names)):
+                if new_names[i].strip():  # Only create if name is not empty
                     new_ticket = TicketType(
-                        event_id=event.id,
-                        name=name,
-                        price=float(price),
-                        quantity=int(quantity)
+                        event_id=event_id,
+                        name=new_names[i],
+                        price=float(new_prices[i]),
+                        quantity=int(new_quantities[i]) if new_quantities else None
                     )
                     db.session.add(new_ticket)
-                    
-            event.ticket_quantity = None  # Clear total capacity when using individual limits
 
-        else:
-            # Handle existing ticket types without limits
-            existing_ticket_types = TicketType.query.filter_by(event_id=event.id).all()
-            for ticket_type in existing_ticket_types:
-                delete_key = f'delete_no_limit_{ticket_type.id}'
-                if request.form.get(delete_key):
-                    db.session.delete(ticket_type)
-                else:
-                    ticket_type.name = request.form.get(f'name_no_limit_{ticket_type.id}')
-                    ticket_type.price = float(request.form.get(f'price_no_limit_{ticket_type.id}'))
-                    ticket_type.quantity = None
+            # Update event total capacity if not using individual limits
+            if not event.enforce_individual_ticket_limits:
+                event.ticket_quantity = int(request.form.get('total_ticket_quantity'))
 
-            # Handle new ticket types without limits
-            new_names = request.form.getlist('new_ticket_name_no_limit')
-            new_prices = request.form.getlist('new_ticket_price_no_limit')
-            
-            for name, price in zip(new_names, new_prices):
-                if name and price:
-                    new_ticket = TicketType(
-                        event_id=event.id,
-                        name=name,
-                        price=float(price),
-                        quantity=None
-                    )
-                    db.session.add(new_ticket)
-            
-            # Update total event capacity
-            event.ticket_quantity = int(request.form.get('total_ticket_quantity'))
-
-        # Handle discount rules
-        DiscountRule.query.filter_by(event_id=event.id).delete()
-        discount_types = request.form.getlist('discount_type[]')
-        
-        for i, discount_type in enumerate(discount_types):
-            try:
-                # Get the appropriate discount percentage based on discount type
-                if discount_type == 'early_bird':
-                    discount_percent = float(request.form.getlist('early_bird_discount_percent[]')[i])
-                elif discount_type == 'promo_code':
-                    discount_percent = float(request.form.getlist('promo_discount[]')[i])
-                else:  # bulk discount
-                    discount_percent = float(request.form.getlist('bulk_discount[]')[i])
-
-                discount_rule = DiscountRule(
-                    event_id=event.id,
-                    discount_type=discount_type,
-                    discount_percent=discount_percent
-                )
-
-                if discount_type == 'early_bird':
-                    valid_until = request.form.getlist('valid_until[]')[i]
-                    max_tickets = request.form.getlist('max_early_bird_tickets[]')[i]
-                    discount_rule.valid_until = datetime.strptime(valid_until, '%Y-%m-%dT%H:%M')
-                    discount_rule.max_early_bird_tickets = int(max_tickets)
-
-                elif discount_type == 'bulk':
-                    discount_rule.min_tickets = int(request.form.getlist('min_tickets[]')[i])
-                    discount_rule.apply_to = request.form.getlist('apply_to[]')[i]
-
-                elif discount_type == 'promo_code':
-                    discount_rule.promo_code = request.form.getlist('promo_code[]')[i]
-                    discount_rule.max_uses = int(request.form.getlist('max_uses[]')[i])
-
-                db.session.add(discount_rule)
-
-            except (ValueError, IndexError) as e:
-                print(f"Error processing discount rule: {str(e)}")
-                continue
-
-        # Update custom questions conditionally
-        for i in range(1, 11):
-            question_key = f'custom_question_{i}'
-            question_value = request.form.get(question_key)
-            setattr(event, question_key, question_value if question_value else None)
-
-        # Commit all changes
-        try:
             db.session.commit()
-            flash('Event updated successfully!')
-            print("Event updated in database with image URL:", event.image_url)  # Debugging
+            flash('Event updated successfully!', 'success')
             return redirect(url_for('dashboard'))
-        except Exception as e:
+
+        except (ValueError, TypeError) as e:
             db.session.rollback()
-            flash('An error occurred while updating the event. Please try again.')
-            print(f"Database commit error: {e}")  # Debugging
+            flash(f'Error updating event: Invalid input values. {str(e)}', 'danger')
+            return redirect(url_for('edit_event', event_id=event_id))
 
-    # Prepare custom questions with empty strings as default values if None
-    custom_questions = {
-        f'custom_question_{i}': getattr(event, f'custom_question_{i}', '') or ''
-        for i in range(1, 11)
-    }
+    # GET request handling (your existing code)
+    total_tickets_sold = db.session.query(func.sum(Attendee.tickets_purchased))\
+        .filter(Attendee.event_id == event_id)\
+        .filter(Attendee.payment_status == 'succeeded')\
+        .scalar() or 0
 
-    # Separate ticket types based on enforcement
-    ticket_types_with_limits = []
-    ticket_types_no_limits = []
-    for ticket_type in event.ticket_types:
-        if event.enforce_individual_ticket_limits and ticket_type.quantity is not None:
-            ticket_types_with_limits.append(ticket_type)
-        elif not event.enforce_individual_ticket_limits:
-            ticket_types_no_limits.append(ticket_type)
+    ticket_types = TicketType.query.filter_by(event_id=event_id).all()
+    
+    for ticket_type in ticket_types:
+        tickets_sold = db.session.query(func.sum(Attendee.tickets_purchased))\
+            .filter(Attendee.ticket_type_id == ticket_type.id)\
+            .filter(Attendee.payment_status == 'succeeded')\
+            .scalar() or 0
+        ticket_type.tickets_sold = tickets_sold
+
+    if event.enforce_individual_ticket_limits:
+        ticket_types_with_limits = ticket_types
+        ticket_types_no_limits = []
+    else:
+        ticket_types_with_limits = []
+        ticket_types_no_limits = ticket_types
+
+    custom_questions = {}
+    for i in range(1, 11):
+        question_key = f'custom_question_{i}'
+        if hasattr(event, question_key):
+            custom_questions[question_key] = getattr(event, question_key, '')
+        else:
+            custom_questions[question_key] = ''
 
     return render_template(
         'edit_event.html',
         event=event,
-        custom_questions=custom_questions,
+        ticket_types=ticket_types,
         ticket_types_with_limits=ticket_types_with_limits,
-        ticket_types_no_limits=ticket_types_no_limits
+        ticket_types_no_limits=ticket_types_no_limits,
+        total_tickets_sold=total_tickets_sold,
+        custom_questions=custom_questions
     )
 
 @app.route('/delete_attendee/<int:attendee_id>', methods=['POST'])
