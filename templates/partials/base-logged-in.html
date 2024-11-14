@@ -210,6 +210,209 @@
                 font-size: 12px;
             }
         }
+
+        /* Enhanced Mobile & Tablet Navigation */
+        @media (max-width: 1024px) {
+            .header {
+                padding: 15px 0;
+            }
+
+            .logo-container {
+                margin-bottom: 15px;
+            }
+
+            .header .logo {
+                width: 120px;
+            }
+
+            .logged-in-nav {
+                background: transparent;
+                box-shadow: none;
+                padding: 0;
+            }
+
+            .logged-in-nav ul {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 15px;
+                padding: 0 10px;
+            }
+
+            .logged-in-nav ul li a {
+                background: rgba(255, 255, 255, 0.15);
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 0.9em;
+                gap: 8px;
+            }
+
+            .logged-in-nav ul li a::before {
+                font-size: 14px;
+            }
+
+            .logged-in-nav ul li a:hover,
+            .logged-in-nav ul li a.active {
+                background: rgba(255, 255, 255, 0.25);
+            }
+        }
+
+        /* Mobile Specific */
+        @media (max-width: 768px) {
+            .header {
+                padding: 12px 0;
+            }
+
+            .logo-container {
+                margin-bottom: 12px;
+            }
+
+            .header .logo {
+                width: 100px;
+            }
+
+            .logged-in-nav ul {
+                gap: 10px;
+            }
+
+            .logged-in-nav ul li a {
+                padding: 10px 16px;
+                font-size: 0.85em;
+            }
+
+            /* Simplified footer for mobile */
+            .footer {
+                padding: 15px 0;
+            }
+
+            .usp {
+                font-size: 16px;
+                margin-bottom: 12px;
+            }
+
+            .company-info {
+                font-size: 13px;
+                line-height: 1.4;
+                margin: 10px 0;
+            }
+        }
+
+        /* Small Mobile Devices */
+        @media (max-width: 480px) {
+            .logged-in-nav ul {
+                gap: 8px;
+            }
+
+            .logged-in-nav ul li {
+                width: calc(50% - 4px); /* 2 items per row with gap */
+            }
+
+            .logged-in-nav ul li a {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                padding: 12px 8px;
+                font-size: 0.8em;
+            }
+
+            .content {
+                padding: 15px 10px;
+            }
+
+            .usp {
+                font-size: 15px;
+            }
+
+            .company-info {
+                font-size: 12px;
+            }
+        }
+
+        /* Touch Device Optimization */
+        @media (hover: none) {
+            .logged-in-nav ul li a {
+                min-height: 44px;
+            }
+
+            .logged-in-nav ul li a:active {
+                background: rgba(255, 255, 255, 0.3);
+                transform: scale(0.98);
+            }
+        }
+
+        /* Add these new styles */
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            position: absolute;
+            right: 20px;
+            top: 20px;
+        }
+
+        .menu-toggle span {
+            display: block;
+            width: 25px;
+            height: 2px;
+            background-color: #fff;
+            margin: 5px 0;
+            transition: 0.3s;
+        }
+
+        @media (max-width: 1024px) {
+            .menu-toggle {
+                display: block;
+            }
+
+            .logged-in-nav {
+                position: fixed;
+                top: 70px;
+                left: -100%;
+                width: 100%;
+                height: calc(100vh - 70px);
+                background: #EF3836;
+                transition: 0.3s;
+                overflow-y: auto;
+            }
+
+            .logged-in-nav.active {
+                left: 0;
+            }
+
+            .logged-in-nav ul {
+                flex-direction: column;
+                padding: 20px;
+                gap: 15px;
+            }
+
+            .logged-in-nav ul li {
+                width: 100%;
+            }
+
+            .logged-in-nav ul li a {
+                width: 100%;
+                padding: 15px 20px;
+                justify-content: flex-start;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
+            }
+
+            /* Hamburger menu animation */
+            .menu-toggle.active span:nth-child(1) {
+                transform: rotate(45deg) translate(5px, 5px);
+            }
+
+            .menu-toggle.active span:nth-child(2) {
+                opacity: 0;
+            }
+
+            .menu-toggle.active span:nth-child(3) {
+                transform: rotate(-45deg) translate(7px, -7px);
+            }
+        }
     </style>
 </head>
 <body>
@@ -222,6 +425,12 @@
                     <img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T-1.png" alt="TicketRush Logo" class="logo">
                 </a>
             </div>
+            
+            <button class="menu-toggle" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             
             <nav class="logged-in-nav">
                 <ul>
@@ -258,9 +467,38 @@
             <p class="company-info">
                 TicketRush is a trading name of Saunders Simmons Ltd, registered in England and Wales. Company Number: 15839557.
             </p>
-            <p class="copyright">&copy; {{ current_year }} <a href="https://ticketrush.io" class="footer-link">TicketRush</a>. All Rights Reserved.</p>
+            <p class="copyright">&copy; {{ current_year }} <a href="https://bookings.ticketrush.io/dashboard" class="footer-link">TicketRush</a>. All Rights Reserved.</p>
         </div>
     </footer>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuToggle = document.querySelector('.menu-toggle');
+        const nav = document.querySelector('.logged-in-nav');
+        
+        menuToggle.addEventListener('click', function() {
+            menuToggle.classList.toggle('active');
+            nav.classList.toggle('active');
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!nav.contains(e.target) && !menuToggle.contains(e.target)) {
+                menuToggle.classList.remove('active');
+                nav.classList.remove('active');
+            }
+        });
+
+        // Close menu when clicking a link
+        const navLinks = nav.querySelectorAll('a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                menuToggle.classList.remove('active');
+                nav.classList.remove('active');
+            });
+        });
+    });
+    </script>
 
 </body>
 </html>

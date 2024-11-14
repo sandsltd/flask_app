@@ -47,51 +47,76 @@ body {
     font-family: 'Arial', sans-serif;
     background-color: #fff;
     color: #333;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .container {
     width: 90%;
+    max-width: 1200px;
     margin: 0 auto;
+    padding: 0 15px;
 }
 
 /* Header Styling */
 .header {
     background-color: #fff;
-    padding: 20px 0;
-    border-bottom: 3px solid #EF3836; /* Red underline */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+    padding: 15px 0;
+    border-bottom: 3px solid #EF3836;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
 
 .header .logo {
     width: 150px;
+    height: auto;
     display: block;
     margin: 0 auto;
 }
 
 /* Content Styling */
 .content {
-    padding: 40px 0;
+    flex: 1;
+    padding: 20px 0;
+    width: 100%;
 }
 
 /* Footer Styling */
 .footer {
-    background-color: #EF3836; /* Red background */
+    background-color: #EF3836;
     color: #fff;
     padding: 20px 0;
     text-align: center;
-    position: relative;
+    margin-top: auto;
 }
 
 .footer-content {
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 15px;
 }
 
 .usp {
     font-size: 18px;
     margin-bottom: 10px;
     font-weight: bold;
+    line-height: 1.4;
+}
+
+.company-info {
+    font-size: 14px;
+    line-height: 1.5;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.copyright {
+    font-size: 14px;
+    margin-top: 10px;
 }
 
 .footer a.footer-link {
@@ -102,26 +127,98 @@ body {
 }
 
 .footer a.footer-link:hover {
-    color: #000; /* Hover to black */
+    color: #000;
 }
 
-.footer p {
-    font-size: 14px;
+/* Tablet Styles */
+@media (max-width: 1024px) {
+    .container {
+        width: 95%;
+    }
+
+    .header {
+        padding: 12px 0;
+    }
+
+    .header .logo {
+        width: 130px;
+    }
+
+    .usp {
+        font-size: 16px;
+    }
+
+    .content {
+        padding: 15px 0;
+    }
 }
 
-/* Small Screens */
+/* Mobile Styles */
 @media (max-width: 768px) {
     .container {
         width: 100%;
         padding: 0 10px;
     }
 
+    .header {
+        padding: 10px 0;
+    }
+
     .header .logo {
         width: 120px;
     }
 
-    .footer p {
+    .content {
+        padding: 10px 0;
+    }
+
+    .footer {
+        padding: 15px 0;
+    }
+
+    .usp {
+        font-size: 15px;
+        padding: 0 15px;
+    }
+
+    .company-info {
         font-size: 12px;
+        padding: 0 15px;
+    }
+
+    .copyright {
+        font-size: 12px;
+    }
+}
+
+/* Touch Device Optimization */
+@media (hover: none) {
+    .footer a.footer-link:active {
+        color: #000;
+    }
+}
+
+/* iOS Specific Fixes */
+@supports (-webkit-touch-callout: none) {
+    body {
+        min-height: -webkit-fill-available;
+    }
+
+    .header {
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+    }
+}
+
+/* Safe Area Insets */
+@supports (padding: max(0px)) {
+    .container {
+        padding-left: max(15px, env(safe-area-inset-left));
+        padding-right: max(15px, env(safe-area-inset-right));
+    }
+
+    .footer {
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
     }
 }
 

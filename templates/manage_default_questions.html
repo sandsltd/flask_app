@@ -300,19 +300,232 @@
 
     .current-logo {
         margin: 15px 0;
+        max-width: 100%;
+        overflow: hidden;
     }
 
     .current-logo img {
-        max-width: 200px;
+        max-width: 100%;
+        height: auto;
+        object-fit: contain;
         border: 1px solid #ddd;
         padding: 5px;
         border-radius: 4px;
+        display: block;
+    }
+
+    @media (min-width: 768px) {
+        .current-logo img {
+            max-width: 200px;
+            max-height: 200px;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .current-logo img {
+            max-width: 150px;
+            max-height: 150px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .current-logo img {
+            max-width: 120px;
+            max-height: 120px;
+        }
+    }
+
+    img[src*="logo-placeholder.png"] {
+        max-width: 120px;
+        height: auto;
+        object-fit: contain;
     }
 
     @media (max-width: 768px) {
         .form-grid {
             grid-template-columns: 1fr;
         }
+    }
+
+    /* Responsive Styles */
+    @media (max-width: 1024px) {
+        .event-form-container {
+            max-width: 100%;
+            margin: 15px;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .info-card {
+            padding: 12px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .event-form-container {
+            padding: 15px;
+            margin: 10px;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        h2 {
+            font-size: 1.5em;
+        }
+
+        h3 {
+            font-size: 1.1em;
+            margin-top: 20px;
+            margin-bottom: 12px;
+        }
+
+        .form-section {
+            margin-bottom: 20px;
+        }
+
+        .info-card {
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .info-text {
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            font-size: 0.9em;
+        }
+
+        input[type="text"],
+        input[type="url"],
+        input[type="file"] {
+            padding: 12px;
+            font-size: 16px; /* Prevents zoom on iOS */
+        }
+
+        .tips-box {
+            padding: 12px;
+        }
+
+        .tips-box ul {
+            padding-left: 15px;
+        }
+
+        button[type="submit"] {
+            width: 100%;
+            padding: 12px;
+            min-height: 44px;
+            justify-content: center;
+        }
+
+        .current-logo img {
+            max-width: 150px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .event-form-container {
+            padding: 12px;
+            margin: 8px;
+            border-radius: 8px;
+        }
+
+        h2 {
+            font-size: 1.3em;
+        }
+
+        h3 {
+            font-size: 1em;
+        }
+
+        .info-text {
+            font-size: 0.85em;
+        }
+
+        .tips-box {
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+    }
+
+    /* Touch Device Optimization */
+    @media (hover: none) {
+        input[type="text"],
+        input[type="url"],
+        input[type="file"],
+        button[type="submit"] {
+            min-height: 44px;
+        }
+
+        button[type="submit"]:active {
+            transform: scale(0.98);
+        }
+    }
+
+    /* iOS Specific Fixes */
+    @supports (-webkit-touch-callout: none) {
+        input[type="text"],
+        input[type="url"] {
+            font-size: 16px !important;
+        }
+
+        .form-section {
+            -webkit-overflow-scrolling: touch;
+        }
+    }
+
+    /* Alert Messages */
+    .alert {
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        font-size: 0.9em;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    /* Form Field Enhancement */
+    .form-group input:focus {
+        outline: none;
+        border-color: #ff0000;
+        box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.1);
+    }
+
+    /* File Input Styling */
+    input[type="file"] {
+        padding: 8px;
+        border: 1px dashed #ddd;
+        border-radius: 4px;
+        width: 100%;
+    }
+
+    /* Loading State */
+    button[type="submit"].loading {
+        opacity: 0.7;
+        cursor: wait;
     }
 </style>
 

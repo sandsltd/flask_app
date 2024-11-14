@@ -1472,6 +1472,184 @@ select,
 textarea {
     font-size: 16px !important;  /* Prevent zoom on focus in iOS */
 }
+
+/* Enhanced Mobile & Tablet Responsive Styles */
+
+/* Base Container Adjustments */
+.purchase-container {
+    padding: 10px;
+    margin: 0;
+}
+
+@media (min-width: 768px) {
+    .purchase-container {
+        padding: 20px;
+        margin: 0 auto;
+    }
+}
+
+/* Form Improvements */
+.purchase-form {
+    padding: 15px;
+    margin: 10px;
+    border-radius: 12px;
+}
+
+@media (min-width: 768px) {
+    .purchase-form {
+        padding: 30px;
+        margin: 20px auto;
+    }
+}
+
+/* Input & Button Enhancements */
+input, select, textarea, button {
+    -webkit-appearance: none;
+    appearance: none;
+    font-size: 16px !important;
+    min-height: 44px;
+}
+
+/* Improved Ticket Type Display */
+.ticket-type {
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.ticket-header {
+    flex-direction: column;
+    gap: 8px;
+}
+
+@media (min-width: 576px) {
+    .ticket-type {
+        padding: 20px;
+        margin-bottom: 15px;
+    }
+
+    .ticket-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+
+/* Enhanced Sticky Total */
+.sticky-total {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+}
+
+.total-content {
+    flex-direction: column;
+    gap: 10px;
+}
+
+@media (min-width: 768px) {
+    .sticky-total {
+        padding: 15px 20px;
+    }
+
+    .total-content {
+        flex-direction: row;
+        gap: 20px;
+    }
+}
+
+/* Improved Promo Code Section */
+.promo-code-section {
+    margin: 15px 0;
+}
+
+.promo-code-input-group {
+    flex-direction: column;
+    gap: 8px;
+}
+
+@media (min-width: 576px) {
+    .promo-code-input-group {
+        flex-direction: row;
+        gap: 10px;
+    }
+}
+
+/* Better Question Groups */
+.question-group {
+    margin-bottom: 15px;
+}
+
+.question-group input,
+.question-group select {
+    padding: 12px;
+    border-radius: 8px;
+}
+
+/* Enhanced Discount Banner */
+.discount-banner {
+    margin: 15px auto;
+    padding: 15px;
+}
+
+#discount-message {
+    font-size: 1.2rem;
+}
+
+@media (min-width: 768px) {
+    .discount-banner {
+        margin: 30px auto;
+        padding: 30px;
+    }
+
+    #discount-message {
+        font-size: 2rem;
+    }
+}
+
+/* iOS Specific Fixes */
+@supports (-webkit-touch-callout: none) {
+    .sticky-total {
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    }
+
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Touch Device Optimization */
+@media (hover: none) {
+    .submit-btn,
+    .check-promo-btn {
+        padding: 12px 20px;
+    }
+
+    input[type="checkbox"] {
+        min-width: 22px;
+        min-height: 22px;
+    }
+}
+
+/* Better Form Layout on Small Screens */
+@media (max-width: 480px) {
+    .form-group {
+        margin-bottom: 12px;
+    }
+
+    .form-group label {
+        margin-bottom: 4px;
+        font-size: 0.9rem;
+    }
+
+    .ticket-quantity {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ticket-price-display {
+        text-align: center;
+    }
+}
 </style>
 
 <!-- Add after the form -->

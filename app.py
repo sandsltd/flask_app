@@ -2340,7 +2340,6 @@ def delete_event(event_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-
 @app.route('/edit_event/<int:event_id>', methods=['GET', 'POST'])
 @login_required
 def edit_event(event_id):
@@ -2368,45 +2367,157 @@ def edit_event(event_id):
                     # Update the event's image URL
                     event.image_url = url_for('static', filename=f'uploads/{unique_filename}')
 
+            # Update event details from form fields
+            event.name = request.form.get('name')
+            event.date = request.form.get('date')
+            event.start_time = request.form.get('start_time')
+            event.end_time = request.form.get('end_time')
+            event.location = request.form.get('location')
+            event.description = request.form.get('description')
+
+            # Set tickets_sold for each ticket_type before processing
+            for ticket_type in event.ticket_types:
+                tickets_sold = db.session.query(func.sum(Attendee.tickets_purchased))\
+                    .filter(Attendee.ticket_type_id == ticket_type.id)\
+                    .filter(Attendee.payment_status == 'succeeded')\
+                    .scalar() or 0
+                ticket_type.tickets_sold = tickets_sold
+
             # Update existing ticket types
             for ticket_type in event.ticket_types:
-                # Get the price using the correct form field name
+                # Get form field names
+                name_field = f'name_{ticket_type.id}'
                 price_field = f'price_{ticket_type.id}'
-                if price_field in request.form:
-                    ticket_type.price = float(request.form[price_field])
-                    ticket_type.name = request.form.get(f'name_{ticket_type.id}')
+                quantity_field = f'quantity_{ticket_type.id}'
+
+                if name_field in request.form and price_field in request.form:
+                    # Update ticket type details
+                    ticket_type.name = request.form.get(name_field)
+                    ticket_type.price = float(request.form.get(price_field))
                     if event.enforce_individual_ticket_limits:
-                        ticket_type.quantity = int(request.form.get(f'quantity_{ticket_type.id}'))
+                        if quantity_field in request.form:
+                            ticket_type.quantity = int(request.form.get(quantity_field))
+                        else:
+                            ticket_type.quantity = None
+                    else:
+                        ticket_type.quantity = None  # Set to None when individual limits are not enforced
+                else:
+                    # Handle removal of ticket types
+                    if ticket_type.tickets_sold == 0:
+                        db.session.delete(ticket_type)
+                    else:
+                        flash(f"Cannot delete ticket type '{ticket_type.name}' as it has sales.", 'warning')
 
             # Handle new ticket types
-            new_names = request.form.getlist('new_ticket_name')
-            new_prices = request.form.getlist('new_ticket_price')
-            new_quantities = request.form.getlist('new_ticket_quantity') if event.enforce_individual_ticket_limits else None
+            new_names = request.form.getlist('new_ticket_name[]')
+            new_prices = request.form.getlist('new_ticket_price[]')
+            new_quantities = request.form.getlist('new_ticket_quantity[]') if event.enforce_individual_ticket_limits else []
 
             for i in range(len(new_names)):
-                if new_names[i].strip():  # Only create if name is not empty
+                name = new_names[i].strip()
+                price = new_prices[i].strip()
+                quantity = new_quantities[i].strip() if new_quantities else None
+
+                if name and price:
                     new_ticket = TicketType(
                         event_id=event_id,
-                        name=new_names[i],
-                        price=float(new_prices[i]),
-                        quantity=int(new_quantities[i]) if new_quantities else None
+                        name=name,
+                        price=float(price),
+                        quantity=int(quantity) if quantity else None
                     )
                     db.session.add(new_ticket)
 
             # Update event total capacity if not using individual limits
             if not event.enforce_individual_ticket_limits:
-                event.ticket_quantity = int(request.form.get('total_ticket_quantity'))
+                total_ticket_quantity = request.form.get('total_ticket_quantity')
+                event.ticket_quantity = int(total_ticket_quantity) if total_ticket_quantity else None
 
+            # Update custom questions
+            for i in range(1, 11):
+                question_key = f'custom_question_{i}'
+                question_value = request.form.get(question_key)
+                setattr(event, question_key, question_value)
+
+            # **Handle Discount Rules**
+
+            # First, delete existing discount rules for the event
+            DiscountRule.query.filter_by(event_id=event_id).delete()
+
+            # Retrieve discount rule data from form
+            discount_types = request.form.getlist('discount_type[]')
+
+            for i in range(len(discount_types)):
+                discount_type = discount_types[i]
+                if discount_type == 'bulk':
+                    min_tickets_list = request.form.getlist('min_tickets[]')
+                    bulk_discount_list = request.form.getlist('bulk_discount[]')
+                    apply_to_list = request.form.getlist('apply_to[]')
+
+                    min_tickets = min_tickets_list[i] if i < len(min_tickets_list) else None
+                    discount_percent = bulk_discount_list[i] if i < len(bulk_discount_list) else None
+                    apply_to = apply_to_list[i] if i < len(apply_to_list) else None
+
+                    if min_tickets and discount_percent and apply_to:
+                        new_rule = DiscountRule(
+                            event_id=event_id,
+                            discount_type='bulk',
+                            discount_percent=float(discount_percent),
+                            min_tickets=int(min_tickets),
+                            apply_to=apply_to
+                        )
+                        db.session.add(new_rule)
+
+                elif discount_type == 'early_bird':
+                    valid_until_list = request.form.getlist('valid_until[]')
+                    early_bird_discount_percent_list = request.form.getlist('early_bird_discount_percent[]')
+                    max_tickets_list = request.form.getlist('max_early_bird_tickets[]')
+
+                    valid_until_str = valid_until_list[i] if i < len(valid_until_list) else None
+                    discount_percent = early_bird_discount_percent_list[i] if i < len(early_bird_discount_percent_list) else None
+                    max_tickets = max_tickets_list[i] if i < len(max_tickets_list) else None
+
+                    valid_until = datetime.strptime(valid_until_str, '%Y-%m-%dT%H:%M') if valid_until_str else None
+
+                    if discount_percent and max_tickets:
+                        new_rule = DiscountRule(
+                            event_id=event_id,
+                            discount_type='early_bird',
+                            discount_percent=float(discount_percent),
+                            valid_until=valid_until,
+                            max_early_bird_tickets=int(max_tickets)
+                        )
+                        db.session.add(new_rule)
+
+                elif discount_type == 'promo_code':
+                    promo_code_list = request.form.getlist('promo_code[]')
+                    promo_discount_list = request.form.getlist('promo_discount[]')
+                    max_uses_list = request.form.getlist('max_uses[]')
+
+                    promo_code = promo_code_list[i] if i < len(promo_code_list) else None
+                    discount_percent = promo_discount_list[i] if i < len(promo_discount_list) else None
+                    max_uses = max_uses_list[i] if i < len(max_uses_list) else None
+
+                    if promo_code and discount_percent and max_uses:
+                        new_rule = DiscountRule(
+                            event_id=event_id,
+                            discount_type='promo_code',
+                            discount_percent=float(discount_percent),
+                            promo_code=promo_code,
+                            max_uses=int(max_uses)
+                        )
+                        db.session.add(new_rule)
+
+            # Commit changes to the database
             db.session.commit()
             flash('Event updated successfully!', 'success')
             return redirect(url_for('dashboard'))
 
-        except (ValueError, TypeError) as e:
+        except Exception as e:
             db.session.rollback()
-            flash(f'Error updating event: Invalid input values. {str(e)}', 'danger')
+            flash(f'Error updating event: {str(e)}', 'danger')
             return redirect(url_for('edit_event', event_id=event_id))
 
-    # GET request handling (your existing code)
+    # GET request handling
     total_tickets_sold = db.session.query(func.sum(Attendee.tickets_purchased))\
         .filter(Attendee.event_id == event_id)\
         .filter(Attendee.payment_status == 'succeeded')\
@@ -2431,10 +2542,11 @@ def edit_event(event_id):
     custom_questions = {}
     for i in range(1, 11):
         question_key = f'custom_question_{i}'
-        if hasattr(event, question_key):
-            custom_questions[question_key] = getattr(event, question_key, '')
-        else:
-            custom_questions[question_key] = ''
+        custom_questions[question_key] = getattr(event, question_key, '')
+
+    # Retrieve existing discount rules
+    discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
+    event.discount_rules = discount_rules  # Attach to event object for easy access in template
 
     return render_template(
         'edit_event.html',

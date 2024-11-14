@@ -323,6 +323,143 @@ function updateQuestionSets(numTickets) {
 .ticket-question-set:last-child {
     margin-bottom: 0;
 }
+
+/* Tablet & Mobile Responsive Updates */
+@media (max-width: 1024px) {
+    .dashboard-wrapper {
+        padding: 15px;
+    }
+
+    .form-container {
+        max-width: 100%;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .card-header {
+        padding: 12px 15px;
+    }
+
+    .form-group input,
+    .form-group select {
+        padding: 12px;
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .quick-actions {
+        width: 100%;
+    }
+
+    .secondary-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .header-content {
+        width: 100%;
+    }
+
+    .header-content h1 {
+        font-size: 1.5em;
+    }
+
+    .form-card {
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    .form-actions {
+        padding: 0 15px;
+    }
+
+    .primary-button {
+        width: 100%;
+        justify-content: center;
+        padding: 15px;
+    }
+
+    /* Improve form inputs for mobile */
+    .form-group {
+        margin-bottom: 5px;
+    }
+
+    .form-group label {
+        font-size: 0.9em;
+        margin-bottom: 4px;
+    }
+
+    /* Make error messages more visible */
+    .error-message {
+        margin: 15px;
+        padding: 15px;
+        font-size: 0.9em;
+    }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 480px) {
+    .dashboard-wrapper {
+        padding: 10px;
+    }
+
+    .header-content h1 {
+        font-size: 1.3em;
+    }
+
+    .subtitle {
+        font-size: 0.9em;
+    }
+
+    .card-header h2 {
+        font-size: 1.1em;
+    }
+
+    .form-grid {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    /* Optimize for touch */
+    .form-group input,
+    .form-group select,
+    .primary-button,
+    .secondary-button {
+        min-height: 44px;
+    }
+}
+
+/* Touch Device Optimization */
+@media (hover: none) {
+    .primary-button:active,
+    .secondary-button:active {
+        transform: scale(0.98);
+    }
+
+    /* Improve scroll behavior for question sets */
+    #ticket-questions-container {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Fix for iOS input zoom */
+@supports (-webkit-touch-callout: none) {
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+}
 </style>
 {% endblock %}
 

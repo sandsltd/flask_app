@@ -1042,6 +1042,135 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Mobile & Tablet Responsive Updates */
+@media (max-width: 1024px) {
+    .dashboard-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+
+    .business-profile {
+        flex-direction: column;
+    }
+
+    .quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    .stats-section {
+        grid-template-columns: 1fr;
+    }
+
+    .details-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .types-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-wrapper {
+        padding: 10px;
+    }
+
+    .quick-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .event-compact {
+        padding: 15px;
+    }
+
+    .event-main-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .event-actions {
+        flex-direction: column;
+    }
+
+    .action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .booking-url .url-container {
+        flex-direction: column;
+    }
+
+    .booking-url input {
+        width: 100%;
+    }
+
+    .embed-section .code-container {
+        flex-direction: column;
+    }
+
+    .embed-section pre {
+        font-size: 14px;
+        overflow-x: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-header {
+        padding: 15px;
+    }
+
+    .business-logo, .business-logo-placeholder {
+        width: 50px;
+        height: 50px;
+    }
+
+    .business-info h1 {
+        font-size: 1.2em;
+    }
+
+    .stat-card {
+        padding: 15px;
+    }
+
+    .stat-number {
+        font-size: 1.5em;
+    }
+
+    .event-details {
+        padding: 15px;
+    }
+
+    .discount-rule-card {
+        padding: 10px;
+    }
+}
+
+/* Improve touch targets for mobile */
+@media (hover: none) {
+    .action-btn,
+    .primary-button,
+    .secondary-button,
+    .text-button {
+        padding: 12px 20px; /* Larger touch targets */
+        min-height: 44px; /* iOS minimum touch target */
+    }
+
+    .expand-button {
+        padding: 12px;
+    }
+
+    select {
+        min-height: 44px;
+    }
+}
 </style>
 
 <script>

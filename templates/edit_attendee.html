@@ -17,7 +17,7 @@
         /* Container Styling */
         .edit-attendee-container {
             max-width: 600px;
-            margin: 30px auto;
+            margin: 20px auto;
             padding: 20px;
             background-color: #ffffff;
             border-radius: 8px;
@@ -75,6 +75,139 @@
 
         button[type="submit"]:hover {
             background-color: #c9302c;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .edit-attendee-container {
+                margin: 15px;
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 15px;
+            }
+
+            h3 {
+                font-size: 1.2em;
+            }
+
+            form {
+                gap: 12px;
+            }
+
+            label {
+                font-size: 0.95em;
+                margin-bottom: 4px;
+                display: block;
+            }
+
+            input[type="text"],
+            input[type="email"] {
+                padding: 12px;
+                font-size: 16px; /* Prevents zoom on iOS */
+                margin-bottom: 8px;
+            }
+
+            button[type="submit"] {
+                padding: 14px 20px;
+                width: 100%;
+                font-size: 1em;
+                min-height: 44px; /* Better touch target */
+            }
+        }
+
+        /* Small Mobile Devices */
+        @media (max-width: 480px) {
+            .edit-attendee-container {
+                margin: 10px;
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 1.3em;
+            }
+
+            h3 {
+                font-size: 1.1em;
+            }
+
+            form {
+                gap: 10px;
+            }
+
+            label {
+                font-size: 0.9em;
+            }
+        }
+
+        /* Touch Device Optimization */
+        @media (hover: none) {
+            input[type="text"],
+            input[type="email"],
+            button[type="submit"] {
+                min-height: 44px;
+            }
+
+            button[type="submit"]:active {
+                background-color: #c9302c;
+                transform: scale(0.98);
+            }
+        }
+
+        /* iOS Specific Fixes */
+        @supports (-webkit-touch-callout: none) {
+            input[type="text"],
+            input[type="email"] {
+                font-size: 16px !important;
+            }
+
+            .edit-attendee-container {
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        /* Form Field Enhancement */
+        .form-field {
+            margin-bottom: 15px;
+        }
+
+        .form-field label {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .form-field input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Error State Styling */
+        input:invalid {
+            border-color: #d9534f;
+        }
+
+        .error-message {
+            color: #d9534f;
+            font-size: 0.9em;
+            margin-top: 4px;
+        }
+
+        /* Loading State */
+        button[type="submit"].loading {
+            opacity: 0.7;
+            cursor: wait;
+        }
+
+        /* Success Feedback */
+        .success-message {
+            background-color: #dff0d8;
+            color: #3c763d;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            text-align: center;
         }
     </style>
 </head>
