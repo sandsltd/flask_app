@@ -68,7 +68,7 @@ stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 app.secret_key = 'supersecretkey'
 login_manager = LoginManager()
 login_manager.init_app(app)
- 
+login_manager.login_view = 'login'  # Add this line to specify
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 
 # Update the database URL configuration
@@ -1525,65 +1525,31 @@ def purchase(event_id, promo_code=None):
 
                     # Initialize line_items with individual tickets and separate booking fee line item
                     line_items = []
-                    
+
                     print(f"\nCreating Stripe line items:")
-                    
-                    # Handle bulk discount for 'additional' tickets differently
-                    for rule in discount_rules:
-                        if (rule.discount_type == 'bulk' and 
-                            total_tickets >= rule.min_tickets and 
-                            rule.apply_to == 'additional'):
-                        
-                            print(f"Processing bulk discount for additional tickets:")
-                            print(f"- Discount percentage: {rule.discount_percent}%")
-                            
-                            for ticket_type_id, quantity in quantities.items():
-                                ticket_type = next((t for t in ticket_types if t.id == ticket_type_id), None)
-                                if ticket_type and quantity > 0:
-                                    # Add first ticket at full price
-                                    print(f"- Adding 1 x {ticket_type.name} at full price: £{ticket_type.price:.2f}")
-                                    line_items.append({
-                                        'price_data': {
-                                            'currency': 'gbp',
-                                            'unit_amount': int(ticket_type.price * 100),
-                                            'product_data': {
-                                                'name': f"{ticket_type.name} for {event.name} - Full Price",
-                                            },
-                                        },
-                                        'quantity': 1,
-                                    })
-                                    
-                                    # Add remaining tickets at discounted price if any
-                                    if quantity > 1:
-                                        discounted_price = ticket_type.price * (1 - rule.discount_percent / 100)
-                                        print(f"- Adding {quantity-1} x {ticket_type.name} at discounted price: £{discounted_price:.2f}")
-                                        line_items.append({
-                                            'price_data': {
-                                                'currency': 'gbp',
-                                                'unit_amount': int(discounted_price * 100),
-                                                'product_data': {
-                                                    'name': f"{ticket_type.name} for {event.name} - {rule.discount_percent}% Additional",
-                                                },
-                                            },
-                                            'quantity': quantity - 1,
-                                        })
-                        else:
-                            # Handle other discount types or no discount
-                            for ticket_type_id, quantity in quantities.items():
-                                ticket_type = next((t for t in ticket_types if t.id == ticket_type_id), None)
-                                if ticket_type and quantity > 0:
-                                    final_price = (total_amount_pence / total_tickets) / 100
-                                    print(f"- Adding {quantity} x {ticket_type.name} at £{final_price:.2f} each")
-                                    line_items.append({
-                                        'price_data': {
-                                            'currency': 'gbp',
-                                            'unit_amount': int(final_price * 100),
-                                            'product_data': {
-                                                'name': f"{ticket_type.name} for {event.name}",
-                                            },
-                                        },
-                                        'quantity': quantity,
-                                    })
+
+                    # Calculate the discount ratio
+                    discount_ratio = 1 - (discount_amount / base_amount) if base_amount > 0 else 1
+
+                    # Add tickets to line_items
+                    for ticket_type_id, quantity in quantities.items():
+                        ticket_type = next((t for t in ticket_types if t.id == ticket_type_id), None)
+                        if ticket_type and quantity > 0:
+                            # Calculate the price for this ticket type
+                            ticket_price = ticket_type.price * discount_ratio
+                            ticket_price_pence = int(ticket_price * 100)
+
+                            print(f"- Adding {quantity} x {ticket_type.name} at £{ticket_price:.2f} each")
+                            line_items.append({
+                                'price_data': {
+                                    'currency': 'gbp',
+                                    'unit_amount': ticket_price_pence,
+                                    'product_data': {
+                                        'name': f"{ticket_type.name} for {event.name}",
+                                    },
+                                },
+                                'quantity': quantity,
+                            })
 
                     # Add the booking fee line item
                     print(f"- Adding booking fee: £{total_booking_fee_pence/100:.2f}")
@@ -3051,7 +3017,6 @@ def upload_to_s3(file, folder_prefix="event-logos"):
         return None
 
 @app.route('/event/<int:event_id>/scanner')
-@login_required
 def start_event_scanner(event_id):
     event = Event.query.get_or_404(event_id)
     
