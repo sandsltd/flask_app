@@ -942,48 +942,157 @@ def embed_events(unique_id):
         # Sort events by parsed date
         future_events.sort(key=lambda x: getattr(x, 'parsed_date', datetime.max.date()))
 
-        # Begin constructing the HTML
+        # Begin constructing the HTML with modern styling
         events_html = '''
         <style>
             #ticketrush-embed * {
                 box-sizing: border-box;
-                font-family: Arial, sans-serif;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                margin: 0;
+                padding: 0;
             }
+            
             #ticketrush-embed {
-                max-width: 800px;
+                max-width: 1200px;
                 margin: 0 auto;
                 padding: 20px;
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                gap: 20px;
             }
+            
             .event-card {
-                border: 1px solid #e0e0e0;
-                margin-bottom: 20px;
-                padding: 15px;
-                border-radius: 5px;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+                transition: transform 0.2s, box-shadow 0.2s;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
             }
+            
+            .event-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+            }
+            
+            .event-image {
+                width: 100%;
+                height: 160px;
+                background-size: cover;
+                background-position: center;
+                background-color: #f5f5f5;
+            }
+            
+            .event-content {
+                padding: 20px;
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+            }
+            
             .event-title {
-                font-size: 1.2em;
-                margin-bottom: 10px;
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: #1a1a1a;
+                margin-bottom: 12px;
+                line-height: 1.4;
             }
+            
             .event-details {
-                margin-bottom: 10px;
+                color: #4a5568;
+                font-size: 0.95rem;
+                line-height: 1.6;
+                margin-bottom: 20px;
             }
+            
+            .event-meta {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 8px;
+                color: #666;
+                font-size: 0.9rem;
+            }
+            
+            .event-meta i {
+                color: #ff0000;
+                width: 16px;
+            }
+            
+            .price-tag {
+                background: #fff8f8;
+                color: #ff0000;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-weight: 500;
+                display: inline-block;
+                margin-top: 8px;
+            }
+            
             .book-button {
                 background-color: #ff0000;
                 color: white;
-                padding: 10px 20px;
+                padding: 12px 24px;
                 text-decoration: none;
-                border-radius: 5px;
-                display: inline-block;
+                border-radius: 8px;
+                font-weight: 500;
+                text-align: center;
+                transition: background-color 0.2s;
+                margin-top: auto;
             }
+            
             .book-button:hover {
-                background-color: #cc0000;
+                background-color: #e60000;
+            }
+            
+            .sold-out {
+                background-color: #e2e8f0;
+                color: #64748b;
+                cursor: not-allowed;
+            }
+            
+            .sold-out:hover {
+                background-color: #e2e8f0;
+            }
+            
+            .powered-by {
+                grid-column: 1 / -1;
+                text-align: center;
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #eee;
+                color: #666;
+                font-size: 0.8rem;
+            }
+            
+            .powered-by a {
+                color: #ff0000;
+                text-decoration: none;
+            }
+            
+            @media (max-width: 768px) {
+                #ticketrush-embed {
+                    grid-template-columns: 1fr;
+                    padding: 15px;
+                }
             }
         </style>
+        
+        <!-- Font Awesome for icons -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        
         <div id="ticketrush-embed">
         '''
 
         if not future_events:
-            events_html += '<p>No upcoming events available.</p>'
+            events_html += '''
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                    <i class="fas fa-calendar-times" style="font-size: 48px; color: #ccc; margin-bottom: 20px;"></i>
+                    <p style="color: #666;">No upcoming events available.</p>
+                </div>
+            '''
         else:
             for event in future_events:
                 try:
@@ -1010,34 +1119,57 @@ def embed_events(unique_id):
                         for tt in ticket_types
                     )
 
-                    # Add event card
                     events_html += f'''
                     <div class="event-card">
-                        <div class="event-title">{escape(event.name)}</div>
-                        <div class="event-details">
-                            <strong>Date:</strong> {formatted_date}<br>
-                            <strong>Time:</strong> {event.start_time} - {event.end_time}<br>
-                            <strong>Location:</strong> {escape(event.location)}<br>
-                            <strong>Price:</strong><br>{ticket_info}
-                        </div>
+                        <div class="event-image" style="background-image: url('{escape(event.image_url or 'https://via.placeholder.com/400x200')}')"></div>
+                        <div class="event-content">
+                            <h3 class="event-title">{escape(event.name)}</h3>
+                            
+                            <div class="event-meta">
+                                <i class="far fa-calendar"></i>
+                                <span>{formatted_date}</span>
+                            </div>
+                            
+                            <div class="event-meta">
+                                <i class="far fa-clock"></i>
+                                <span>{event.start_time} - {event.end_time}</span>
+                            </div>
+                            
+                            <div class="event-meta">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>{escape(event.location)}</span>
+                            </div>
+                            
+                            <div class="price-tag">
+                                {ticket_info}
+                            </div>
                     '''
 
                     if tickets_available == "Unlimited" or tickets_available > 0:
                         events_html += f'''
-                        <a href="https://bookings.ticketrush.io/purchase/{event.id}" 
-                           class="book-button" target="_blank">Book Tickets</a>
+                            <a href="https://bookings.ticketrush.io/purchase/{event.id}" 
+                               class="book-button" target="_blank">
+                               <i class="fas fa-ticket-alt"></i> Book Now
+                            </a>
                         '''
                     else:
-                        events_html += '<p style="color: red;">Sold Out</p>'
+                        events_html += '''
+                            <span class="book-button sold-out">
+                                <i class="fas fa-ban"></i> Sold Out
+                            </span>
+                        '''
 
-                    events_html += '</div>'
+                    events_html += '''
+                        </div>
+                    </div>
+                    '''
 
                 except Exception as e:
                     print(f"Error processing event {event.id}: {e}")
                     continue
 
         events_html += '''
-            <div style="text-align: center; margin-top: 20px; font-size: 0.8em;">
+            <div class="powered-by">
                 Powered by <a href="https://www.ticketrush.io" target="_blank">TicketRush</a>
             </div>
         </div>
