@@ -2489,8 +2489,11 @@ def export_attendees(event_id):
         flash("You don't have permission to export the attendees for this event.")
         return redirect(url_for('dashboard'))
 
-    # Fetch attendees
-    attendees = Attendee.query.filter_by(event_id=event_id).all()
+    # Fetch only attendees with successful payments
+    attendees = Attendee.query.filter_by(
+        event_id=event_id,
+        payment_status='succeeded'
+    ).all()
 
     # Prepare data for export
     data = []
@@ -2503,7 +2506,8 @@ def export_attendees(event_id):
             'Ticket Price': attendee.ticket_price_at_purchase,
             'Billing Details': attendee.billing_details,
             'Ticket Answers': json.loads(attendee.ticket_answers) if attendee.ticket_answers else {},
-            'Payment Status': attendee.payment_status,
+            'Check-in Status': 'Checked In' if getattr(attendee, 'checked_in', False) else 'Not Checked In',
+            'Check-in Time': getattr(attendee, 'check_in_time', None)
         }
         data.append(attendee_data)
 
