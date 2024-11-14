@@ -2101,8 +2101,11 @@ def view_attendees(event_id):
 
     all_questions = default_question_texts + custom_questions
 
-    # Fetch attendees
-    attendees = Attendee.query.filter_by(event_id=event_id).all()
+    # Fetch only attendees with successful payments
+    attendees = Attendee.query.filter_by(
+        event_id=event_id,
+        payment_status='succeeded'
+    ).all()
 
     # Initialize ticket type data and total tickets sold
     ticket_types = event.ticket_types
@@ -2115,7 +2118,7 @@ def view_attendees(event_id):
             tickets_sold_type = Attendee.query.filter_by(
                 event_id=event.id,
                 ticket_type_id=ticket_type.id,
-                payment_status='succeeded'
+                payment_status='succeeded'  # Only count succeeded payments
             ).count()
             tickets_remaining_type = (ticket_type.quantity or 0) - tickets_sold_type
             tickets_sold_total += tickets_sold_type
@@ -2138,7 +2141,7 @@ def view_attendees(event_id):
             tickets_sold_type = Attendee.query.filter_by(
                 event_id=event.id,
                 ticket_type_id=ticket_type.id,
-                payment_status='succeeded'
+                payment_status='succeeded'  # Only count succeeded payments
             ).count()
             tickets_sold_total += tickets_sold_type
 
