@@ -1812,11 +1812,23 @@ def send_confirmation_email_to_attendee(attendees, billing_details):
         # Generate QR codes for each ticket and label by ticket type
         qr_code_images = []
         for attendee in attendees:
-            qr_data = attendee.ticket_number
-            qr_img = qrcode.make(qr_data)
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(attendee.ticket_number)
+            qr.make(fit=True)
+            
+            # Create QR code image
+            qr_img = qr.make_image(fill_color="black", back_color="white")
+            
+            # Convert to base64 for email embedding
             buffer = BytesIO()
             qr_img.save(buffer, format="PNG")
             qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+            
             ticket_type_label = attendee.ticket_type.name if attendee.ticket_type else "General Admission"
             qr_code_images.append((ticket_type_label, qr_base64))
 
@@ -2035,7 +2047,7 @@ def handle_checkout_session(session):
         print("No billing details found for this session.")
         return
 
-    # Update attendee records and generate QR codes
+    # Update attendee records
     for attendee in attendees:
         attendee.billing_details = json.dumps(billing_details)
         attendee.stripe_charge_id = charge.id
@@ -2044,25 +2056,19 @@ def handle_checkout_session(session):
         # Generate ticket number if it is None
         if attendee.ticket_number is None:
             attendee.ticket_number = generate_unique_ticket_number()
-        
-        # Generate QR code for the ticket number
-        qr_code = qrcode.make(attendee.ticket_number)
-        
-        # Save the QR code to an in-memory file
-        qr_image_path = f'static/qr_codes/{attendee.ticket_number}.png'
-        qr_code.save(qr_image_path)
-        
-        # Save the path to the attendee object
-        attendee.qr_image_path = qr_image_path
 
     db.session.commit()  # Commit all updates after the loop
 
-    # Send confirmation emails
-    send_confirmation_email_to_attendee(attendees, billing_details)
-    event = Event.query.get(attendees[0].event_id)
-    organizer = User.query.get(event.user_id)
-    if organizer:
-        send_confirmation_email_to_organizer(organizer, attendees, billing_details, event)
+    try:
+        # Send confirmation emails
+        send_confirmation_email_to_attendee(attendees, billing_details)
+        event = Event.query.get(attendees[0].event_id)
+        organizer = User.query.get(event.user_id)
+        if organizer:
+            send_confirmation_email_to_organizer(organizer, attendees, billing_details, event)
+    except Exception as e:
+        print(f"Error sending confirmation emails: {str(e)}")
+        # Don't raise the exception - we still want to acknowledge the webhook
 
 
 
