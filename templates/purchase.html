@@ -391,7 +391,7 @@ function shouldApplyDiscount(totalQuantity) {
 
 
 
-    function updateQuestionForms() {
+function updateQuestionForms() {
     var ticketInputs = document.querySelectorAll('.ticket-input');
     var formsContainer = document.getElementById('question_forms');
     formsContainer.innerHTML = '';
@@ -403,23 +403,28 @@ function shouldApplyDiscount(totalQuantity) {
         totalQuantity += parseInt(input.value) || 0;
     });
 
+    // Check if there are any questions
+    if (questions.length === 0) {
+        // No questions to ask, so no need to generate forms
+        return;
+    }
+
     // Second pass: create forms for each ticket
     ticketInputs.forEach(function(input) {
         var quantity = parseInt(input.value) || 0;
         var ticketTypeId = input.getAttribute('data-ticket-type-id');
-        var ticketTypeName = input.getAttribute('data-ticket-type-name'); // Get the ticket type name
+        var ticketTypeName = input.getAttribute('data-ticket-type-name');
 
         // Create question forms for each ticket
         for (var i = 0; i < quantity; i++) {
             var ticketDiv = document.createElement('div');
             ticketDiv.classList.add('attendee-group');
 
-            // Update the heading text to be more user-friendly
+            // Update the heading text
             var attendeeHeader = document.createElement('h3');
             attendeeHeader.textContent = 'Please provide information for ' + ticketTypeName + ' - Ticket ' + (i + 1);
             ticketDiv.appendChild(attendeeHeader);
 
-            // In updateQuestionForms function
             questions.forEach(function(question, j) {
                 var formGroup = document.createElement('div');
                 formGroup.classList.add('form-group');
@@ -437,7 +442,6 @@ function shouldApplyDiscount(totalQuantity) {
                 formGroup.appendChild(inputField);
                 ticketDiv.appendChild(formGroup);
             });
-
 
             formsContainer.appendChild(ticketDiv);
         }
