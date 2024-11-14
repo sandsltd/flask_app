@@ -1126,17 +1126,17 @@ def embed_events(unique_id):
                             <h3 class="event-title">{escape(event.name)}</h3>
                             
                             <div class="event-meta">
-                                <i class="far fa-calendar"></i>
+                                <i class="far fa-calendar-alt"></i>  <!-- Changed to calendar-alt -->
                                 <span>{formatted_date}</span>
                             </div>
                             
                             <div class="event-meta">
-                                <i class="far fa-clock"></i>
+                                <i class="far fa-clock"></i>  <!-- Already a clock, but keeping for consistency -->
                                 <span>{event.start_time} - {event.end_time}</span>
                             </div>
                             
                             <div class="event-meta">
-                                <i class="fas fa-map-marker-alt"></i>
+                                <i class="fas fa-map-pin"></i>  <!-- Changed to map-pin -->
                                 <span>{escape(event.location)}</span>
                             </div>
                             
@@ -1149,7 +1149,7 @@ def embed_events(unique_id):
                         events_html += f'''
                             <a href="https://bookings.ticketrush.io/purchase/{event.id}" 
                                class="book-button" target="_blank">
-                               <i class="fas fa-ticket-alt"></i> Book Now
+                               <i class="fas fa-arrow-right"></i> Book Now  <!-- Changed to arrow-right -->
                             </a>
                         '''
                     else:
@@ -2301,7 +2301,6 @@ def view_attendees(event_id):
         event_date=event_date,
         ticket_type_data=ticket_type_data  # Pass ticket type data to template
     )
-
 
 
 
