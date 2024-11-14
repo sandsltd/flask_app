@@ -1,27 +1,17 @@
 {% extends "partials/base-logged-in.html" %}
 
 {% block content %}
-<div class="dashboard-wrapper">
+<div class="event-form-container">
     <!-- Header Section -->
-    <header class="dashboard-header">
-        <div class="business-profile">
-            <div class="business-logo-placeholder">TR</div>
-            <div class="business-info">
-                <h1>Account Settings <span class="emoji">⚙️</span></h1>
-                <div class="animated-subtitle">
-                    <p class="subtitle">Manage Your Account Details <span class="emoji">✨</span></p>
-                    <p class="subtitle-caption">Customize your profile and default questions <span class="emoji">🎯</span></p>
-                </div>
-            </div>
-        </div>
-    </header>
-
+    <h2><i class="fas fa-cog"></i> Account Settings</h2>
+    <hr>
+    
     <!-- Flash Messages -->
     <div class="flash-messages">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} fade-in">
+                    <div class="alert alert-{{ category }}">
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -29,178 +19,150 @@
         {% endwith %}
     </div>
 
-    <!-- Main Content Section -->
-    <div class="content-grid">
-        <!-- Info Section -->
-        <section class="info-section">
+    <!-- Form Section -->
+    <form action="/manage-default-questions" method="POST" enctype="multipart/form-data" id="settings-form">
+        <!-- Personal Information Section -->
+        <div class="form-section">
+            <h3><i class="fas fa-user"></i> Personal Information</h3>
             <div class="info-card">
-                <h2>Account Management Guide</h2>
-                <div class="benefits-grid">
-                    <div class="benefit-item">
-                        <i class="fas fa-user"></i>
-                        <div class="benefit-content">
-                            <h3>Personal Details</h3>
-                            <p>Keep your contact information up to date</p>
-                        </div>
-                    </div>
-                    <div class="benefit-item">
-                        <i class="fas fa-building"></i>
-                        <div class="benefit-content">
-                            <h3>Business Information</h3>
-                            <p>Manage your business details and branding</p>
-                        </div>
-                    </div>
-                    <div class="benefit-item">
-                        <i class="fas fa-question-circle"></i>
-                        <div class="benefit-content">
-                            <h3>Default Questions</h3>
-                            <p>Set up questions for all your events</p>
-                        </div>
-                    </div>
+                <p class="info-text">Keep your contact information up to date for better communication.</p>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="first_name">First Name</label>
+                    <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Last Name</label>
+                    <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone_number">Phone Number</label>
+                    <input type="text" id="phone_number" name="phone_number" value="{{ user.phone_number }}" required>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <!-- Settings Form Section -->
-        <section class="form-section">
-            <div class="form-card">
-                <form action="/manage-default-questions" method="POST" enctype="multipart/form-data" id="settings-form">
-                    <!-- Personal Information Section -->
-                    <div class="form-section">
-                        <h3><i class="fas fa-user"></i> Personal Information</h3>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="first_name">First Name</label>
-                                <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="last_name">Last Name</label>
-                                <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="phone_number">Phone Number</label>
-                                <input type="text" id="phone_number" name="phone_number" value="{{ user.phone_number }}" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Business Information Section -->
-                    <div class="form-section">
-                        <h3><i class="fas fa-building"></i> Business Information</h3>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="business_name">Business Name</label>
-                                <input type="text" id="business_name" name="business_name" value="{{ user.business_name }}" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="website_url">Website URL</label>
-                                <input type="url" id="website_url" name="website_url" value="{{ user.website_url }}">
-                            </div>
-                            <div class="form-group">
-                                <label for="vat_number">VAT Number</label>
-                                <input type="text" id="vat_number" name="vat_number" value="{{ user.vat_number }}">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Address Section -->
-                    <div class="form-section">
-                        <h3><i class="fas fa-map-marker-alt"></i> Address Details</h3>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="house_name_or_number">House Name/Number</label>
-                                <input type="text" id="house_name_or_number" name="house_name_or_number" value="{{ user.house_name_or_number }}" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="street">Street</label>
-                                <input type="text" id="street" name="street" value="{{ user.street }}" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="locality">Locality</label>
-                                <input type="text" id="locality" name="locality" value="{{ user.locality }}">
-                            </div>
-                            <div class="form-group">
-                                <label for="town">Town</label>
-                                <input type="text" id="town" name="town" value="{{ user.town }}" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="postcode">Postcode</label>
-                                <input type="text" id="postcode" name="postcode" value="{{ user.postcode }}" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Terms and Conditions Section -->
-                    <div class="form-section">
-                        <h3><i class="fas fa-file-contract"></i> Terms and Conditions</h3>
-                        <div class="info-card">
-                            <p class="info-text">This link will be shown to your attendees when they are purchasing a ticket. They will need to agree to these to proceed with their purchase. If you do not have a link to terms and conditions, please enter "<strong>none</strong>" into this box.</p>
-                        </div>
-                        <div class="form-group">
-                            <label for="terms_link">Terms and Conditions URL</label>
-                            <input type="text" id="terms_link" name="terms_link" value="{{ user.terms }}">
-                        </div>
-                    </div>
-
-                    <!-- Default Questions Section -->
-                    <div class="form-section">
-                        <h3><i class="fas fa-question-circle"></i> Default Questions</h3>
-                        <div class="info-card">
-                            <p class="info-text">Default questions allow you to gather important information from your attendees across all events. These questions will automatically be included in every event you host.</p>
-                            <div class="tips-box">
-                                <h4><i class="fas fa-lightbulb"></i> Tips:</h4>
-                                <ul>
-                                    <li>Keep questions clear and concise</li>
-                                    <li>Only ask for essential information</li>
-                                    <li>Consider accessibility needs</li>
-                                </ul>
-                            </div>
-                        </div>
-                        {% for question in questions %}
-                            <div class="form-group">
-                                <label for="question{{ loop.index }}">Question {{ loop.index }}</label>
-                                <input type="text" id="question{{ loop.index }}" name="questions[]" value="{{ question.question }}">
-                            </div>
-                        {% endfor %}
-                        {% for i in range(10 - questions|length) %}
-                            <div class="form-group">
-                                <label for="new_question{{ i + questions|length + 1 }}">Question {{ i + questions|length + 1 }}</label>
-                                <input type="text" id="new_question{{ i + questions|length + 1 }}" name="questions[]">
-                            </div>
-                        {% endfor %}
-                    </div>
-
-                    <!-- Business Logo Section -->
-                    <div class="form-section">
-                        <h3><i class="fas fa-image"></i> Business Logo</h3>
-                        <div class="info-card">
-                            <p class="info-text">Recommended size: 300x300px. Maximum file size: 5MB.</p>
-                            {% if user.business_logo_url %}
-                                <div class="current-logo">
-                                    <h4>Current Logo:</h4>
-                                    <img src="{{ user.business_logo_url }}" alt="Current Business Logo">
-                                </div>
-                            {% else %}
-                                <p>No custom logo uploaded. Using default logo.</p>
-                                <img src="{{ url_for('static', filename='images/logo-placeholder.png') }}" alt="Default Business Logo">
-                            {% endif %}
-                        </div>
-                        <div class="form-group">
-                            <label for="business_logo">Choose a new logo file</label>
-                            <input type="file" id="business_logo" name="business_logo" accept="image/*">
-                        </div>
-                    </div>
-
-                    <!-- Submit Button -->
-                    <div class="form-actions">
-                        <button type="submit" class="primary-button">
-                            <i class="fas fa-save"></i> Save Changes
-                        </button>
-                    </div>
-                </form>
+        <!-- Business Information Section -->
+        <div class="form-section">
+            <h3><i class="fas fa-building"></i> Business Information</h3>
+            <div class="info-card">
+                <p class="info-text">Manage your business details and branding.</p>
             </div>
-        </section>
-    </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="business_name">Business Name</label>
+                    <input type="text" id="business_name" name="business_name" value="{{ user.business_name }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="website_url">Website URL</label>
+                    <input type="url" id="website_url" name="website_url" value="{{ user.website_url }}">
+                </div>
+                <div class="form-group">
+                    <label for="vat_number">VAT Number</label>
+                    <input type="text" id="vat_number" name="vat_number" value="{{ user.vat_number }}">
+                </div>
+            </div>
+        </div>
+
+        <!-- Address Section -->
+        <div class="form-section">
+            <h3><i class="fas fa-map-marker-alt"></i> Address Details</h3>
+            <div class="info-card">
+                <p class="info-text">Enter your address details for accurate communication.</p>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="house_name_or_number">House Name/Number</label>
+                    <input type="text" id="house_name_or_number" name="house_name_or_number" value="{{ user.house_name_or_number }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="street">Street</label>
+                    <input type="text" id="street" name="street" value="{{ user.street }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="locality">Locality</label>
+                    <input type="text" id="locality" name="locality" value="{{ user.locality }}">
+                </div>
+                <div class="form-group">
+                    <label for="town">Town</label>
+                    <input type="text" id="town" name="town" value="{{ user.town }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="postcode">Postcode</label>
+                    <input type="text" id="postcode" name="postcode" value="{{ user.postcode }}" required>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terms and Conditions Section -->
+        <div class="form-section">
+            <h3><i class="fas fa-file-contract"></i> Terms and Conditions</h3>
+            <div class="info-card">
+                <p class="info-text">This link will be shown to your attendees when they are purchasing a ticket. They will need to agree to these to proceed with their purchase. If you do not have a link to terms and conditions, please enter "<strong>none</strong>" into this box.</p>
+            </div>
+            <div class="form-group">
+                <label for="terms_link">Terms and Conditions URL</label>
+                <input type="text" id="terms_link" name="terms_link" value="{{ user.terms }}">
+            </div>
+        </div>
+
+        <!-- Default Questions Section -->
+        <div class="form-section">
+            <h3><i class="fas fa-question-circle"></i> Default Questions</h3>
+            <div class="info-card">
+                <p class="info-text">Default questions allow you to gather important information from your attendees across all events. These questions will automatically be included in every event you host.</p>
+                <div class="tips-box">
+                    <h4><i class="fas fa-lightbulb"></i> Tips:</h4>
+                    <ul>
+                        <li>Keep questions clear and concise</li>
+                        <li>Only ask for essential information</li>
+                        <li>Consider accessibility needs</li>
+                    </ul>
+                </div>
+            </div>
+            {% for question in questions %}
+                <div class="form-group">
+                    <label for="question{{ loop.index }}">Question {{ loop.index }}</label>
+                    <input type="text" id="question{{ loop.index }}" name="questions[]" value="{{ question.question }}">
+                </div>
+            {% endfor %}
+            {% for i in range(10 - questions|length) %}
+                <div class="form-group">
+                    <label for="new_question{{ i + questions|length + 1 }}">Question {{ i + questions|length + 1 }}</label>
+                    <input type="text" id="new_question{{ i + questions|length + 1 }}" name="questions[]">
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Business Logo Section -->
+        <div class="form-section">
+            <h3><i class="fas fa-image"></i> Business Logo</h3>
+            <div class="info-card">
+                <p class="info-text">Recommended size: 300x300px. Maximum file size: 5MB.</p>
+                {% if user.business_logo_url %}
+                    <div class="current-logo">
+                        <h4>Current Logo:</h4>
+                        <img src="{{ user.business_logo_url }}" alt="Current Business Logo">
+                    </div>
+                {% else %}
+                    <p>No custom logo uploaded. Using default logo.</p>
+                    <img src="{{ url_for('static', filename='images/logo-placeholder.png') }}" alt="Default Business Logo">
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="business_logo">Choose a new logo file</label>
+                <input type="file" id="business_logo" name="business_logo" accept="image/*">
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="form-actions">
+            <button type="submit" class="primary-button">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+        </div>
+    </form>
 </div>
 
 <!-- JavaScript for Confirmation Prompts -->
@@ -230,229 +192,128 @@
 </script>
 
 <style>
-
-    /* General Styles */
-body {
-    font-family: Arial, sans-serif;
-    color: #333;
-    background-color: #f9f9f9;
-}
-
-.dashboard-wrapper {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-header.dashboard-header {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 20px;
-    background-color: #f2f2f2;
-    border-radius: 8px;
-    margin-bottom: 20px;
-}
-
-.business-profile {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.business-logo-placeholder {
-    width: 60px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5em;
-    color: #fff;
-    background-color: #DC5C5C;
-    border-radius: 50%;
-}
-
-.business-info h1 {
-    font-size: 1.8em;
-    margin: 0;
-}
-
-.animated-subtitle {
-    font-size: 0.9em;
-    color: #888;
-}
-
-.flash-messages .alert {
-    padding: 15px;
-    border-radius: 4px;
-    margin-bottom: 10px;
-}
-
-.alert-success {
-    background-color: #e0f7e0;
-    color: #2d662d;
-}
-
-.alert-error {
-    background-color: #fbe3e3;
-    color: #a41e1e;
-}
-
-/* Content Grid Layout */
-.content-grid {
-    display: flex;
-    gap: 20px;
-}
-
-.info-section, .form-section {
-    flex: 1;
-}
-
-/* Info Section Styles */
-.info-card {
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.benefits-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    margin-top: 15px;
-}
-
-.benefit-item {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    background-color: #f9f9f9;
-}
-
-.benefit-item i {
-    font-size: 1.5em;
-    color: #DC5C5C;
-}
-
-.benefit-content h3 {
-    margin: 0;
-    font-size: 1.1em;
-    color: #444;
-}
-
-/* Form Section Styles */
-.form-card {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.form-section h3 {
-    color: #333;
-    font-size: 1.3em;
-    margin-top: 0;
-}
-
-.form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-}
-
-.form-group label {
-    font-weight: bold;
-    font-size: 0.9em;
-    margin-bottom: 5px;
-    display: block;
-}
-
-.form-group input[type="text"],
-.form-group input[type="url"],
-.form-group input[type="file"] {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1em;
-}
-
-.form-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 20px;
-}
-
-.primary-button {
-    background-color: #DC5C5C;
-    color: #fff;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.3s;
-}
-
-.primary-button:hover {
-    background-color: #c34646;
-}
-
-/* Custom Tips and Logos */
-.tips-box h4 {
-    color: #DC5C5C;
-    margin-bottom: 5px;
-}
-
-.info-text {
-    font-size: 0.9em;
-    color: #666;
-}
-
-.current-logo img {
-    max-width: 100%;
-    height: auto;
-    border: 1px solid #ddd;
-    padding: 10px;
-    border-radius: 4px;
-}
-
-/* Added new clean-up styles */
-.form-section {
-    margin-bottom: 30px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 20px;
-}
-
-.form-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-
-.info-card {
-    margin-bottom: 20px;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-/* Improved responsive layout */
-@media (max-width: 768px) {
-    .content-grid {
-        flex-direction: column;
+    .event-form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
-    
+
+    h2 {
+        color: #ff0000;
+        margin-bottom: 20px;
+    }
+
+    h3 {
+        color: #ff0000;
+        font-size: 1.2em;
+        margin-top: 30px;
+        margin-bottom: 15px;
+    }
+
+    .form-section {
+        margin-bottom: 30px;
+    }
+
+    .info-card {
+        background-color: #f8f9fa;
+        border-left: 4px solid #ff0000;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+
+    .info-text {
+        color: #666;
+        margin: 0;
+    }
+
     .form-grid {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-top: 15px;
     }
-}
 
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    label {
+        font-weight: bold;
+        color: #333;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    input[type="url"],
+    input[type="file"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+
+    input[type="file"] {
+        padding: 5px;
+    }
+
+    .tips-box {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 4px;
+    }
+
+    .tips-box h4 {
+        color: #856404;
+        margin-top: 0;
+    }
+
+    .tips-box ul {
+        margin: 10px 0 0 0;
+        padding-left: 20px;
+    }
+
+    button[type="submit"] {
+        background-color: #ff0000;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background-color 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    button[type="submit"]:hover {
+        background-color: #cc0000;
+    }
+
+    .current-logo {
+        margin: 15px 0;
+    }
+
+    .current-logo img {
+        max-width: 200px;
+        border: 1px solid #ddd;
+        padding: 5px;
+        border-radius: 4px;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 {% endblock %}

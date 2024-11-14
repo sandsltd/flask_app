@@ -555,6 +555,174 @@
                 transform: translateY(0);
             }
         }
+
+        /* Add these to your existing styles */
+        .default-questions-list ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .default-questions-list li {
+            padding: 8px 12px;
+            margin: 5px 0;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #ff0000;
+        }
+
+        .custom-question-input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            transition: border-color 0.3s ease;
+        }
+
+        .custom-question-input:focus {
+            border-color: #ff0000;
+            outline: none;
+        }
+
+        .tips-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        .tips-box h4 {
+            color: #856404;
+            margin-top: 0;
+        }
+
+        .tips-box ul {
+            margin: 10px 0 0 0;
+            padding-left: 20px;
+        }
+
+        .link-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: #ff0000;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .link-button:hover {
+            color: #cc0000;
+        }
+
+        /* Custom Questions Styles */
+        .custom-question {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .custom-question:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .question-number {
+            background: #ff0000;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .question-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .question-controls button {
+            background: none;
+            border: none;
+            padding: 5px;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.3s ease;
+        }
+
+        .question-controls button:hover {
+            color: #ff0000;
+        }
+
+        .move-question-up:disabled,
+        .move-question-down:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .custom-question-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .add-button {
+            background: #ff0000;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .add-button:hover {
+            background: #cc0000;
+        }
+
+        /* Add to your existing styles */
+        .info-card.warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .info-card.warning .info-text {
+            color: #856404;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-card.warning i {
+            color: #ffc107;
+            font-size: 1.2em;
+        }
+
+        .info-card.warning strong {
+            color: #856404;
+        }
     </style>
 </head>
 
@@ -565,12 +733,12 @@
     <!-- Header Section -->
     <header class="dashboard-header">
         <div class="business-profile">
-            <div class="business-logo-placeholder">TR</div>
+            <div class="business-logo-placeholder"></div>
             <div class="business-info">
                 <h1>Create Your Event <span class="emoji">🎪</span></h1>
                 <div class="animated-subtitle">
                     <p class="subtitle">Let's Get Your Event Set Up <span class="emoji">✨</span></p>
-                    <p class="subtitle-caption">Create and customize your event in minutes <span class="emoji">🚀</span></p>
+                    <p class="subtitle-caption">Create and customise your event in minutes <span class="emoji">🚀</span></p>
                 </div>
             </div>
         </div>
@@ -657,51 +825,52 @@
                                 <label for="event_image">Event Image</label>
                                 <input type="file" id="event_image" name="event_image" accept="image/*">
                             </div>
+                            <div class="form-group full-width">
+                                <label for="recurrence">Event Recurrence</label>
+                                <select id="recurrence" name="recurrence" class="form-control">
+                                    <option value="none">One-time Event</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" id="occurrences-group" style="display: none;">
+                                <label for="occurrences">Number of Occurrences</label>
+                                <input type="number" id="occurrences" name="occurrences" min="1" max="100" value="1">
+                                <small class="form-text text-muted">Maximum 100 occurrences</small>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Ticket Strategy Section -->
-                    <div class="form-section strategy-section">
-                        <h3><i class="fas fa-cog"></i> Ticket Strategy</h3>
-                        <div class="info-card">
-                            <p class="info-text">Choose how you want to manage your ticket capacity:</p>
+                    <div class="form-section">
+                        <h3><i class="fas fa-ticket-alt"></i> Ticket Strategy</h3>
+                        <div class="info-card warning">
+                            <p class="info-text">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <strong>Important:</strong> The ticket strategy cannot be changed after the event is created. Please choose carefully.
+                            </p>
+                        </div>
+                        
+                        <div class="strategy-options">
+                            <label class="radio-option">
+                                <input type="radio" name="enforce_individual_ticket_limits" value="on" checked>
+                                <span class="radio-label">Individual Ticket Limits</span>
+                                <span class="radio-description">Set specific quantities for each ticket type</span>
+                            </label>
                             
-                            <div class="strategy-options">
-                                <div class="radio-option">
-                                    <input type="radio" name="enforce_individual_ticket_limits" id="individual_limits" checked>
-                                    <label for="individual_limits" class="radio-label">
-                                        <span class="option-title"><i class="fas fa-layer-group"></i> Individual Ticket Limits</span>
-                                        <span class="option-description">Set specific quantities for each ticket type. Best for events with different tiers or categories of tickets.</span>
-                                        <span class="example-text">Example: 50 VIP tickets, 100 Standard tickets, 20 Early Entry tickets</span>
-                                    </label>
-                                </div>
-                                
-                                <div class="radio-option">
-                                    <input type="radio" name="enforce_individual_ticket_limits" id="total_capacity">
-                                    <label for="total_capacity" class="radio-label">
-                                        <span class="option-title"><i class="fas fa-users"></i> Total Event Capacity</span>
-                                        <span class="option-description">Set one total capacity for all tickets. Best for simple events where tickets are interchangeable.</span>
-                                        <span class="example-text">Example: 200 total tickets available, any combination of ticket types</span>
-                                    </label>
-                                </div>
-                            </div>
+                            <label class="radio-option">
+                                <input type="radio" name="enforce_individual_ticket_limits" value="off">
+                                <span class="radio-label">Event Total Capacity</span>
+                                <span class="radio-description">Set one total capacity for all ticket types combined</span>
+                            </label>
                         </div>
                     </div>
 
                     <!-- Ticket Types Section -->
                     <div class="form-section" id="ticket-types-section">
                         <h3><i class="fas fa-ticket-alt"></i> Ticket Types</h3>
-                        <div class="info-card">
-                            <p class="info-text">Create different types of tickets for your event. Each type can have its own name, price, and quantity.</p>
-                            <div class="tips-box">
-                                <h4><i class="fas fa-lightbulb"></i> Tips:</h4>
-                                <ul>
-                                    <li>Use clear, descriptive names (e.g., "VIP Access", "Early Bird", "Standard Entry")</li>
-                                    <li>Consider different price points to appeal to various audiences</li>
-                                    <li>Set appropriate quantities based on your venue or capacity</li>
-                                </ul>
-                            </div>
-                        </div>
                         <div id="ticket-types-container">
                             <div class="ticket-type">
                                 <div class="form-grid">
@@ -715,7 +884,7 @@
                                     </div>
                                     <div class="form-group ticket-quantity-field">
                                         <label>Quantity</label>
-                                        <input type="number" name="ticket_quantity[]" required>
+                                        <input type="number" name="ticket_quantity[]">
                                     </div>
                                 </div>
                                 <button type="button" class="remove-button remove-ticket-type-button">
@@ -734,6 +903,72 @@
                             <label for="total_ticket_quantity">Total Event Capacity</label>
                             <input type="number" id="total_ticket_quantity" name="total_ticket_quantity" min="1">
                         </div>
+                    </div>
+
+                    <!-- Default Questions Section -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-question-circle"></i> Default Questions</h3>
+                        <div class="info-card">
+                            <p class="info-text">These are your standard questions that will be asked to all attendees.</p>
+                            {% if default_questions %}
+                                <div class="default-questions-list">
+                                    <ul>
+                                        {% for question in default_questions %}
+                                            <li>{{ question.question }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% else %}
+                                <p>You haven't set any default questions yet. 
+                                    <a href="{{ url_for('manage_default_questions') }}" class="link-button">
+                                        <i class="fas fa-plus"></i> Set Default Questions
+                                    </a>
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Custom Questions Section -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-question"></i> Custom Questions</h3>
+                        <div class="info-card">
+                            <p class="info-text">Add specific questions for this event. These will be asked in addition to your default questions.</p>
+                            <div class="tips-box">
+                                <h4><i class="fas fa-lightbulb"></i> Tips:</h4>
+                                <ul>
+                                    <li>Keep questions clear and concise</li>
+                                    <li>Only ask for information you really need</li>
+                                    <li>Consider whether the answer is necessary for event planning</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div id="custom-questions-container">
+                            <div class="custom-question" data-question-id="1">
+                                <div class="question-header">
+                                    <span class="question-number">1</span>
+                                    <div class="question-controls">
+                                        <button type="button" class="move-question-up" title="Move Up">
+                                            <i class="fas fa-arrow-up"></i>
+                                        </button>
+                                        <button type="button" class="move-question-down" title="Move Down">
+                                            <i class="fas fa-arrow-down"></i>
+                                        </button>
+                                        <button type="button" class="remove-question" title="Remove Question">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <input type="text" 
+                                       name="custom_question_1" 
+                                       placeholder="Enter your question here"
+                                       class="custom-question-input">
+                            </div>
+                        </div>
+                        
+                        <button type="button" id="add-question-button" class="add-button">
+                            <i class="fas fa-plus"></i> Add Another Question
+                        </button>
                     </div>
 
                     <!-- Discount Rules Section -->
@@ -767,7 +1002,7 @@
                                 <div class="form-grid">
                                     <div class="form-group">
                                         <label>Discount Type</label>
-                                        <select class="discount-type-select">
+                                        <select name="discount_types[]" class="discount-type-select" required>
                                             <option value="bulk">Bulk Purchase</option>
                                             <option value="early_bird">Early Bird</option>
                                             <option value="promo_code">Promo Code</option>
@@ -784,7 +1019,7 @@
                                         </div>
                                         <div class="form-group">
                                             <label>Discount (%)</label>
-                                            <input type="number" name="bulk_discount[]" min="0" max="100">
+                                            <input type="number" name="discount_percent[]" min="0" max="100">
                                         </div>
                                         <div class="form-group">
                                             <label>Apply To</label>
@@ -832,9 +1067,7 @@
                                     </div>
                                 </div>
 
-                                <button type="button" class="remove-button remove-discount-rule">
-                                    <i class="fas fa-trash"></i> Remove Rule
-                                </button>
+                                <button type="button" class="remove-discount-rule">Remove Rule</button>
                             </div>
                         </div>
                         <button type="button" id="add-discount-rule" class="add-button">
@@ -857,142 +1090,376 @@
 
 <!-- JavaScript to Handle Form Logic -->
 <script>
-function toggleTicketOptions() {
-    const enforceLimits = document.querySelector('input[name="enforce_individual_ticket_limits"]:checked').value === 'on';
+// Function to toggle ticket strategy display
+function toggleTicketStrategy() {
+    const individualLimitsRadio = document.querySelector('input[name="enforce_individual_ticket_limits"][value="on"]');
+    const enforceLimits = individualLimitsRadio.checked;
     const ticketTypesSection = document.getElementById('ticket-types-section');
     const totalCapacitySection = document.getElementById('total-capacity-section');
-
-    if (enforceLimits) {
-        ticketTypesSection.style.display = 'block';
-        totalCapacitySection.style.display = 'none';
-    } else {
-        ticketTypesSection.style.display = 'block';  // Keep ticket types visible
-        totalCapacitySection.style.display = 'block';
-    }
-
-    // Show or hide quantity fields in ticket types
     const quantityFields = document.querySelectorAll('.ticket-quantity-field');
-    quantityFields.forEach(function(field) {
+    const totalCapacityInput = document.getElementById('total_ticket_quantity');
+
+    // Show/hide sections
+    ticketTypesSection.style.display = 'block';
+    totalCapacitySection.style.display = enforceLimits ? 'none' : 'block';
+
+    // Show/hide quantity fields in ticket types
+    quantityFields.forEach(field => {
         field.style.display = enforceLimits ? 'block' : 'none';
     });
 
-    // Adjust 'required' attribute on quantity inputs
-    const quantityInputs = document.querySelectorAll('.ticket-quantity-field input[name="ticket_quantity[]"]');
-    quantityInputs.forEach(function(input) {
+    // Update required attributes
+    const quantityInputs = document.querySelectorAll('input[name="ticket_quantity[]"]');
+    quantityInputs.forEach(input => {
         if (enforceLimits) {
             input.setAttribute('required', 'required');
         } else {
             input.removeAttribute('required');
+            input.value = '';
         }
     });
 
-    // Adjust 'required' attribute for total capacity input
-    const totalCapacityInput = document.getElementById('total_ticket_quantity');
     if (enforceLimits) {
         totalCapacityInput.removeAttribute('required');
+        totalCapacityInput.value = '';
     } else {
         totalCapacityInput.setAttribute('required', 'required');
     }
 }
 
-// Initialize the form based on the default selection
+// Add event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    toggleTicketOptions();
-});
+    // Initial setup
+    toggleTicketStrategy();
 
-// Add Ticket Type Functionality
-document.getElementById('add-ticket-type-button').addEventListener('click', function() {
-    const container = document.getElementById('ticket-types-container');
-
-    const div = document.createElement('div');
-    div.classList.add('ticket-type');
-    div.innerHTML = `
-        <hr>
-        <label>Ticket Name:</label>
-        <input type="text" name="ticket_name[]" required>
-
-        <label>Price (£):</label>
-        <input type="number" step="0.01" name="ticket_price[]" required>
-
-
-        <div class="ticket-quantity-field">
-            <label>Quantity:</label>
-            <input type="number" name="ticket_quantity[]" required>
-
-        </div>
-
-        <button type="button" class="remove-ticket-type-button">Remove</button>
-    `;
-    container.appendChild(div);
-
-    // Add event listener to the remove button
-    div.querySelector('.remove-ticket-type-button').addEventListener('click', function() {
-        container.removeChild(div);
+    // Listen for radio button changes
+    document.querySelectorAll('input[name="enforce_individual_ticket_limits"]').forEach(radio => {
+        radio.addEventListener('change', toggleTicketStrategy);
     });
 
-    // Re-apply the toggle to hide or show quantity fields
-    toggleTicketOptions();
-});
+    // Update add ticket type button to include quantity field conditionally
+    document.getElementById('add-ticket-type-button').addEventListener('click', function() {
+        const container = document.getElementById('ticket-types-container');
+        const enforceLimits = document.querySelector('input[name="enforce_individual_ticket_limits"][value="on"]').checked;
+        
+        const div = document.createElement('div');
+        div.classList.add('ticket-type');
+        div.innerHTML = `
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Ticket Name</label>
+                    <input type="text" name="ticket_name[]" required>
+                </div>
+                <div class="form-group">
+                    <label>Price (£)</label>
+                    <input type="number" step="0.01" name="ticket_price[]" required>
+                </div>
+                ${enforceLimits ? `
+                <div class="form-group ticket-quantity-field">
+                    <label>Quantity</label>
+                    <input type="number" name="ticket_quantity[]" required>
+                </div>
+                ` : ''}
+            </div>
+            <button type="button" class="remove-button remove-ticket-type-button">
+                <i class="fas fa-trash"></i> Remove
+            </button>
+        `;
+        container.appendChild(div);
 
-// Remove Ticket Type Functionality
-document.querySelectorAll('.remove-ticket-type-button').forEach(function(button) {
-    button.addEventListener('click', function() {
-        const ticketTypeDiv = this.parentElement;
-        ticketTypeDiv.remove();
+        // Add event listener to the remove button
+        div.querySelector('.remove-ticket-type-button').addEventListener('click', function() {
+            container.removeChild(div);
+        });
     });
 });
 
-// Add this JavaScript
 document.addEventListener('DOMContentLoaded', function() {
     // Handle discount type selection
     document.body.addEventListener('change', function(e) {
         if (e.target.classList.contains('discount-type-select')) {
             const ruleDiv = e.target.closest('.discount-rule');
             const options = ruleDiv.querySelectorAll('.discount-options');
-            options.forEach(opt => opt.style.display = 'none');
             
+            // Hide all options first
+            options.forEach(opt => {
+                opt.style.display = 'none';
+                // Disable all inputs in hidden sections
+                opt.querySelectorAll('input, select').forEach(input => {
+                    input.disabled = true;
+                    input.required = false;
+                });
+            });
+            
+            // Show and enable relevant options
+            let targetOptions;
             switch(e.target.value) {
                 case 'bulk':
-                    ruleDiv.querySelector('.bulk-options').style.display = 'block';
+                    targetOptions = ruleDiv.querySelector('.bulk-options');
                     break;
                 case 'early_bird':
-                    ruleDiv.querySelector('.early-bird-options').style.display = 'block';
+                    targetOptions = ruleDiv.querySelector('.early-bird-options');
                     break;
                 case 'promo_code':
-                    ruleDiv.querySelector('.promo-code-options').style.display = 'block';
+                    targetOptions = ruleDiv.querySelector('.promo-code-options');
                     break;
             }
-        }
-    });
-
-    // Add new discount rule
-    document.getElementById('add-discount-rule').addEventListener('click', function() {
-        const container = document.getElementById('discount-rules-container');
-        const ruleTemplate = container.querySelector('.discount-rule').cloneNode(true);
-        
-        // Clear input values
-        ruleTemplate.querySelectorAll('input').forEach(input => input.value = '');
-        
-        // Reset select values
-        ruleTemplate.querySelectorAll('select').forEach(select => {
-            select.selectedIndex = 0;
-            select.dispatchEvent(new Event('change'));
-        });
-        
-        container.appendChild(ruleTemplate);
-    });
-
-    // Remove discount rule
-    document.body.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-discount-rule')) {
-            const rulesContainer = document.getElementById('discount-rules-container');
-            if (rulesContainer.children.length > 1) {
-                e.target.closest('.discount-rule').remove();
-            } else {
-                alert('You must have at least one discount rule section.');
+            
+            if (targetOptions) {
+                targetOptions.style.display = 'block';
+                // Enable and require inputs in visible section
+                targetOptions.querySelectorAll('input, select').forEach(input => {
+                    input.disabled = false;
+                    input.required = true;
+                });
             }
         }
     });
+
+    // Initialize the first discount rule
+    document.querySelectorAll('.discount-type-select').forEach(select => {
+        select.dispatchEvent(new Event('change'));
+    });
+});
+
+// Add new discount rule
+document.getElementById('add-discount-rule').addEventListener('click', function() {
+    const container = document.getElementById('discount-rules-container');
+    const ruleTemplate = container.querySelector('.discount-rule').cloneNode(true);
+    
+    // Reset all inputs
+    ruleTemplate.querySelectorAll('input').forEach(input => {
+        input.value = '';
+        input.disabled = true;
+        input.required = false;
+    });
+    
+    // Reset selects
+    ruleTemplate.querySelectorAll('select').forEach(select => {
+        select.selectedIndex = 0;
+    });
+    
+    // Trigger change event on discount type select
+    const typeSelect = ruleTemplate.querySelector('.discount-type-select');
+    container.appendChild(ruleTemplate);
+    typeSelect.dispatchEvent(new Event('change'));
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('custom-questions-container');
+    const addButton = document.getElementById('add-question-button');
+    const MAX_QUESTIONS = 10;
+
+    function updateQuestionNumbers() {
+        const questions = container.querySelectorAll('.custom-question');
+        questions.forEach((question, index) => {
+            const number = index + 1;
+            question.querySelector('.question-number').textContent = number;
+            question.querySelector('input').name = `custom_question_${number}`;
+            question.dataset.questionId = number;
+
+            // Update move buttons visibility
+            question.querySelector('.move-question-up').disabled = index === 0;
+            question.querySelector('.move-question-down').disabled = index === questions.length - 1;
+        });
+
+        // Update add button visibility
+        addButton.style.display = questions.length >= MAX_QUESTIONS ? 'none' : 'flex';
+    }
+
+    function addQuestion() {
+        const questionCount = container.querySelectorAll('.custom-question').length;
+        if (questionCount >= MAX_QUESTIONS) return;
+
+        const newQuestion = document.createElement('div');
+        newQuestion.className = 'custom-question';
+        newQuestion.dataset.questionId = questionCount + 1;
+        newQuestion.innerHTML = `
+            <div class="question-header">
+                <span class="question-number">${questionCount + 1}</span>
+                <div class="question-controls">
+                    <button type="button" class="move-question-up" title="Move Up">
+                        <i class="fas fa-arrow-up"></i>
+                    </button>
+                    <button type="button" class="move-question-down" title="Move Down">
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
+                    <button type="button" class="remove-question" title="Remove Question">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <input type="text" 
+                   name="custom_question_${questionCount + 1}" 
+                   placeholder="Enter your question here"
+                   class="custom-question-input">
+        `;
+        container.appendChild(newQuestion);
+        updateQuestionNumbers();
+    }
+
+    addButton.addEventListener('click', addQuestion);
+
+    container.addEventListener('click', function(e) {
+        const question = e.target.closest('.custom-question');
+        if (!question) return;
+
+        if (e.target.closest('.remove-question')) {
+            if (container.querySelectorAll('.custom-question').length > 1) {
+                question.remove();
+                updateQuestionNumbers();
+            }
+        }
+
+        if (e.target.closest('.move-question-up')) {
+            const prev = question.previousElementSibling;
+            if (prev) {
+                container.insertBefore(question, prev);
+                updateQuestionNumbers();
+            }
+        }
+
+        if (e.target.closest('.move-question-down')) {
+            const next = question.nextElementSibling;
+            if (next) {
+                container.insertBefore(next, question);
+                updateQuestionNumbers();
+            }
+        }
+    });
+
+    // Initialize the first question
+    updateQuestionNumbers();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const dateInput = document.querySelector('input[name="date"]');
+    const startTimeInput = document.querySelector('input[name="start_time"]');
+    const endTimeInput = document.querySelector('input[name="end_time"]');
+
+    // Set minimum date to today
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+    dateInput.min = todayStr;
+
+    // Validate times when end time is changed
+    endTimeInput.addEventListener('change', function() {
+        const startTime = startTimeInput.value;
+        const endTime = this.value;
+        
+        if (startTime && endTime && endTime <= startTime) {
+            alert('End time must be after start time');
+            this.value = '';
+        }
+    });
+
+    // Validate start time when date is today
+    function validateStartTime() {
+        if (dateInput.value === todayStr && startTimeInput.value) {
+            const now = new Date();
+            const currentHour = String(now.getHours()).padStart(2, '0');
+            const currentMinute = String(now.getMinutes()).padStart(2, '0');
+            const currentTime = `${currentHour}:${currentMinute}`;
+            
+            if (startTimeInput.value < currentTime) {
+                alert('For events today, start time must be in the future');
+                startTimeInput.value = '';
+            }
+        }
+    }
+
+    startTimeInput.addEventListener('change', validateStartTime);
+    dateInput.addEventListener('change', function() {
+        if (this.value < todayStr) {
+            alert('Event date cannot be in the past');
+            this.value = todayStr;
+        }
+        validateStartTime();
+    });
+
+    // Form submission validation
+    form.addEventListener('submit', function(e) {
+        const date = dateInput.value;
+        const startTime = startTimeInput.value;
+        const endTime = endTimeInput.value;
+
+        if (date < todayStr) {
+            e.preventDefault();
+            alert('Event date cannot be in the past');
+            return;
+        }
+
+        if (startTime && endTime && endTime <= startTime) {
+            e.preventDefault();
+            alert('End time must be after start time');
+            return;
+        }
+
+        if (date === todayStr) {
+            const now = new Date();
+            const currentHour = String(now.getHours()).padStart(2, '0');
+            const currentMinute = String(now.getMinutes()).padStart(2, '0');
+            const currentTime = `${currentHour}:${currentMinute}`;
+            
+            if (startTime < currentTime) {
+                e.preventDefault();
+                alert('For events today, start time must be in the future');
+                return;
+            }
+        }
+    });
+});
+
+document.getElementById('recurrence').addEventListener('change', function() {
+    const occurrencesGroup = document.getElementById('occurrences-group');
+    if (this.value === 'none') {
+        occurrencesGroup.style.display = 'none';
+        document.getElementById('occurrences').value = '1';
+    } else {
+        occurrencesGroup.style.display = 'block';
+    }
+});
+
+// Update the hidden discount type input when selection changes
+document.body.addEventListener('change', function(e) {
+    if (e.target.classList.contains('discount-type-select')) {
+        const ruleDiv = e.target.closest('.discount-rule');
+        const hiddenInput = ruleDiv.querySelector('input[name="discount_type[]"]');
+        hiddenInput.value = e.target.value;
+    }
+});
+
+// Add form submission handler to validate ticket types
+document.querySelector('form').addEventListener('submit', function(e) {
+    const ticketNames = document.querySelectorAll('input[name="ticket_name[]"]');
+    const ticketPrices = document.querySelectorAll('input[name="ticket_price[]"]');
+    
+    // Debug print
+    console.log('Number of ticket types:', ticketNames.length);
+    
+    if (ticketNames.length === 0) {
+        e.preventDefault();
+        alert('Please add at least one ticket type');
+        return;
+    }
+
+    // Validate each ticket type
+    for (let i = 0; i < ticketNames.length; i++) {
+        const name = ticketNames[i].value.trim();
+        const price = ticketPrices[i].value;
+        
+        console.log(`Validating ticket type ${i + 1}:`, name, price);  // Debug print
+        
+        if (!name || !price) {
+            e.preventDefault();
+            alert('Please fill in all ticket type fields');
+            return;
+        }
+    }
 });
 </script>
 

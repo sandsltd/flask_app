@@ -167,6 +167,53 @@
             font-size: 0.9em;
             color: #888;
         }
+
+        .ticket-name-display {
+            display: none;
+        }
+
+        .info-card strong {
+            color: #ff0000;
+            font-weight: 600;
+        }
+        
+        .info-card p {
+            margin: 0;
+        }
+
+        .quantity-info {
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .quantity-info .remaining {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .quantity-info .sold {
+            color: #666;
+            margin-left: 5px;
+        }
+
+        .warning-text {
+            color: #dc3545;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        .remove-button[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .ticket-type {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #dee2e6;
+        }
     </style>
 </head>
 
@@ -277,62 +324,109 @@
                     <!-- Ticket Management Section -->
                     <div class="form-section">
                         <h3><i class="fas fa-ticket-alt"></i> Ticket Management</h3>
-                        <div class="strategy-options">
-                            <label class="radio-option">
-                                <input type="radio" name="enforce_individual_ticket_limits" value="on"
-                                    {% if event.enforce_individual_ticket_limits %}checked{% endif %}
-                                    onclick="toggleTicketOptions()">
-                                <span class="radio-label">Enforce individual ticket type limits</span>
-                                <span class="radio-description">Set specific quantities for each ticket type</span>
-                            </label>
-                            <label class="radio-option">
-                                <input type="radio" name="enforce_individual_ticket_limits" value="off"
-                                    {% if not event.enforce_individual_ticket_limits %}checked{% endif %}
-                                    onclick="toggleTicketOptions()">
-                                <span class="radio-label">Enforce total event capacity</span>
-                                <span class="radio-description">Set one total capacity for all ticket types</span>
-                            </label>
+                        <div class="info-card">
+                            <p class="info-text">Current ticket strategy: 
+                                <strong>
+                                    {% if event.enforce_individual_ticket_limits %}
+                                        Individual Ticket Limits
+                                    {% else %}
+                                        Event Total Capacity
+                                    {% endif %}
+                                </strong>
+                            </p>
                         </div>
 
-                        <!-- Ticket Types with Limits -->
-                        <div id="ticket-types-section">
-                            <div id="ticket-types-container">
-                                {% for ticket_type in ticket_types_with_limits %}
-                                    <div class="ticket-type">
-                                        <input type="hidden" name="existing_ticket_type_id" value="{{ ticket_type.id }}">
-                                        <div class="form-grid">
-                                            <div class="form-group">
-                                                <label>Ticket Name</label>
-                                                <input type="text" name="name_{{ ticket_type.id }}" value="{{ ticket_type.name }}" required>
+                        {% if event.enforce_individual_ticket_limits %}
+                            <!-- Individual Tickets Section -->
+                            <div id="ticket-types-section">
+                                <div id="ticket-types-container">
+                                    {% for ticket_type in ticket_types_with_limits %}
+                                        <div class="ticket-type">
+                                            <input type="hidden" name="existing_ticket_type_id" value="{{ ticket_type.id }}">
+                                            <div class="form-grid">
+                                                <div class="form-group">
+                                                    <label>Ticket Name</label>
+                                                    <input type="text" name="name_{{ ticket_type.id }}" value="{{ ticket_type.name }}" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Price (£)</label>
+                                                    <input type="number" step="0.01" name="price_{{ ticket_type.id }}" value="{{ ticket_type.price }}" required>
+                                                </div>
+                                                <div class="form-group ticket-quantity-field">
+                                                    <label>Quantity</label>
+                                                    <input type="number" name="quantity_{{ ticket_type.id }}" value="{{ ticket_type.quantity }}" required>
+                                                    <div class="quantity-info">
+                                                        <span class="remaining">
+                                                            {% if ticket_type.quantity %}
+                                                                {{ ticket_type.quantity - (ticket_type.tickets_sold|default(0)) }} remaining
+                                                            {% else %}
+                                                                0 remaining
+                                                            {% endif %}
+                                                        </span>
+                                                        <span class="sold">({{ ticket_type.tickets_sold|default(0) }} sold)</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="form-group">
-                                                <label>Price (£)</label>
-                                                <input type="number" step="0.01" name="price_{{ ticket_type.id }}" value="{{ ticket_type.price }}" required>
-                                            </div>
-                                            <div class="form-group ticket-quantity-field">
-                                                <label>Quantity</label>
-                                                <input type="number" name="quantity_{{ ticket_type.id }}" value="{{ ticket_type.quantity }}" required>
-                                            </div>
+                                            <button type="button" class="remove-button" {% if ticket_type.tickets_sold > 0 %}disabled{% endif %}>
+                                                <i class="fas fa-trash"></i> Remove
+                                            </button>
+                                            {% if ticket_type.tickets_sold > 0 %}
+                                                <div class="warning-text">Cannot remove ticket type with sales</div>
+                                            {% endif %}
                                         </div>
-                                        <button type="button" class="remove-button">
-                                            <i class="fas fa-trash"></i> Remove
-                                        </button>
+                                    {% endfor %}
+                                </div>
+                                <button type="button" id="add-ticket-type-button" class="add-button">
+                                    <i class="fas fa-plus"></i> Add New Ticket Type
+                                </button>
+                            </div>
+                        {% else %}
+                            <!-- Event Capacity Section -->
+                            <div id="total-capacity-section">
+                                <div class="form-group">
+                                    <label for="total_ticket_quantity">Total Event Capacity</label>
+                                    <input type="number" id="total_ticket_quantity" name="total_ticket_quantity" 
+                                           value="{{ event.ticket_quantity }}" min="1" required>
+                                    <div class="quantity-info">
+                                        <span class="remaining">
+                                            {% if event.ticket_quantity and total_tickets_sold is defined %}
+                                                {{ event.ticket_quantity - total_tickets_sold }} remaining
+                                            {% else %}
+                                                0 remaining
+                                            {% endif %}
+                                        </span>
+                                        <span class="sold">({{ total_tickets_sold|default(0) }} sold)</span>
                                     </div>
-                                {% endfor %}
-                            </div>
-                            <button type="button" id="add-ticket-type-button" class="add-button">
-                                <i class="fas fa-plus"></i> Add Ticket Type
-                            </button>
-                        </div>
+                                </div>
 
-                        <!-- Total Capacity Section -->
-                        <div id="total-capacity-section">
-                            <div class="form-group">
-                                <label for="total_ticket_quantity">Total Event Capacity</label>
-                                <input type="number" id="total_ticket_quantity" name="total_ticket_quantity" 
-                                       value="{{ event.ticket_quantity }}" min="1">
+                                <div id="ticket-types-container">
+                                    {% for ticket_type in ticket_types %}
+                                        <div class="ticket-type">
+                                            <input type="hidden" name="existing_ticket_type_id" value="{{ ticket_type.id }}">
+                                            <div class="form-grid">
+                                                <div class="form-group">
+                                                    <label>Ticket Name</label>
+                                                    <input type="text" name="name_{{ ticket_type.id }}" value="{{ ticket_type.name }}" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Price (£)</label>
+                                                    <input type="number" step="0.01" name="price_{{ ticket_type.id }}" value="{{ ticket_type.price }}" required>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="remove-button" {% if ticket_type.tickets_sold > 0 %}disabled{% endif %}>
+                                                <i class="fas fa-trash"></i> Remove
+                                            </button>
+                                            {% if ticket_type.tickets_sold > 0 %}
+                                                <div class="warning-text">Cannot remove ticket type with sales</div>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <button type="button" id="add-ticket-type-button" class="add-button">
+                                    <i class="fas fa-plus"></i> Add New Ticket Type
+                                </button>
                             </div>
-                        </div>
+                        {% endif %}
                     </div>
 
                     <!-- Discount Rules Section -->
@@ -440,12 +534,14 @@
 
                     <!-- Custom Questions Section -->
                     <div class="form-section">
-                        <h3><i class="fas fa-question-circle"></i> Custom Questions</h3>
+                        <h3>Custom Questions</h3>
                         {% for i in range(1, 11) %}
                             <div class="form-group">
                                 <label for="custom_question_{{ i }}">Question {{ i }}</label>
-                                <input type="text" id="custom_question_{{ i }}" name="custom_question_{{ i }}" 
-                                       value="{{ custom_questions['custom_question_' + i|string] }}">
+                                <input type="text" 
+                                       id="custom_question_{{ i }}" 
+                                       name="custom_question_{{ i }}" 
+                                       value="{{ custom_questions.get('custom_question_' ~ i, '') }}">
                                 <small>Leave blank to remove this question</small>
                             </div>
                         {% endfor %}
@@ -465,59 +561,43 @@
 
 <!-- Keep existing JavaScript and add new discount rule handling -->
 <script>
-    function toggleTicketOptions() {
-        const enforceLimits = document.querySelector('input[name="enforce_individual_ticket_limits"]:checked').value === 'on';
-        const ticketTypesSection = document.getElementById('ticket-types-section');
-        const ticketTypesNoLimitSection = document.getElementById('ticket-types-no-limit-section');
-        const totalCapacitySection = document.getElementById('total-capacity-section');
-
-        if (enforceLimits) {
-            ticketTypesSection.style.display = 'block';
-            ticketTypesNoLimitSection.style.display = 'none';
-            totalCapacitySection.style.display = 'none';
-        } else {
-            ticketTypesSection.style.display = 'none';
-            ticketTypesNoLimitSection.style.display = 'block';
-            totalCapacitySection.style.display = 'block';
-        }
-
-        // Toggle 'required' attribute for individual ticket quantities
-        document.querySelectorAll('.ticket-type input[name^="quantity_"]').forEach(input => {
-            enforceLimits ? input.setAttribute('required', 'required') : input.removeAttribute('required');
-        });
-
-        // Toggle 'required' attribute for total event capacity
-        const totalCapacityInput = document.getElementById('total_ticket_quantity');
-        if (enforceLimits) {
-            totalCapacityInput.removeAttribute('required');
-        } else {
-            totalCapacityInput.setAttribute('required', 'required');
-        }
-    }
-
     document.addEventListener('DOMContentLoaded', function() {
-        toggleTicketOptions();
+        // Remove the toggleTicketOptions call
+        // toggleTicketOptions();
+        
+        // Keep other initialization code
     });
 
     // Add Ticket Type with Quantity
+    // Update the add ticket type functionality
     document.getElementById('add-ticket-type-button').addEventListener('click', function() {
         const container = document.getElementById('ticket-types-container');
         const div = document.createElement('div');
         div.classList.add('ticket-type');
+        
         div.innerHTML = `
-            <input type="hidden" name="new_ticket_type_id" value="new">
-            <label>Ticket Name:</label>
-            <input type="text" name="new_ticket_name" required>
-            <label>Price (£):</label>
-            <input type="number" step="0.01" name="new_ticket_price" required>
-            <label>Quantity:</label>
-            <input type="number" name="new_ticket_quantity" required>
-            <button type="button" class="remove-ticket-type-button">Remove</button>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Ticket Name</label>
+                    <input type="text" name="new_ticket_name" required>
+                </div>
+                <div class="form-group">
+                    <label>Price (£)</label>
+                    <input type="number" step="0.01" name="new_ticket_price" required>
+                </div>
+                ${event.enforce_individual_ticket_limits ? `
+                    <div class="form-group ticket-quantity-field">
+                        <label>Quantity</label>
+                        <input type="number" name="new_ticket_quantity" required>
+                    </div>
+                ` : ''}
+            </div>
+            <button type="button" class="remove-button">
+                <i class="fas fa-trash"></i> Remove
+            </button>
         `;
+        
         container.appendChild(div);
-        div.querySelector('.remove-ticket-type-button').addEventListener('click', function() {
-            container.removeChild(div);
-        });
     });
 
     // Add Ticket Type without Quantity
