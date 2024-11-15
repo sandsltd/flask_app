@@ -331,294 +331,314 @@
     }
 
     function updateTotalPrice() {
-    const ticketInputs = document.querySelectorAll('.ticket-input');
-    let totalPrice = 0;
-    let totalQuantity = getTotalQuantity();
-    let originalTotalPrice = 0; // Original price before discounts
+        const ticketInputs = document.querySelectorAll('.ticket-input');
+        let totalPrice = 0;
+        let totalQuantity = getTotalQuantity();
+        let originalTotalPrice = 0;
 
-    ticketInputs.forEach(function(input) {
-        const quantity = parseInt(input.value) || 0;
-        const originalPrice = parseFloat(input.getAttribute('data-ticket-price'));
-        originalTotalPrice += quantity * originalPrice;
+        if (discountConfig && discountConfig.type === 'bulk' && discountConfig.apply_to === 'additional') {
+            // Calculate price with discount only on additional tickets
+            ticketInputs.forEach(function(input) {
+                const quantity = parseInt(input.value) || 0;
+                const price = parseFloat(input.getAttribute('data-ticket-price'));
+                
+                if (quantity > 0) {
+                    // First ticket at full price
+                    totalPrice += price;
+                    originalTotalPrice += quantity * price;
 
-        let discountedPrice = originalPrice;
-
-        if (shouldApplyDiscount(totalQuantity)) {
-            discountedPrice = originalPrice * (1 - discountConfig.percentage / 100);
-        }
-
-        totalPrice += quantity * discountedPrice;
-    });
-
-    // Calculate discount amount
-    let discountAmount = originalTotalPrice - totalPrice;
-
-    // Update total price display
-    const totalPriceElement = document.getElementById('sticky_total_price');
-    totalPriceElement.textContent = totalPrice.toFixed(2);
-
-    // Update original price and discount amount if discount is applied
-    const originalPriceElement = document.getElementById('sticky_original_price');
-    const discountAmountElement = document.getElementById('sticky_discount_amount');
-
-    if (discountAmount > 0) {
-        originalPriceElement.textContent = originalTotalPrice.toFixed(2);
-        discountAmountElement.textContent = discountAmount.toFixed(2);
-
-        // Show the elements
-        originalPriceElement.parentElement.style.display = 'block';
-        discountAmountElement.parentElement.style.display = 'block';
-    } else {
-        // Hide the elements if no discount
-        originalPriceElement.parentElement.style.display = 'none';
-        discountAmountElement.parentElement.style.display = 'none';
-    }
-
-    // Update ticket count display
-    const ticketCountElement = document.querySelector('.ticket-count');
-    ticketCountElement.textContent = totalQuantity + ' tickets selected';
-
-    // Update sticky total visibility
-    const stickyTotal = document.querySelector('.sticky-total');
-    stickyTotal.classList.toggle('visible', totalQuantity > 0);
-}
-
-function shouldApplyDiscount(totalQuantity) {
-    if (!discountConfig || discountConfig.percentage <= 0) {
-        return false;
-    }
-
-    switch (discountConfig.type) {
-        case 'early_bird':
-            const validUntil = new Date(discountConfig.valid_until);
-            const now = new Date();
-            return now < validUntil;
-        case 'bulk':
-            return totalQuantity >= discountConfig.minTickets;
-        case 'promo_code':
-            return Boolean(discountConfig.code);
-        default:
-            return false;
-    }
-}
-
-
-
-function updateQuestionForms() {
-    var ticketInputs = document.querySelectorAll('.ticket-input');
-    var formsContainer = document.getElementById('question_forms');
-    formsContainer.innerHTML = '';
-
-    // First pass: calculate total quantity
-    var totalQuantity = 0;
-    ticketInputs.forEach(function(input) {
-        totalQuantity += parseInt(input.value) || 0;
-    });
-
-    // Check if there are any questions
-    if (questions.length === 0) {
-        // No questions to ask, so no need to generate forms
-        return;
-    }
-
-    // Second pass: create forms for each ticket
-    ticketInputs.forEach(function(input) {
-        var quantity = parseInt(input.value) || 0;
-        var ticketTypeId = input.getAttribute('data-ticket-type-id');
-        var ticketTypeName = input.getAttribute('data-ticket-type-name');
-
-        // Create question forms for each ticket
-        for (var i = 0; i < quantity; i++) {
-            var ticketDiv = document.createElement('div');
-            ticketDiv.classList.add('attendee-group');
-
-            // Update the heading text
-            var attendeeHeader = document.createElement('h3');
-            attendeeHeader.textContent = 'Please provide information for ' + ticketTypeName + ' - Ticket ' + (i + 1);
-            ticketDiv.appendChild(attendeeHeader);
-
-            questions.forEach(function(question) {
-                var formGroup = document.createElement('div');
-                formGroup.classList.add('form-group');
-
-                var label = document.createElement('label');
-                label.setAttribute('for', 'ticket_' + ticketTypeId + '_' + i + '_question_' + question.id);
-                label.textContent = question.question_text;
-
-                var inputField = document.createElement('input');
-                inputField.type = 'text';
-                inputField.name = 'ticket_' + ticketTypeId + '_' + i + '_question_' + question.id;
-                inputField.id = 'ticket_' + ticketTypeId + '_' + i + '_question_' + question.id;
-                inputField.required = question.required;
-
-                formGroup.appendChild(label);
-                formGroup.appendChild(inputField);
-                ticketDiv.appendChild(formGroup);
+                    // Additional tickets with discount
+                    if (quantity > 1 && totalQuantity >= discountConfig.minTickets) {
+                        const additionalTickets = quantity - 1;
+                        const discountedPrice = price * (1 - discountConfig.percentage / 100);
+                        totalPrice += additionalTickets * discountedPrice;
+                    } else {
+                        // If minimum ticket requirement not met, charge full price
+                        totalPrice += (quantity - 1) * price;
+                    }
+                }
             });
+        } else {
+            // Regular discount calculation for other cases
+            ticketInputs.forEach(function(input) {
+                const quantity = parseInt(input.value) || 0;
+                const originalPrice = parseFloat(input.getAttribute('data-ticket-price'));
+                originalTotalPrice += quantity * originalPrice;
 
-            formsContainer.appendChild(ticketDiv);
+                let discountedPrice = originalPrice;
+                if (shouldApplyDiscount(totalQuantity)) {
+                    discountedPrice = originalPrice * (1 - discountConfig.percentage / 100);
+                }
+
+                totalPrice += quantity * discountedPrice;
+            });
         }
-    });
 
+        // Calculate discount amount
+        let discountAmount = originalTotalPrice - totalPrice;
 
-        // Update total price display
-        var totalPriceElement = document.getElementById('total_price');
-        totalPriceElement.textContent = '£' + totalPrice.toFixed(2);
+        // Update displays
+        const totalPriceElement = document.getElementById('sticky_total_price');
+        totalPriceElement.textContent = totalPrice.toFixed(2);
 
-        // Add this line after calculating totalQuantity
-        updatePriceDisplays(totalQuantity);
+        const originalPriceElement = document.getElementById('sticky_original_price');
+        const discountAmountElement = document.getElementById('sticky_discount_amount');
+
+        if (discountAmount > 0) {
+            originalPriceElement.textContent = originalTotalPrice.toFixed(2);
+            discountAmountElement.textContent = discountAmount.toFixed(2);
+            originalPriceElement.parentElement.style.display = 'block';
+            discountAmountElement.parentElement.style.display = 'block';
+        } else {
+            originalPriceElement.parentElement.style.display = 'none';
+            discountAmountElement.parentElement.style.display = 'none';
+        }
+
+        // Update ticket count display
+        const ticketCountElement = document.querySelector('.ticket-count');
+        ticketCountElement.textContent = totalQuantity + ' tickets selected';
+
+        // Update sticky total visibility
+        const stickyTotal = document.querySelector('.sticky-total');
+        stickyTotal.classList.toggle('visible', totalQuantity > 0);
     }
 
-    // Add form submission handler
-    document.querySelector('form').addEventListener('submit', function(e) {
-        var totalQuantity = Array.from(document.querySelectorAll('.ticket-input'))
-            .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
+    function shouldApplyDiscount(totalQuantity) {
+        if (!discountConfig || discountConfig.percentage <= 0) {
+            return false;
+        }
 
-        if (discountConfig.apply_to === 'bulk' && 
-            totalQuantity > 0 && 
-            totalQuantity < discountConfig.minTickets) {
-            
-            e.preventDefault();
-            
-            if (confirm(`You're just ${discountConfig.minTickets - totalQuantity} ticket(s) away from saving ${discountConfig.percentage}% on ${discountConfig.apply_to === 'all' ? 'all' : 'additional'} tickets! Would you like to add more tickets?`)) {
+        switch (discountConfig.type) {
+            case 'early_bird':
+                const validUntil = new Date(discountConfig.valid_until);
+                const now = new Date();
+                return now < validUntil;
+            case 'bulk':
+                return totalQuantity >= discountConfig.minTickets;
+            case 'promo_code':
+                return Boolean(discountConfig.code);
+            default:
                 return false;
-            }
-        }
-    });
-
-    // Initialize when DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeDiscountBanner();
-        updateQuestionForms();
-        
-        var ticketInputs = document.querySelectorAll('.ticket-input');
-        ticketInputs.forEach(function(input) {
-            input.addEventListener('change', updateQuestionForms);
-            input.addEventListener('input', updateQuestionForms);
-        });
-    });
-
-
-    function initializeCountdown() {
-        const eventDate = new Date('{{ event.date }}');
-        const now = new Date();
-        const timeLeft = eventDate - now;
-        
-        if (timeLeft <= 7 * 24 * 60 * 60 * 1000) { // 7 days in milliseconds
-            const countdownElement = document.createElement('div');
-            countdownElement.className = 'countdown-timer';
-            // Add countdown implementation
-            document.querySelector('.event-info').appendChild(countdownElement);
         }
     }
 
-    // Update the promo code verification handler
-    document.getElementById('check_promo').addEventListener('click', async function() {
-        const promoCode = document.getElementById('promo_code').value.trim();
-        const eventId = '{{ event.id }}';
-        const messageElement = document.getElementById('promo_message');
-        const validatedPromoInput = document.getElementById('validated_promo_code');
-        
-        if (!promoCode) {
-            messageElement.textContent = 'Please enter a promo code';
-            messageElement.className = 'promo-message error';
-            validatedPromoInput.value = '';  // Clear validated code
+
+
+    function updateQuestionForms() {
+        var ticketInputs = document.querySelectorAll('.ticket-input');
+        var formsContainer = document.getElementById('question_forms');
+        formsContainer.innerHTML = '';
+
+        // First pass: calculate total quantity
+        var totalQuantity = 0;
+        ticketInputs.forEach(function(input) {
+            totalQuantity += parseInt(input.value) || 0;
+        });
+
+        // Check if there are any questions
+        if (questions.length === 0) {
+            // No questions to ask, so no need to generate forms
             return;
         }
 
-        try {
-            const response = await fetch('/verify_promo_code', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    event_id: eventId,
-                    promo_code: promoCode
-                })
-            });
+        // Second pass: create forms for each ticket
+        ticketInputs.forEach(function(input) {
+            var quantity = parseInt(input.value) || 0;
+            var ticketTypeId = input.getAttribute('data-ticket-type-id');
+            var ticketTypeName = input.getAttribute('data-ticket-type-name');
 
-            const data = await response.json();
+            // Create question forms for each ticket
+            for (var i = 0; i < quantity; i++) {
+                var ticketDiv = document.createElement('div');
+                ticketDiv.classList.add('attendee-group');
 
-            if (data.valid) {
-                messageElement.textContent = `Success! ${data.discount}% discount will be applied`;
-                messageElement.className = 'promo-message success';
-                validatedPromoInput.value = promoCode;  // Store validated code
+                // Update the heading text
+                var attendeeHeader = document.createElement('h3');
+                attendeeHeader.textContent = 'Please provide information for ' + ticketTypeName + ' - Ticket ' + (i + 1);
+                ticketDiv.appendChild(attendeeHeader);
+
+                questions.forEach(function(question) {
+                    var formGroup = document.createElement('div');
+                    formGroup.classList.add('form-group');
+
+                    var label = document.createElement('label');
+                    label.setAttribute('for', 'ticket_' + ticketTypeId + '_' + i + '_question_' + question.id);
+                    label.textContent = question.question_text;
+
+                    var inputField = document.createElement('input');
+                    inputField.type = 'text';
+                    inputField.name = 'ticket_' + ticketTypeId + '_' + i + '_question_' + question.id;
+                    inputField.id = 'ticket_' + ticketTypeId + '_' + i + '_question_' + question.id;
+                    inputField.required = question.required;
+
+                    formGroup.appendChild(label);
+                    formGroup.appendChild(inputField);
+                    ticketDiv.appendChild(formGroup);
+                });
+
+                formsContainer.appendChild(ticketDiv);
+            }
+        });
+
+
+            // Update total price display
+            var totalPriceElement = document.getElementById('total_price');
+            totalPriceElement.textContent = '£' + totalPrice.toFixed(2);
+
+            // Add this line after calculating totalQuantity
+            updatePriceDisplays(totalQuantity);
+        }
+
+        // Add form submission handler
+        document.querySelector('form').addEventListener('submit', function(e) {
+            var totalQuantity = Array.from(document.querySelectorAll('.ticket-input'))
+                .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
+
+            if (discountConfig.apply_to === 'bulk' && 
+                totalQuantity > 0 && 
+                totalQuantity < discountConfig.minTickets) {
                 
-                // Update the discount configuration
-                discountConfig = {
-                    type: 'promo_code',
-                    percentage: data.discount,
-                    code: promoCode
-                };
+                e.preventDefault();
                 
-                // Update displays
-                updatePriceDisplays(getTotalQuantity());
-                updateTotalPrice();
-            } else {
-                messageElement.textContent = data.message || 'Invalid promo code';
-                messageElement.className = 'promo-message error';
-                validatedPromoInput.value = '';  // Clear validated code
-                
-                if (discountConfig && discountConfig.type === 'promo_code') {
-                    discountConfig = null;
-                    updatePriceDisplays(getTotalQuantity());
-                    updateTotalPrice();
+                if (confirm(`You're just ${discountConfig.minTickets - totalQuantity} ticket(s) away from saving ${discountConfig.percentage}% on ${discountConfig.apply_to === 'all' ? 'all' : 'additional'} tickets! Would you like to add more tickets?`)) {
+                    return false;
                 }
             }
-        } catch (error) {
-            messageElement.textContent = 'Error checking promo code';
-            messageElement.className = 'promo-message error';
-            validatedPromoInput.value = '';  // Clear validated code
-            console.error('Promo code verification error:', error);
-        }
-    });
-
-    function getTotalQuantity() {
-        return Array.from(document.querySelectorAll('.ticket-input'))
-            .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
-    }
-
-    // Add this after your existing event listeners
-    document.querySelectorAll('.ticket-input').forEach(function(input) {
-        input.addEventListener('change', function() {
-            updateTotalPrice();
         });
-        input.addEventListener('input', function() {
-            updateTotalPrice();
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDiscountBanner();
+            updateQuestionForms();
+            
+            var ticketInputs = document.querySelectorAll('.ticket-input');
+            ticketInputs.forEach(function(input) {
+                input.addEventListener('change', updateQuestionForms);
+                input.addEventListener('input', updateQuestionForms);
+            });
         });
-    });
 
-    function initializeDiscountBanner() {
-        const banner = document.getElementById('discount-banner');
-        const message = document.getElementById('discount-message');
-        const subtitle = document.querySelector('.discount-subtitle');
 
-        if (!discountConfig || !discountConfig.type) return;
-
-        banner.style.display = 'block';
-        banner.className = `discount-banner discount-banner-${discountConfig.type}`;
-
-        switch(discountConfig.type) {
-            case 'early_bird':
-                message.textContent = `Early Bird Offer: ${discountConfig.percentage}% OFF!`;
-                const validUntil = new Date(discountConfig.valid_until);
-                subtitle.textContent = `Offer ends ${validUntil.toLocaleDateString()}`;
-                break;
-
-            case 'bulk':
-                message.textContent = `Bulk Discount: ${discountConfig.percentage}% OFF`;
-                subtitle.textContent = discountConfig.apply_to === 'all' 
-                    ? `When you buy ${discountConfig.minTickets} or more tickets`
-                    : `On additional tickets when you buy ${discountConfig.minTickets} or more`;
-                break;
-
-            case 'promo_code':
-                message.textContent = `Promo Code Applied: ${discountConfig.percentage}% OFF`;
-                subtitle.textContent = `Using code: ${discountConfig.code}`;
-                break;
+        function initializeCountdown() {
+            const eventDate = new Date('{{ event.date }}');
+            const now = new Date();
+            const timeLeft = eventDate - now;
+            
+            if (timeLeft <= 7 * 24 * 60 * 60 * 1000) { // 7 days in milliseconds
+                const countdownElement = document.createElement('div');
+                countdownElement.className = 'countdown-timer';
+                // Add countdown implementation
+                document.querySelector('.event-info').appendChild(countdownElement);
+            }
         }
-    }
+
+        // Update the promo code verification handler
+        document.getElementById('check_promo').addEventListener('click', async function() {
+            const promoCode = document.getElementById('promo_code').value.trim();
+            const eventId = '{{ event.id }}';
+            const messageElement = document.getElementById('promo_message');
+            const validatedPromoInput = document.getElementById('validated_promo_code');
+            
+            if (!promoCode) {
+                messageElement.textContent = 'Please enter a promo code';
+                messageElement.className = 'promo-message error';
+                validatedPromoInput.value = '';  // Clear validated code
+                return;
+            }
+
+            try {
+                const response = await fetch('/verify_promo_code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        event_id: eventId,
+                        promo_code: promoCode
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.valid) {
+                    messageElement.textContent = `Success! ${data.discount}% discount will be applied`;
+                    messageElement.className = 'promo-message success';
+                    validatedPromoInput.value = promoCode;  // Store validated code
+                    
+                    // Update the discount configuration
+                    discountConfig = {
+                        type: 'promo_code',
+                        percentage: data.discount,
+                        code: promoCode
+                    };
+                    
+                    // Update displays
+                    updatePriceDisplays(getTotalQuantity());
+                    updateTotalPrice();
+                } else {
+                    messageElement.textContent = data.message || 'Invalid promo code';
+                    messageElement.className = 'promo-message error';
+                    validatedPromoInput.value = '';  // Clear validated code
+                    
+                    if (discountConfig && discountConfig.type === 'promo_code') {
+                        discountConfig = null;
+                        updatePriceDisplays(getTotalQuantity());
+                        updateTotalPrice();
+                    }
+                }
+            } catch (error) {
+                messageElement.textContent = 'Error checking promo code';
+                messageElement.className = 'promo-message error';
+                validatedPromoInput.value = '';  // Clear validated code
+                console.error('Promo code verification error:', error);
+            }
+        });
+
+        function getTotalQuantity() {
+            return Array.from(document.querySelectorAll('.ticket-input'))
+                .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
+        }
+
+        // Add this after your existing event listeners
+        document.querySelectorAll('.ticket-input').forEach(function(input) {
+            input.addEventListener('change', function() {
+                updateTotalPrice();
+            });
+            input.addEventListener('input', function() {
+                updateTotalPrice();
+            });
+        });
+
+        function initializeDiscountBanner() {
+            const banner = document.getElementById('discount-banner');
+            const message = document.getElementById('discount-message');
+            const subtitle = document.querySelector('.discount-subtitle');
+
+            if (!discountConfig || !discountConfig.type) return;
+
+            banner.style.display = 'block';
+            banner.className = `discount-banner discount-banner-${discountConfig.type}`;
+
+            switch(discountConfig.type) {
+                case 'early_bird':
+                    message.textContent = `Early Bird Offer: ${discountConfig.percentage}% OFF!`;
+                    const validUntil = new Date(discountConfig.valid_until);
+                    subtitle.textContent = `Offer ends ${validUntil.toLocaleDateString()}`;
+                    break;
+
+                case 'bulk':
+                    message.textContent = `Bulk Discount: ${discountConfig.percentage}% OFF`;
+                    subtitle.textContent = discountConfig.apply_to === 'all' 
+                        ? `When you buy ${discountConfig.minTickets} or more tickets`
+                        : `On additional tickets when you buy ${discountConfig.minTickets} or more`;
+                    break;
+
+                case 'promo_code':
+                    message.textContent = `Promo Code Applied: ${discountConfig.percentage}% OFF`;
+                    subtitle.textContent = `Using code: ${discountConfig.code}`;
+                    break;
+            }
+        }
 </script>
 
 <style>
