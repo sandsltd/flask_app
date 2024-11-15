@@ -136,6 +136,7 @@ class User(db.Model, UserMixin):
     promo_rate_date_end = db.Column(db.Date, nullable=True)
 
     events = db.relationship('Event', backref='user', lazy=True)
+    is_admin = db.Column(db.Boolean, default=False)
 
     # Token generation for password reset
     def get_reset_token(self, expires_sec=3600):
@@ -3406,7 +3407,22 @@ def verify_promo_code():
         }), 500
 
 
-
+@app.route('/reset_sequences', methods=['POST'])
+@login_required
+def reset_sequences():
+    try:
+        # Only allow admin users to access this route
+        if not current_user.is_admin:  # You'll need to add an is_admin field to your User model
+            return "Unauthorized", 403
+            
+        with db.engine.connect() as connection:
+            connection.execute(
+                "SELECT setval('event_id_seq', (SELECT MAX(id) FROM event))"
+            )
+        return "Sequences reset successfully"
+    except Exception as e:
+        return f"Error resetting sequences: {str(e)}", 500
+    
 if __name__ == "__main__":
     app.run(debug=True)
 
