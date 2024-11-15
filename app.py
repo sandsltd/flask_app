@@ -1750,27 +1750,42 @@ def purchase(event_id, promo_code=None):
                               f"£{item['price_data']['unit_amount']/100:.2f} × {item['quantity']}")
                     print(f"Total charge: £{total_charge_pence/100:.2f}\n")
 
+                    # Debugging outputs
+                    print("\nLine Items:", json.dumps(line_items, indent=2))  # Inspect line_items
+                    print("\nMetadata:", json.dumps({
+                        'session_id': session_id,
+                        'promo_code': str(submitted_promo_code) if submitted_promo_code else None,
+                        'discount_amount': str(discount_amount) if discount_amount > 0 else None
+                    }, indent=2))  # Inspect metadata
+
+                    print("\nPayment Intent Data:", json.dumps({
+                        'application_fee_amount': adjusted_platform_fee,
+                        'transfer_data': {
+                            'destination': organizer.stripe_connect_id,
+                        },
+                    }, indent=2))  # Inspect payment_intent_data
+
+
                     # Create Stripe checkout session
                     checkout_session = stripe.checkout.Session.create(
                         payment_method_types=['card'],
-                        line_items=line_items,
+                        line_items=line_items,  # Ensure this is a list of dictionaries
                         mode='payment',
                         success_url=url_for('success', session_id=session_id, _external=True),
                         cancel_url=url_for('cancel', _external=True),
                         metadata={
                             'session_id': session_id,
-                            'promo_code': submitted_promo_code if submitted_promo_code else None,  # Changed from active_promo
-                            'discount_amount': str(discount_amount) if discount_amount > 0 else None
+                            'promo_code': str(submitted_promo_code) if submitted_promo_code else None,  # Ensure string
+                            'discount_amount': str(discount_amount) if discount_amount > 0 else None  # Ensure string
                         },
                         payment_intent_data={
                             'application_fee_amount': adjusted_platform_fee,
-                            'on_behalf_of': organizer.stripe_connect_id,
                             'transfer_data': {
-                                'destination': organizer.stripe_connect_id,
+                                'destination': organizer.stripe_connect_id,  # Ensure valid ID
                             },
                         },
                         billing_address_collection='required',
-                        customer_email=email
+                        customer_email=email  # Ensure email is valid
                     )
 
                     return redirect(checkout_session.url)
