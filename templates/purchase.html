@@ -138,51 +138,60 @@
 
         <!-- Question Fields -->
         <div id="question_forms">
-            {% if default_questions %}
-            {% for question in default_questions %}
-                {% if question.question_text.lower() != "none" %}
-                    <div class="form-group question-group">
-                        <label for="default_{{ question.id }}">
-                            {{ question.question_text }}
-                            {% if question.required %}<span class="required">*</span>{% endif %}
-                        </label>
-                        <input type="text" 
-                               name="default_answer_{{ question.id }}" 
-                               id="default_{{ question.id }}"
-                               {% if question.required %}required{% endif %}>
-                    </div>
+            {% if default_questions or custom_questions %}
+                <h2>Additional Information</h2>
+                
+                <!-- Default Questions -->
+                {% if default_questions %}
+                    {% for question in default_questions %}
+                        <div class="form-group question-group">
+                            <label for="default_{{ question.id }}">
+                                {{ question.question_text }}
+                                {% if question.required %}<span class="required">*</span>{% endif %}
+                            </label>
+                            <input type="text" 
+                                name="default_answer_{{ question.id }}" 
+                                id="default_{{ question.id }}"
+                                {% if question.required %}required{% endif %}>
+                        </div>
+                    {% endfor %}
                 {% endif %}
-            {% endfor %}
-        {% endif %}
-        
-        <!-- Custom Questions -->
-        {% if custom_questions %}
-            {% for question in custom_questions %}
-                {% if question.question_text.lower() != "none" %}
-                    <div class="form-group question-group">
-                        <label for="custom_{{ question.id }}">
-                            {{ question.question_text }}
-                            {% if question.required %}<span class="required">*</span>{% endif %}
-                        </label>
-                        <input type="text" 
-                               name="custom_answer_{{ question.id }}" 
-                               id="custom_{{ question.id }}"
-                               {% if question.required %}required{% endif %}>
-                    </div>
-                    {% endif %}
-                {% endfor %}
+
+                <!-- Custom Questions -->
+                {% if custom_questions %}
+                    {% for question in custom_questions %}
+                        <div class="form-group question-group">
+                            <label for="custom_{{ question.id }}">
+                                {{ question.question_text }}
+                                {% if question.required %}<span class="required">*</span>{% endif %}
+                            </label>
+                            <input type="text" 
+                                name="custom_answer_{{ question.id }}" 
+                                id="custom_{{ question.id }}"
+                                {% if question.required %}required{% endif %}>
+                        </div>
+                    {% endfor %}
+                {% endif %}
             {% endif %}
         </div>
 
 
-    <!-- Terms and Conditions Checkboxes -->
-    <h2>Terms and Conditions</h2>
-    <div class="form-group checkbox-group">
-        <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
-        <label for="accept_platform_terms">
-            I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>
-        </label>
-    </div>
+        <!-- Terms and Conditions Checkboxes -->
+        <h2>Terms and Conditions</h2>
+        {% if organizer_terms_link %}
+        <div class="form-group checkbox-group">
+            <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
+            <label for="accept_organizer_terms">
+                I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organiser's Terms and Conditions</a>.
+            </label>
+        </div>
+        {% endif %}
+        <div class="form-group checkbox-group">
+            <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
+            <label for="accept_platform_terms">
+                I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>.
+            </label>
+        </div>
 
         <!-- Update the promo code section -->
         <div class="promo-code-section">
@@ -448,43 +457,19 @@ function updateQuestionForms() {
     }
 
     // Add form submission handler
-       // Add form submission handler
-       document.querySelector('form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        console.log('Form submission started');
-        
-        try {
-            const formData = new FormData(this);
-            console.log('Form data created:', Object.fromEntries(formData));
+    document.querySelector('form').addEventListener('submit', function(e) {
+        var totalQuantity = Array.from(document.querySelectorAll('.ticket-input'))
+            .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
+
+        if (discountConfig.apply_to === 'bulk' && 
+            totalQuantity > 0 && 
+            totalQuantity < discountConfig.minTickets) {
             
-            const response = await fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Accept': 'application/json'  // Only adding this line
-                }
-            });
+            e.preventDefault();
             
-            console.log('Response received:', response);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            if (confirm(`You're just ${discountConfig.minTickets - totalQuantity} ticket(s) away from saving ${discountConfig.percentage}% on ${discountConfig.apply_to === 'all' ? 'all' : 'additional'} tickets! Would you like to add more tickets?`)) {
+                return false;
             }
-            
-            const data = await response.json();
-            console.log('Parsed response data:', data);
-            
-            if (data.checkout_url) {
-                console.log('Redirecting to:', data.checkout_url);
-                window.location.href = data.checkout_url;
-            } else {
-                console.error('Missing checkout URL in response');
-                alert('An error occurred during checkout. Please try again.');
-            }
-        } catch (error) {
-            console.error('Error during form submission:', error);
-            alert('An error occurred during checkout. Please try again.');
         }
     });
 
@@ -620,20 +605,6 @@ function updateQuestionForms() {
                 subtitle.textContent = `Using code: ${discountConfig.code}`;
                 break;
         }
-        document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('purchase-form');
-    const organizerTermsCheckbox = document.getElementById('accept_organizer_terms');
-    const platformTermsCheckbox = document.getElementById('accept_platform_terms');
-    
-    form.addEventListener('submit', function(event) {
-        if ((organizerTermsCheckbox && !organizerTermsCheckbox.checked) || 
-            (platformTermsCheckbox && !platformTermsCheckbox.checked)) {
-            event.preventDefault(); // Prevent form submission
-            alert('Please accept the terms and conditions to proceed.');
-        }
-    });
-});
-
     }
 </script>
 
@@ -1678,39 +1649,6 @@ input, select, textarea, button {
     .ticket-price-display {
         text-align: center;
     }
-}
-
-/* Checkbox styling */
-.checkbox-group {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 1rem;
-}
-
-.checkbox-group input[type="checkbox"] {
-    margin-top: 3px;
-    width: 18px;
-    height: 18px;
-    border: 2px solid #ccc;
-    border-radius: 4px;
-    cursor: pointer;
-    appearance: auto;
-}
-
-.checkbox-group label {
-    font-size: 0.95rem;
-    line-height: 1.4;
-    cursor: pointer;
-}
-
-.checkbox-group a {
-    color: #ff0000;
-    text-decoration: none;
-}
-
-.checkbox-group a:hover {
-    text-decoration: underline;
 }
 </style>
 
