@@ -135,7 +135,7 @@ class User(db.Model, UserMixin):
     promo_rate = db.Column(db.Float, nullable=True)  # Promotional rate
     promo_rate_date_end = db.Column(db.Date, nullable=True)
     is_admin = db.Column(db.Boolean, default=False)
-    
+
     events = db.relationship('Event', backref='user', lazy=True)
     
 
@@ -3408,7 +3408,7 @@ def verify_promo_code():
         }), 500
 
 
-@app.route('/reset_sequences', methods=['POST'])
+@app.route('/reset_sequences', methods=['GET', 'POST'])
 @login_required
 def reset_sequences():
     try:
