@@ -1477,13 +1477,19 @@ def purchase(event_id, promo_code=None):
                     quantity = quantities[ticket_type.id]
                     for i in range(quantity):
                         answers = {}
-                        for q_index, question in enumerate(questions):
-                            answer_key = f'ticket_{ticket_type.id}_{i}_question_{q_index}'
+                        for question in questions:
+                            # Use the question ID as the key instead of the whole question dict
+                            answer_key = f'ticket_{ticket_type.id}_{i}_question_{question["id"]}'
                             answer = request.form.get(answer_key)
-                            if not answer:
-                                flash(f'Please answer all questions for {ticket_type.name} Ticket {i + 1}.')
+                            if not answer and question.get('required', True):
+                                flash(f'Please answer all required questions for {ticket_type.name} Ticket {i + 1}.')
                                 return redirect(url_for('purchase', event_id=event_id))
-                            answers[question] = answer
+                            # Store answer with question ID as key
+                            answers[question['id']] = {
+                                'question': question['question_text'],
+                                'answer': answer
+                            }
+                        # Use a tuple of ticket_type_id and index as key
                         attendee_answers[(ticket_type.id, i)] = answers
 
                 # Create Attendee entries and calculate amounts
@@ -1497,7 +1503,7 @@ def purchase(event_id, promo_code=None):
                             attendee = Attendee(
                                 event_id=event.id,
                                 ticket_type_id=ticket_type.id,
-                                ticket_answers=json.dumps(answers),
+                                ticket_answers=json.dumps(answers),  # Convert dictionary to JSON string
                                 payment_status='pending',
                                 full_name=full_name,
                                 email=email,
@@ -1661,13 +1667,15 @@ def purchase(event_id, promo_code=None):
                         'total_amount': total_amount_pence
                     }
 
+                    # Prepare attendee data for Stripe metadata
                     attendee_data = {
                         'full_name': full_name,
                         'email': email,
                         'phone_number': phone_number,
-                        'answers': {
-                            str(k): v for k, v in attendee_answers.items()
-                        }
+                        'answers': json.dumps({
+                            f"{ticket_type_id}_{index}": answers
+                            for (ticket_type_id, index), answers in attendee_answers.items()
+                        })
                     }
 
                     # Initialize line_items with individual tickets and separate booking fee line item
@@ -2216,8 +2224,6 @@ def handle_checkout_session(session):
     except Exception as e:
         print(f"Error sending confirmation emails: {str(e)}")
         # Don't raise the exception - we still want to acknowledge the webhook
-
-
 
 
 
