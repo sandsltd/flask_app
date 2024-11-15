@@ -1344,7 +1344,8 @@ def purchase(event_id, promo_code=None):
     try:
         event = Event.query.get_or_404(event_id)
         organizer = User.query.get(event.user_id)
-        
+        print("Purchase route accessed")
+        print("Form data:", request.form)
         # Assign the business logo URL to logo_url
         organizer.logo_url = organizer.business_logo_url
         # Initialize variables
@@ -1720,7 +1721,7 @@ def purchase(event_id, promo_code=None):
                     print("\nFinal line items breakdown:")
                     for item in line_items:
                         print(f"- {item['price_data']['product_data']['name']}: "
-                              f"£{item['price_data']['unit_amount']/100:.2f} × {item['quantity']}")
+                              f"£{item['price_data']['unit_amount']/100 * item['quantity']}")
                     print(f"Total charge: £{total_charge_pence/100:.2f}\n")
 
                     # Create Stripe checkout session
@@ -1732,7 +1733,7 @@ def purchase(event_id, promo_code=None):
                         cancel_url=url_for('cancel', _external=True),
                         metadata={
                             'session_id': session_id,
-                            'promo_code': submitted_promo_code if submitted_promo_code else None,  # Changed from active_promo
+                            'promo_code': submitted_promo_code if submitted_promo_code else None,
                             'discount_amount': str(discount_amount) if discount_amount > 0 else None
                         },
                         payment_intent_data={
@@ -1746,12 +1747,18 @@ def purchase(event_id, promo_code=None):
                         customer_email=email
                     )
 
-                    return redirect(checkout_session.url)
+                    # Instead of redirect, return JSON with the checkout URL
+                    return jsonify({
+                        'status': 'success',
+                        'checkout_url': checkout_session.url
+                    })
 
             except Exception as e:
                 app.logger.error(f"Error creating checkout session: {str(e)}")
-                flash('An error occurred while processing your payment. Please try again.', 'error')
-                return redirect(url_for('purchase', event_id=event_id))
+                return jsonify({
+                    'status': 'error',
+                    'message': str(e)
+                }), 500
 
         else:
             # Get active discount rules
