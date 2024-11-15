@@ -42,6 +42,8 @@ from werkzeug.utils import secure_filename
 import boto3
 from botocore.exceptions import NoCredentialsError
 from werkzeug.utils import send_from_directory
+from sqlalchemy.sql import text
+
 
 load_dotenv()
 
@@ -3408,21 +3410,23 @@ def verify_promo_code():
         }), 500
 
 
-@app.route('/reset_sequences', methods=['GET', 'POST'])
+@app.route('/reset_sequences', methods=['POST'])
 @login_required
 def reset_sequences():
     try:
-        # Only allow admin users to access this route
-        if not current_user.is_admin:  # You'll need to add an is_admin field to your User model
+        # Ensure only admin users can access this route
+        if not current_user.is_admin:
             return "Unauthorized", 403
-            
+
         with db.engine.connect() as connection:
-            connection.execute(
-                "SELECT setval('event_id_seq', (SELECT MAX(id) FROM event))"
+            result = connection.execute(
+                text("SELECT setval('event_id_seq', COALESCE((SELECT MAX(id) FROM event), 1))")
             )
         return "Sequences reset successfully"
     except Exception as e:
+        app.logger.error(f"Error resetting sequences: {str(e)}")
         return f"Error resetting sequences: {str(e)}", 500
+
     
 if __name__ == "__main__":
     app.run(debug=True)
