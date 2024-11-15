@@ -177,18 +177,10 @@
 
     <!-- Terms and Conditions Checkboxes -->
     <h2>Terms and Conditions</h2>
-    {% if organizer_terms_link %}
-        <div class="form-group checkbox-group">
-            <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
-            <label for="accept_organizer_terms">
-                I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organiser's Terms and Conditions</a>.
-            </label>
-        </div>
-    {% endif %}
     <div class="form-group checkbox-group">
         <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
         <label for="accept_platform_terms">
-            I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>.
+            I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>
         </label>
     </div>
 
@@ -1662,6 +1654,39 @@ input, select, textarea, button {
     .ticket-price-display {
         text-align: center;
     }
+}
+
+/* Checkbox styling */
+.checkbox-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 1rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-top: 3px;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    appearance: auto;
+}
+
+.checkbox-group label {
+    font-size: 0.95rem;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.checkbox-group a {
+    color: #ff0000;
+    text-decoration: none;
+}
+
+.checkbox-group a:hover {
+    text-decoration: underline;
 }
 </style>
 
