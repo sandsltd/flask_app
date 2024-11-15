@@ -1636,7 +1636,7 @@ def purchase(event_id, promo_code=None):
                         total_tickets += quantity  # Add this line
                 print(f"Base amount before discounts: £{base_amount/100:.2f}")
 
-                # Apply discount
+                        # Apply discount
                 discount_amount = 0
                 if active_promo:
                     print(f"\nApplying promo code discount:")
@@ -1655,26 +1655,31 @@ def purchase(event_id, promo_code=None):
                             print(f"- Discount percentage: {rule.discount_percent}%")
                             
                             if rule.discount_type == 'early_bird':
-                                # Existing early bird logic
                                 if rule.valid_until and datetime.now() < rule.valid_until:
                                     if not rule.max_early_bird_tickets or total_tickets <= rule.max_early_bird_tickets:
                                         current_discount = base_amount * (rule.discount_percent / 100)
                             
-                            elif rule.discount_type == 'bulk' and total_tickets >= rule.min_tickets:
-                                # Existing bulk discount logic
+                            elif rule.discount_type == 'bulk' and rule.min_tickets and total_tickets >= rule.min_tickets:
+                                print(f"- Bulk discount applies ({total_tickets} tickets >= {rule.min_tickets} min tickets)")
                                 if rule.apply_to == 'all':
                                     current_discount = base_amount * (rule.discount_percent / 100)
-                                else:  # 'additional'
-                                    per_ticket_amount = base_amount / total_tickets
-                                    additional_tickets = total_tickets - 1
-                                    current_discount = (per_ticket_amount * additional_tickets) * (rule.discount_percent / 100)
+                                    print(f"- Applying {rule.discount_percent}% to all tickets")
+                                elif rule.apply_to == 'additional':
+                                    # Calculate discount only on additional tickets
+                                    if total_tickets > 0:  # Prevent division by zero
+                                        per_ticket_amount = base_amount / total_tickets
+                                        additional_tickets = total_tickets - 1
+                                        current_discount = (per_ticket_amount * additional_tickets) * (rule.discount_percent / 100)
+                                        print(f"- Applying {rule.discount_percent}% to {additional_tickets} additional tickets")
                             
+                            print(f"- Calculated discount: £{current_discount/100:.2f}")
                             # Keep the highest discount
                             if current_discount > discount_amount:
                                 discount_amount = current_discount
+                                print(f"- New highest discount: £{discount_amount/100:.2f}")
 
                 # Apply the discount
-                total_amount_pence = int(base_amount - discount_amount)
+                total_amount_pence = int(base_amount - discount_amount) if base_amount is not None else 0
                 print(f"\nAmount after discounts: £{total_amount_pence/100:.2f}")
 
                 # Calculate fees
@@ -1837,13 +1842,15 @@ def purchase(event_id, promo_code=None):
                         }
                         break
                 elif rule.discount_type == 'bulk':
-                    active_discount = {
-                        'type': 'bulk',
-                        'percentage': rule.discount_percent,
-                        'minTickets': rule.min_tickets,
-                        'apply_to': rule.apply_to
-                    }
-                    break
+                    if rule.min_tickets:  # Only set up bulk discount if min_tickets is set
+                        active_discount = {
+                            'type': 'bulk',
+                            'percentage': rule.discount_percent,
+                            'minTickets': rule.min_tickets,
+                            'apply_to': rule.apply_to or 'all'  # Default to 'all' if apply_to is None
+                        }
+                        print(f"Found bulk discount rule: {active_discount}")
+                        break
                 elif rule.discount_type == 'promo_code':
                     active_discount = {
                         'type': 'promo_code',
