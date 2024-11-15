@@ -907,14 +907,41 @@ def embed_events(unique_id):
         # Find the user
         user = User.query.filter_by(unique_id=unique_id).first()
         if not user:
-            print(f"User not found for unique_id: {unique_id}")
-            return "document.write(`<div id='ticketrush-embed'><p>User not found</p></div>`);"
+            # Enhanced error message for user not found
+            return """
+            document.write(`
+                <div id='ticketrush-embed' style='text-align: center; padding: 40px; font-family: "Inter", sans-serif;'>
+                    <div style='max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 30px;'>
+                        <img src='https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Logo.png' alt='TicketRush Logo' style='max-width: 200px; margin-bottom: 20px;'>
+                        <h2 style='color: #ff0000; margin-bottom: 15px;'>Organizer Not Found</h2>
+                        <p style='color: #666; margin-bottom: 20px;'>The requested event organizer could not be found. Please check the embed code and try again.</p>
+                        <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;'>
+                            <p style='color: #999; font-size: 0.9em;'>Powered by <a href='https://ticketrush.io' target='_blank' style='color: #ff0000; text-decoration: none;'>TicketRush</a></p>
+                        </div>
+                    </div>
+                </div>
+            `);"""
 
-        # Get user events
+        # Get user events and filter for future events
         user_events = Event.query.filter_by(user_id=user.id).all()
         if not user_events:
-            print(f"No events found for user: {user.id}")
-            return "document.write(`<div id='ticketrush-embed'><p>No upcoming events available.</p></div>`);"
+            # Enhanced template for no events
+            return """
+            document.write(`
+                <div id='ticketrush-embed' style='text-align: center; padding: 40px; font-family: "Inter", sans-serif;'>
+                    <div style='max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 30px;'>
+                        <img src='https://ticketrush.io/wp-content/uploads/2024/10/TicketRush-Logo.png' alt='TicketRush Logo' style='max-width: 200px; margin-bottom: 20px;'>
+                        <div style='color: #ff0000; font-size: 48px; margin: 20px 0;'>
+                            <i class='fas fa-calendar-times'></i>
+                        </div>
+                        <h2 style='color: #ff0000; margin-bottom: 15px;'>No Upcoming Events</h2>
+                        <p style='color: #666; margin-bottom: 20px;'>Check back soon for exciting new events!</p>
+                        <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;'>
+                            <p style='color: #999; font-size: 0.9em;'>Powered by <a href='https://ticketrush.io' target='_blank' style='color: #ff0000; text-decoration: none;'>TicketRush</a></p>
+                        </div>
+                    </div>
+                </div>
+            `);"""
 
         # Filter future events with proper error handling
         future_events = []
