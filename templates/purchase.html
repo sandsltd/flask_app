@@ -90,15 +90,13 @@
                             {% if ticket_type.description %}
                                 <p class="ticket-description">{{ ticket_type.description }}</p>
                             {% endif %}
-                            {% if enforce_individual_ticket_limits and ticket_type.quantity %}
-                                {% set tickets_left = ticket_type.quantity - (ticket_type.sold_count or 0) %}
-                                <span class="tickets-remaining {% if tickets_left < 10 %}low-stock{% endif %}">
-                                    {% if tickets_left < 10 %}
-                                        Only {{ tickets_left }} tickets left!
-                                    {% else %}
-                                        {{ tickets_left }} tickets available
-                                    {% endif %}
-                                </span>
+                            {% if enforce_individual_ticket_limits %}
+                                {% set available = (ticket_type.quantity or 0) - (ticket_type.sold_count or 0) %}
+                                {% if available > 0 %}
+                                    <span class="tickets-remaining">
+                                        Only {{ available }} tickets left!
+                                    </span>
+                                {% endif %}
                             {% endif %}
                         </div>
                         <div class="ticket-price-display" id="price-display-{{ ticket_type.id }}">
@@ -116,19 +114,23 @@
                                 name="quantity_{{ ticket_type.id }}"
                                 min="0"
                                 {% if enforce_individual_ticket_limits %}
-                                    max="{{ ticket_type.quantity - (ticket_type.sold_count or 0) }}"
+                                    {% set available = (ticket_type.quantity or 0) - (ticket_type.sold_count or 0) %}
+                                    max="{{ available if available > 0 else 0 }}"
+                                    {% if available <= 0 %}disabled{% endif %}
                                 {% endif %}
                                 value="0"
                                 data-ticket-type-id="{{ ticket_type.id }}"
                                 data-ticket-price="{{ "{:.2f}".format(ticket_type.price) }}"
                                 data-ticket-type-name="{{ ticket_type.name }}"
                                 class="ticket-input"
-                                {% if ticket_type.quantity - (ticket_type.sold_count or 0) <= 0 %}disabled{% endif %}
                             >
                             <button type="button" class="quantity-btn plus" data-input="quantity_{{ ticket_type.id }}">+</button>
                         </div>
-                        {% if ticket_type.quantity - (ticket_type.sold_count or 0) <= 0 %}
-                            <span class="sold-out-badge">Sold Out</span>
+                        {% if enforce_individual_ticket_limits %}
+                            {% set available = (ticket_type.quantity or 0) - (ticket_type.sold_count or 0) %}
+                            {% if available <= 0 %}
+                                <span class="sold-out-badge">Sold Out</span>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
