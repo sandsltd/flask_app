@@ -564,11 +564,11 @@
                         </td>
                         <td data-label="Ticket Questions & Answers">
                             <ul class="ticket-answers">
-                                {% for question, answer in attendee.ticket_answers_dict.items() %}
-                                    <li><strong>{{ question }}:</strong> {{ answer }}</li>
+                                {% for question_id, answer in attendee.ticket_answers_dict.items() %}
+                                    <li><strong>{{ question_map.get(question_id, question_id) }}:</strong> {{ answer }}</li>
                                 {% endfor %}
                             </ul>
-                        </td>
+                        </td>                        
                         <td data-label="Actions" class="action-cell">
                             <a href="{{ url_for('edit_attendee', attendee_id=attendee.id) }}" class="button small">Edit</a>
                             <form action="{{ url_for('delete_attendee', attendee_id=attendee.id) }}" method="POST" style="display:inline;">
