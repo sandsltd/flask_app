@@ -2238,15 +2238,19 @@ def view_attendees(event_id):
     # Fetch default and custom questions
     user = User.query.get(event.user_id)
     default_questions = DefaultQuestion.query.filter_by(user_id=user.id).all()
-    default_question_texts = [dq.question for dq in default_questions]
+    default_question_map = {f'default_{dq.id}': dq.question for dq in default_questions}
 
     custom_questions = []
+    custom_question_map = {}
     for i in range(1, 11):  # Loop through 10 possible custom questions
         question = getattr(event, f'custom_question_{i}')
         if question:
+            key = f'custom_{i}'
             custom_questions.append(question)
+            custom_question_map[key] = question
 
-    all_questions = default_question_texts + custom_questions
+    # Combine both maps
+    all_question_map = {**default_question_map, **custom_question_map}
 
     # Fetch only attendees with successful payments
     attendees = Attendee.query.filter_by(
@@ -2309,13 +2313,14 @@ def view_attendees(event_id):
         'view_attendees.html',
         event=event,
         attendees=attendees,
-        questions=all_questions,
         tickets_sold=tickets_sold_total,
         tickets_available=tickets_available,
         total_quantity=total_quantity,
         event_date=event_date,
-        ticket_type_data=ticket_type_data  # Pass ticket type data to template
+        ticket_type_data=ticket_type_data,  # Pass ticket type data to template
+        question_map=all_question_map  # Pass the question mapping
     )
+
 
 
 
