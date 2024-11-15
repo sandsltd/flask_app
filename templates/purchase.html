@@ -610,6 +610,58 @@ function updateQuestionForms() {
 
 <style>
 
+    /* Ensure labels align with checkboxes */
+.checkbox-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px; /* Add spacing between checkbox and label */
+    margin-bottom: 1rem; /* Add space below each group */
+    font-size: 1rem; /* Ensure text size is readable */
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    appearance: none; /* Remove default styles */
+    background: #fff;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.checkbox-group input[type="checkbox"]:checked {
+    background: #ff0000; /* Your desired brand color */
+    border-color: #ff0000;
+    background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="white"><path d="M13.85 4.15a.5.5 0 0 1 0 .7l-7 7a.5.5 0 0 1-.7 0l-3-3a.5.5 0 1 1 .7-.7L6.5 10.79l6.65-6.64a.5.5 0 0 1 .7 0z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 60%;
+}
+
+    .checkbox-group input[type="checkbox"]:focus {
+        border-color: #ff0000;
+        box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.2); /* Accessibility focus */
+    }
+
+    .checkbox-group label {
+        color: #333;
+        line-height: 1.4;
+        cursor: pointer; /* Make the label clickable */
+        margin-top: 2px; /* Adjust for better alignment */
+    }
+
+    .checkbox-group a {
+        color: #ff0000; /* Brand color for links */
+        text-decoration: underline;
+    }
+
+    .checkbox-group a:hover {
+        text-decoration: none;
+        color: #cc0000;
+    }
+
     .total-details .price-breakdown {
         display: flex;
         flex-direction: column;
