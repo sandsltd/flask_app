@@ -134,9 +134,10 @@ class User(db.Model, UserMixin):
     # Optional promotional fields
     promo_rate = db.Column(db.Float, nullable=True)  # Promotional rate
     promo_rate_date_end = db.Column(db.Date, nullable=True)
-
-    events = db.relationship('Event', backref='user', lazy=True)
     is_admin = db.Column(db.Boolean, default=False)
+    
+    events = db.relationship('Event', backref='user', lazy=True)
+    
 
     # Token generation for password reset
     def get_reset_token(self, expires_sec=3600):
