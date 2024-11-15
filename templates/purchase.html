@@ -448,19 +448,37 @@ function updateQuestionForms() {
     }
 
     // Add form submission handler
-    document.querySelector('form').addEventListener('submit', function(e) {
-        var totalQuantity = Array.from(document.querySelectorAll('.ticket-input'))
-            .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
-
-        if (discountConfig.apply_to === 'bulk' && 
-            totalQuantity > 0 && 
-            totalQuantity < discountConfig.minTickets) {
+    document.querySelector('form').addEventListener('submit', async function(e) {
+        e.preventDefault(); // Prevent default form submission
+        
+        console.log('Form submission started');
+        
+        try {
+            const formData = new FormData(this);
+            console.log('Form data created:', Object.fromEntries(formData));
             
-            e.preventDefault();
+            const response = await fetch(this.action, {
+                method: 'POST',
+                body: formData
+            });
             
-            if (confirm(`You're just ${discountConfig.minTickets - totalQuantity} ticket(s) away from saving ${discountConfig.percentage}% on ${discountConfig.apply_to === 'all' ? 'all' : 'additional'} tickets! Would you like to add more tickets?`)) {
-                return false;
+            console.log('Response received:', response);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (data.checkout_url) {
+                    console.log('Redirecting to:', data.checkout_url);
+                    window.location.href = data.checkout_url;
+                } else {
+                    console.error('No checkout URL in response');
+                }
+            } else {
+                console.error('Response not OK:', await response.text());
             }
+        } catch (error) {
+            console.error('Error during form submission:', error);
         }
     });
 
