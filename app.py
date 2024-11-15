@@ -769,8 +769,19 @@ def create_event():
                     description=description,
                     image_url=image_url,
                     enforce_individual_ticket_limits=enforce_limits,
-                    ticket_quantity=total_capacity
-                )
+                    ticket_quantity=total_capacity,
+                    custom_question_1=custom_questions[0] if len(custom_questions) > 0 else None,
+                    custom_question_2=custom_questions[1] if len(custom_questions) > 1 else None,
+                    custom_question_3=custom_questions[2] if len(custom_questions) > 2 else None,
+                    custom_question_4=custom_questions[3] if len(custom_questions) > 3 else None,
+                    custom_question_5=custom_questions[4] if len(custom_questions) > 4 else None,
+                    custom_question_6=custom_questions[5] if len(custom_questions) > 5 else None,
+                    custom_question_7=custom_questions[6] if len(custom_questions) > 6 else None,
+                    custom_question_8=custom_questions[7] if len(custom_questions) > 7 else None,
+                    custom_question_9=custom_questions[8] if len(custom_questions) > 8 else None,
+                    custom_question_10=custom_questions[9] if len(custom_questions) > 9 else None
+                    )
+                
 
                 # Add custom questions to event
                 # ... (custom questions code) ...
