@@ -175,22 +175,22 @@
         </div>
 
 
-        <!-- Terms and Conditions Checkboxes -->
-        <h2>Terms and Conditions</h2>
-        {% if organizer_terms_link %}
-            <div class="form-group checkbox-group">
-                <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
-                <label for="accept_organizer_terms">
-                    I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organiser's Terms and Conditions</a>.
-                </label>
-            </div>
-        {% endif %}
+    <!-- Terms and Conditions Checkboxes -->
+    <h2>Terms and Conditions</h2>
+    {% if organizer_terms_link %}
         <div class="form-group checkbox-group">
-            <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
-            <label for="accept_platform_terms">
-                I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>.
+            <input type="checkbox" id="accept_organizer_terms" name="accept_organizer_terms" required>
+            <label for="accept_organizer_terms">
+                I accept the <a href="{{ organizer_terms_link }}" target="_blank">event organiser's Terms and Conditions</a>.
             </label>
         </div>
+    {% endif %}
+    <div class="form-group checkbox-group">
+        <input type="checkbox" id="accept_platform_terms" name="accept_platform_terms" required>
+        <label for="accept_platform_terms">
+            I accept the <a href="{{ platform_terms_link }}" target="_blank">platform's Terms and Conditions</a>.
+        </label>
+    </div>
 
         <!-- Update the promo code section -->
         <div class="promo-code-section">
@@ -604,6 +604,20 @@ function updateQuestionForms() {
                 subtitle.textContent = `Using code: ${discountConfig.code}`;
                 break;
         }
+        document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('purchase-form');
+    const organizerTermsCheckbox = document.getElementById('accept_organizer_terms');
+    const platformTermsCheckbox = document.getElementById('accept_platform_terms');
+    
+    form.addEventListener('submit', function(event) {
+        if ((organizerTermsCheckbox && !organizerTermsCheckbox.checked) || 
+            (platformTermsCheckbox && !platformTermsCheckbox.checked)) {
+            event.preventDefault(); // Prevent form submission
+            alert('Please accept the terms and conditions to proceed.');
+        }
+    });
+});
+
     }
 </script>
 
