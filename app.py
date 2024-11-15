@@ -1406,6 +1406,43 @@ def purchase(event_id, promo_code=None):
         event = Event.query.get_or_404(event_id)
         organizer = User.query.get(event.user_id)
         
+        # Initialize variables with safe defaults
+        total_tickets_sold = db.session.query(
+            func.sum(Attendee.tickets_purchased)
+        ).filter_by(event_id=event.id, payment_status='succeeded').scalar() or 0
+
+        # Fetch ticket types
+        ticket_types = event.ticket_types
+        
+        # Calculate available tickets for each ticket type
+        for ticket_type in ticket_types:
+            # Get sold count for this ticket type
+            type_sold_count = Attendee.query.filter_by(
+                event_id=event_id,
+                ticket_type_id=ticket_type.id,
+                payment_status='succeeded'
+            ).count() or 0
+            
+            # Set sold count
+            ticket_type.sold_count = type_sold_count
+            
+            # Calculate available tickets
+            if ticket_type.quantity is not None:
+                # Individual ticket limit
+                ticket_type.available = max(0, ticket_type.quantity - type_sold_count)
+            elif not event.enforce_individual_ticket_limits and event.ticket_quantity is not None:
+                # Event-wide limit
+                ticket_type.available = max(0, event.ticket_quantity - total_tickets_sold)
+            else:
+                # No limit
+                ticket_type.available = None
+
+        # Calculate total available tickets for the event
+        if not event.enforce_individual_ticket_limits and event.ticket_quantity is not None:
+            tickets_available = max(0, event.ticket_quantity - total_tickets_sold)
+        else:
+            tickets_available = None
+        
         # Assign the business logo URL to logo_url
         organizer.logo_url = organizer.business_logo_url
         # Initialize variables
@@ -1414,7 +1451,6 @@ def purchase(event_id, promo_code=None):
         line_items = []
         booking_fee_pence = 0  # Initialize booking fee
         total_tickets_requested = 0
-        total_tickets_sold = 0  # Initialize to 0
 
         # Collect custom questions from event
         custom_questions = []
@@ -1441,22 +1477,6 @@ def purchase(event_id, promo_code=None):
         # Combine all questions
         all_questions = default_questions + custom_questions
 
-        # Fetch ticket types
-        ticket_types = event.ticket_types
-        
-        # Calculate available tickets for each ticket type
-        for ticket_type in ticket_types:
-            tickets_sold = Attendee.query.filter_by(
-                event_id=event_id,
-                ticket_type_id=ticket_type.id,
-                payment_status='succeeded'
-            ).count()
-            ticket_type.available_tickets = (
-                ticket_type.quantity - tickets_sold if ticket_type.quantity 
-                else event.ticket_quantity - total_tickets_sold if not event.enforce_individual_ticket_limits
-                else None
-            )
-        
         if request.method == 'POST':
             try:
                 session_id = str(uuid4())
@@ -1636,7 +1656,7 @@ def purchase(event_id, promo_code=None):
                         total_tickets += quantity  # Add this line
                 print(f"Base amount before discounts: £{base_amount/100:.2f}")
 
-                        # Apply discount
+                # Apply discount
                 discount_amount = 0
                 if active_promo:
                     print(f"\nApplying promo code discount:")
@@ -1659,18 +1679,16 @@ def purchase(event_id, promo_code=None):
                                     if not rule.max_early_bird_tickets or total_tickets <= rule.max_early_bird_tickets:
                                         current_discount = base_amount * (rule.discount_percent / 100)
                             
-                            elif rule.discount_type == 'bulk' and rule.min_tickets and total_tickets >= rule.min_tickets:
+                            elif rule.discount_type == 'bulk' and total_tickets >= rule.min_tickets:
                                 print(f"- Bulk discount applies ({total_tickets} tickets >= {rule.min_tickets} min tickets)")
                                 if rule.apply_to == 'all':
                                     current_discount = base_amount * (rule.discount_percent / 100)
                                     print(f"- Applying {rule.discount_percent}% to all tickets")
-                                elif rule.apply_to == 'additional':
-                                    # Calculate discount only on additional tickets
-                                    if total_tickets > 0:  # Prevent division by zero
-                                        per_ticket_amount = base_amount / total_tickets
-                                        additional_tickets = total_tickets - 1
-                                        current_discount = (per_ticket_amount * additional_tickets) * (rule.discount_percent / 100)
-                                        print(f"- Applying {rule.discount_percent}% to {additional_tickets} additional tickets")
+                                else:  # 'additional'
+                                    per_ticket_amount = base_amount / total_tickets
+                                    additional_tickets = total_tickets - 1
+                                    current_discount = (per_ticket_amount * additional_tickets) * (rule.discount_percent / 100)
+                                    print(f"- Applying {rule.discount_percent}% to {additional_tickets} additional tickets")
                             
                             print(f"- Calculated discount: £{current_discount/100:.2f}")
                             # Keep the highest discount
@@ -1679,7 +1697,7 @@ def purchase(event_id, promo_code=None):
                                 print(f"- New highest discount: £{discount_amount/100:.2f}")
 
                 # Apply the discount
-                total_amount_pence = int(base_amount - discount_amount) if base_amount is not None else 0
+                total_amount_pence = int(base_amount - discount_amount)
                 print(f"\nAmount after discounts: £{total_amount_pence/100:.2f}")
 
                 # Calculate fees
@@ -1926,6 +1944,10 @@ def purchase(event_id, promo_code=None):
 
     except Exception as e:
         app.logger.error(f"Error in purchase route: {str(e)}")
+        app.logger.error(f"Event ID: {event_id}")
+        # Add more detailed error logging
+        import traceback
+        app.logger.error(traceback.format_exc())
         flash('An error occurred. Please try again.', 'error')
         return redirect(url_for('dashboard'))
 
