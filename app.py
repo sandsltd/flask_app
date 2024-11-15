@@ -1474,6 +1474,7 @@ def purchase(event_id, promo_code=None):
                 attendee_answers = {}
 
                 # Collect answers for each ticket
+                # Collect answers for each ticket
                 for ticket_type in ticket_types:
                     quantity = quantities[ticket_type.id]
                     for i in range(quantity):
@@ -1484,8 +1485,9 @@ def purchase(event_id, promo_code=None):
                             if not answer:
                                 flash(f'Please answer all questions for {ticket_type.name} Ticket {i + 1}.')
                                 return redirect(url_for('purchase', event_id=event_id))
-                            answers[question] = answer
+                            answers[question['id']] = answer  # Use 'question['id']' as the key
                         attendee_answers[(ticket_type.id, i)] = answers
+
 
                 # Create Attendee entries and calculate amounts
                 for ticket_type in ticket_types:
