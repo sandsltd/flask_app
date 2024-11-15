@@ -1389,12 +1389,13 @@ def purchase(event_id, promo_code=None):
         custom_questions = []
         for i in range(1, 11):
             question_text = getattr(event, f'custom_question_{i}')
-            if question_text:
+            # Only add questions that have actual content
+            if question_text and question_text.lower() not in ['none', 'null', '']:
                 custom_questions.append({
                     'id': f'custom_{i}',
                     'question_text': question_text,
                     'question_type': 'text',
-                    'required': True  # Adjust based on your requirements
+                    'required': True
                 })
 
         # Collect default questions from organizer
@@ -1403,8 +1404,8 @@ def purchase(event_id, promo_code=None):
             'id': f'default_{dq.id}',
             'question_text': dq.question,
             'question_type': 'text',
-            'required': True  # Adjust based on your requirements
-        } for dq in default_questions_query]
+            'required': True
+        } for dq in default_questions_query if dq.question and dq.question.lower() not in ['none', 'null', '']]
 
         # Combine all questions
         all_questions = default_questions + custom_questions
@@ -1444,7 +1445,7 @@ def purchase(event_id, promo_code=None):
                 custom_questions = []
                 for i in range(1, 11):
                     question = getattr(event, f'custom_question_{i}')
-                    if question:  # Only add non-empty questions
+                    if question and question.lower() not in ['none', 'null', '']:  # Only add non-empty questions
                         custom_questions.append({
                             'id': i,
                             'question_text': question,
@@ -1459,7 +1460,7 @@ def purchase(event_id, promo_code=None):
                     'question_text': q.question,
                     'question_type': 'text',  # Default to text type
                     'required': True  # Default to required
-                } for q in default_questions]
+                } for q in default_questions if q.question and q.question.lower() not in ['none', 'null', '']]
 
                 # Collect quantities for each ticket type
                 quantities = {}
@@ -1546,7 +1547,7 @@ def purchase(event_id, promo_code=None):
                 custom_questions = []
                 for i in range(1, 11):
                     question = getattr(event, f'custom_question_{i}')
-                    if question:  # Only add non-empty questions
+                    if question and question.lower() not in ['none', 'null', '']:  # Only add non-empty questions
                         custom_questions.append({
                             'id': i,
                             'question_text': question,
@@ -1561,7 +1562,7 @@ def purchase(event_id, promo_code=None):
                     'question_text': q.question,
                     'question_type': 'text',  # Default to text type
                     'required': True  # Default to required
-                } for q in default_questions_query]
+                } for q in default_questions_query if q.question and q.question.lower() not in ['none', 'null', '']]
             
 
                 # Get promo code from form and initialize active_promo
@@ -1834,7 +1835,7 @@ def purchase(event_id, promo_code=None):
             custom_questions = []
             for i in range(1, 11):
                 question_text = getattr(event, f'custom_question_{i}')
-                if question_text:
+                if question_text and question_text.lower() not in ['none', 'null', '']:
                     custom_questions.append({
                         'id': f'custom_{i}',
                         'question_text': question_text,
@@ -1849,7 +1850,7 @@ def purchase(event_id, promo_code=None):
                 'question_text': dq.question,
                 'question_type': 'text',
                 'required': True  # Adjust as needed
-            } for dq in default_questions_query]
+            } for dq in default_questions_query if dq.question and dq.question.lower() not in ['none', 'null', '']]
 
             # Combine all questions
             all_questions = default_questions + custom_questions
