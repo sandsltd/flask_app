@@ -1479,7 +1479,7 @@ def purchase(event_id, promo_code=None):
                     for i in range(quantity):
                         answers = {}
                         for question in questions:
-                            answer_key = f'ticket_{ticket_type.id}_{i}_question_{question['id']}'
+                            answer_key = f"ticket_{ticket_type.id}_{i}_question_{question['id']}"
                             answer = request.form.get(answer_key)
                             if not answer:
                                 flash(f'Please answer all questions for {ticket_type.name} Ticket {i + 1}.')
