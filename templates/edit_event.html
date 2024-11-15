@@ -653,31 +653,15 @@
         const form = document.getElementById('edit-event-form');
         if (form) {
             form.addEventListener('submit', function(event) {
-                const requiresQuantity = enforceIndividualTicketLimits;
-                let ticketTypesPresent = false;
-
-                if (requiresQuantity) {
-                    const ticketNames = document.querySelectorAll('input[name^="name_"], input[name="new_ticket_name[]"]');
-                    ticketTypesPresent = ticketNames.length > 0;
-                } else {
-                    const existingTicketNamesNoLimit = document.querySelectorAll('input[name^="name_no_limit_"]');
-                    const newTicketNamesNoLimit = document.querySelectorAll('input[name="new_ticket_name_no_limit[]"]');
-                    ticketTypesPresent = (existingTicketNamesNoLimit.length + newTicketNamesNoLimit.length) > 0;
-                }
+                const ticketNames = document.querySelectorAll('input[name^="name_"], input[name="new_ticket_name[]"]');
+                const ticketTypesPresent = ticketNames.length > 0;
 
                 if (!ticketTypesPresent) {
                     event.preventDefault();
-                    const deleteWarning = document.getElementById('delete-warning');
-                    if (deleteWarning) {
-                        deleteWarning.style.display = 'block';
-                    }
-                } else {
-                    const deleteWarning = document.getElementById('delete-warning');
-                    if (deleteWarning) {
-                        deleteWarning.style.display = 'none';
-                    }
+                    alert('You must have at least one ticket type.');
                 }
             });
+
         }
         // Add new discount rule
         const addDiscountRuleButton = document.getElementById('add-discount-rule');
