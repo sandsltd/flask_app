@@ -1227,8 +1227,40 @@ def embed_events(unique_id):
 
 @app.route('/cancel')
 def cancel():
-    return "Payment canceled. You can try again."
+    # Get the referrer URL (the page that led to the payment)
+    return_url = request.referrer
+    
+    # If no referrer, default to the home page
+    if not return_url:
+        return_url = url_for('home')
+    
+    # Parse the event_id from the return URL if it exists
+    event_id = None
+    try:
+        path = urlparse(return_url).path
+        if 'purchase' in path:
+            event_id = int(path.split('/')[-1])
+    except:
+        pass
 
+    # Get organizer details if we have an event_id
+    website_url = None
+    business_name = None
+    if event_id:
+        try:
+            event = Event.query.get(event_id)
+            if event:
+                organizer = User.query.get(event.user_id)
+                if organizer:
+                    website_url = organizer.website_url if organizer.website_url else None
+                    business_name = organizer.business_name
+        except:
+            pass
+
+    return render_template('cancel.html',
+                         return_url=return_url,
+                         website_url=website_url,
+                         business_name=business_name)
 
 @app.route('/manage-default-questions', methods=['GET', 'POST'])
 @login_required
@@ -1367,7 +1399,6 @@ def calculate_total_charge_and_booking_fee(n_tickets, ticket_price_gbp):
 
 
 
-
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
 @app.route('/purchase/<int:event_id>/<string:promo_code>', methods=['GET', 'POST'])
 def purchase(event_id, promo_code=None):
@@ -1412,6 +1443,19 @@ def purchase(event_id, promo_code=None):
 
         # Fetch ticket types
         ticket_types = event.ticket_types
+        
+        # Calculate available tickets for each ticket type
+        for ticket_type in ticket_types:
+            tickets_sold = Attendee.query.filter_by(
+                event_id=event_id,
+                ticket_type_id=ticket_type.id,
+                payment_status='succeeded'
+            ).count()
+            ticket_type.available_tickets = (
+                ticket_type.quantity - tickets_sold if ticket_type.quantity 
+                else event.ticket_quantity - total_tickets_sold if not event.enforce_individual_ticket_limits
+                else None
+            )
         
         if request.method == 'POST':
             try:
