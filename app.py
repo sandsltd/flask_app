@@ -1474,18 +1474,17 @@ def purchase(event_id, promo_code=None):
                 attendee_answers = {}
 
                 # Collect answers for each ticket
-                # Collect answers for each ticket
                 for ticket_type in ticket_types:
                     quantity = quantities[ticket_type.id]
                     for i in range(quantity):
                         answers = {}
-                        for q_index, question in enumerate(questions):
-                            answer_key = f'ticket_{ticket_type.id}_{i}_question_{q_index}'
+                        for question in questions:
+                            answer_key = f'ticket_{ticket_type.id}_{i}_question_{question['id']}'
                             answer = request.form.get(answer_key)
                             if not answer:
                                 flash(f'Please answer all questions for {ticket_type.name} Ticket {i + 1}.')
                                 return redirect(url_for('purchase', event_id=event_id))
-                            answers[question['id']] = answer  # Use 'question['id']' as the key
+                            answers[question['id']] = answer
                         attendee_answers[(ticket_type.id, i)] = answers
 
 
@@ -1574,6 +1573,8 @@ def purchase(event_id, promo_code=None):
                     # Check other discount rules only if no promo code is active
                     print("\nChecking other discount rules:")
                     discount_rules = DiscountRule.query.filter_by(event_id=event_id).all()
+
+                    active_discount = {}
                     
                     for rule in discount_rules:
                         if rule.discount_type != 'promo_code':  # Skip promo code rules
@@ -1771,23 +1772,25 @@ def purchase(event_id, promo_code=None):
                     # Create Stripe checkout session
                     checkout_session = stripe.checkout.Session.create(
                         payment_method_types=['card'],
-                        line_items=line_items,  # Ensure this is a list of dictionaries
+                        line_items=line_items,
                         mode='payment',
                         success_url=url_for('success', session_id=session_id, _external=True),
                         cancel_url=url_for('cancel', _external=True),
                         metadata={
                             'session_id': session_id,
-                            'promo_code': str(submitted_promo_code) if submitted_promo_code else None,  # Ensure string
-                            'discount_amount': str(discount_amount) if discount_amount > 0 else None  # Ensure string
+                            'promo_code': str(submitted_promo_code) if submitted_promo_code else None,
+                            'discount_amount': str(discount_amount) if discount_amount > 0 else None,
+                            'ticket_data': json.dumps(ticket_data),  # Add ticket data to metadata
+                            'attendee_data': json.dumps(attendee_data)  # Add attendee data to metadata
                         },
                         payment_intent_data={
                             'application_fee_amount': adjusted_platform_fee,
                             'transfer_data': {
-                                'destination': organizer.stripe_connect_id,  # Ensure valid ID
+                                'destination': organizer.stripe_connect_id,
                             },
                         },
                         billing_address_collection='required',
-                        customer_email=email  # Ensure email is valid
+                        customer_email=email
                     )
 
                     return redirect(checkout_session.url)

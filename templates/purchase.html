@@ -396,9 +396,8 @@ function updateQuestionForms() {
     var formsContainer = document.getElementById('question_forms');
     formsContainer.innerHTML = '';
 
-    var totalQuantity = 0;
-
     // First pass: calculate total quantity
+    var totalQuantity = 0;
     ticketInputs.forEach(function(input) {
         totalQuantity += parseInt(input.value) || 0;
     });
@@ -425,17 +424,18 @@ function updateQuestionForms() {
             attendeeHeader.textContent = 'Please provide information for ' + ticketTypeName + ' - Ticket ' + (i + 1);
             ticketDiv.appendChild(attendeeHeader);
 
-            questions.forEach(function(question, j) {
+            questions.forEach(function(question) {
                 var formGroup = document.createElement('div');
                 formGroup.classList.add('form-group');
 
                 var label = document.createElement('label');
-                label.setAttribute('for', 'ticket_' + ticketTypeId + '_' + i + '_question_' + j);
+                label.setAttribute('for', 'ticket_' + ticketTypeId + '_' + i + '_question_' + question.id);
                 label.textContent = question.question_text;
 
                 var inputField = document.createElement('input');
                 inputField.type = 'text';
-                inputField.name = 'ticket_' + ticketTypeId + '_' + i + '_question_' + j;
+                inputField.name = 'ticket_' + ticketTypeId + '_' + i + '_question_' + question.id;
+                inputField.id = 'ticket_' + ticketTypeId + '_' + i + '_question_' + question.id;
                 inputField.required = question.required;
 
                 formGroup.appendChild(label);
