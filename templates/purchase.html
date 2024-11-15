@@ -449,7 +449,7 @@ function updateQuestionForms() {
 
     // Add form submission handler
     document.querySelector('form').addEventListener('submit', async function(e) {
-        e.preventDefault(); // Prevent default form submission
+        e.preventDefault();
         
         console.log('Form submission started');
         
@@ -464,18 +464,27 @@ function updateQuestionForms() {
             
             console.log('Response received:', response);
             
-            if (response.ok) {
-                const data = await response.json();
-                console.log('Response data:', data);
-                
-                if (data.checkout_url) {
-                    console.log('Redirecting to:', data.checkout_url);
-                    window.location.href = data.checkout_url;
-                } else {
-                    console.error('No checkout URL in response');
-                }
+            // First try to get the response text
+            const responseText = await response.text();
+            console.log('Response text:', responseText);
+            
+            let data;
+            try {
+                // Try to parse it as JSON
+                data = JSON.parse(responseText);
+                console.log('Parsed JSON data:', data);
+            } catch (jsonError) {
+                console.error('Failed to parse JSON:', jsonError);
+                console.log('Raw response:', responseText);
+                return;
+            }
+            
+            if (response.ok && data.checkout_url) {
+                console.log('Redirecting to:', data.checkout_url);
+                window.location.href = data.checkout_url;
             } else {
-                console.error('Response not OK:', await response.text());
+                console.error('Invalid response format or missing checkout URL');
+                console.log('Response data:', data);
             }
         } catch (error) {
             console.error('Error during form submission:', error);
