@@ -616,6 +616,12 @@
 
             if (!discountConfig || !discountConfig.type) return;
 
+            // Only show banner for early_bird and bulk discounts
+            if (discountConfig.type === 'promo_code') {
+                banner.style.display = 'none';
+                return;
+            }
+
             banner.style.display = 'block';
             banner.className = `discount-banner discount-banner-${discountConfig.type}`;
 
@@ -631,11 +637,6 @@
                     subtitle.textContent = discountConfig.apply_to === 'all' 
                         ? `When you buy ${discountConfig.minTickets} or more tickets`
                         : `On additional tickets when you buy ${discountConfig.minTickets} or more`;
-                    break;
-
-                case 'promo_code':
-                    message.textContent = `Promo Code Applied: ${discountConfig.percentage}% OFF`;
-                    subtitle.textContent = `Using code: ${discountConfig.code}`;
                     break;
             }
         }
