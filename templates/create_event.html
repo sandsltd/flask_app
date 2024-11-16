@@ -1238,7 +1238,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Early Bird Options -->
                                 <div class="early-bird-options discount-options" style="display: none;">
                                     <div class="form-grid">
                                         <div class="form-group">
@@ -1249,10 +1248,8 @@
                                             <label>Discount (%)</label>
                                             <input type="number" name="early_bird_discount_percent[]" min="0" max="100">
                                         </div>
-                                        <div class="form-group">
-                                            <label>Maximum Tickets</label>
-                                            <input type="number" name="max_early_bird_tickets[]" min="1">
-                                        </div>
+                                        <!-- Hidden Maximum Tickets Field -->
+                                        <input type="hidden" name="max_early_bird_tickets[]" value="10000">
                                     </div>
                                 </div>
 
