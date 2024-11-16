@@ -3536,7 +3536,6 @@ def reset_sequences():
 
     
 
-
 @app.route('/pricing-widget')
 def pricing_widget():
     """
@@ -3588,11 +3587,32 @@ def pricing_widget():
 @app.route('/pricing-widget/embed')
 def pricing_widget_embed():
     """Returns the embed code for the pricing widget"""
-    # Add debug print
-    print("Generating embed code")
-    
     widget_url = url_for('pricing_widget', _external=True)
-    embed_code = f'<iframe src="{widget_url}" style="width: 100%; height: 600px; border: none; overflow: auto;"></iframe>'
+    embed_code = f'''
+        <iframe 
+            src="{widget_url}" 
+            style="width: 100%; height: 520px; border: none; overflow: hidden;"
+            title="Ticketing Platform Comparison"
+            loading="lazy"
+            allow="fullscreen"
+        ></iframe>
+        <script>
+            // Responsive iframe height adjustment
+            function adjustIframeHeight() {{
+                const iframe = document.querySelector('iframe');
+                if (window.innerWidth <= 768) {{
+                    iframe.style.height = '600px';  // More height for mobile
+                }} else if (window.innerWidth <= 1024) {{
+                    iframe.style.height = '550px';  // Slightly more height for tablet
+                }} else {{
+                    iframe.style.height = '520px';  // Default height for desktop
+                }}
+            }}
+            
+            window.addEventListener('resize', adjustIframeHeight);
+            adjustIframeHeight();
+        </script>
+    '''
     return render_template('pricing_widget_embed.html', embed_code=embed_code)
 
 
