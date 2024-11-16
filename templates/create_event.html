@@ -1552,7 +1552,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const dd = String(today.getDate()).padStart(2, '0');
     const todayStr = `${yyyy}-${mm}-${dd}`;
     dateInput.min = todayStr;
-
     // Validate start time when date is today
     function validateStartTime() {
         if (dateInput.value === todayStr && startTimeInput.value) {
@@ -1581,10 +1580,17 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', function(e) {
         const date = dateInput.value;
         const startTime = startTimeInput.value;
+        const endTime = endTimeInput.value;
 
         if (date < todayStr) {
             e.preventDefault();
             alert('Event date cannot be in the past');
+            return;
+        }
+
+        if (startTime && endTime && endTime <= startTime) {
+            e.preventDefault();
+            alert('End time must be after start time');
             return;
         }
 
