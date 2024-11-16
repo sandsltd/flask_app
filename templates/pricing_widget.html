@@ -141,10 +141,8 @@
         }
 
         .comparison-table {
-            flex: 1;
-            min-height: 0;
-            font-size: 0.9em;
-            border-radius: 8px;
+            width: 100%;
+            table-layout: fixed;
         }
 
         .comparison-table th,
@@ -230,6 +228,63 @@
 
             .input-group input {
                 width: 100%;
+            }
+
+            .comparison-table {
+                font-size: 0.8em;
+            }
+
+            .comparison-table th,
+            .comparison-table td {
+                padding: 6px 4px;
+            }
+
+            /* Adjust column widths */
+            .comparison-table th:nth-child(1),
+            .comparison-table td:nth-child(1) {
+                width: 25%;
+            }
+            
+            .comparison-table th:nth-child(2),
+            .comparison-table td:nth-child(2) {
+                width: 25%;
+            }
+            
+            .comparison-table th:nth-child(3),
+            .comparison-table td:nth-child(3) {
+                width: 20%;
+            }
+            
+            .comparison-table th:nth-child(4),
+            .comparison-table td:nth-child(4) {
+                width: 30%;
+            }
+
+            /* Adjust the CTA button on mobile */
+            .cta-button {
+                padding: 8px 12px;
+                font-size: 0.8em;
+            }
+
+            .cta-button i {
+                display: none; /* Hide the rocket icon on mobile */
+            }
+
+            /* Adjust platform logo size */
+            .platform-logo {
+                width: 20px;
+                height: 20px;
+            }
+
+            /* Make fee structure text wrap better */
+            .comparison-table td:nth-child(2) {
+                word-break: break-word;
+                hyphens: auto;
+            }
+
+            /* Adjust savings display */
+            .savings-amount {
+                font-size: 0.9em;
             }
         }
 
