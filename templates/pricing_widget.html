@@ -1,88 +1,381 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticketing Platform Comparison</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
+        :root {
+            --primary: #FF0000;     /* Brand red */
+            --secondary: #000000;   /* Black */
+            --light: #FFFFFF;       /* White */
+            --gray: #F5F5F5;       /* Light gray for backgrounds */
+            --ticketrush-red: #FF0000;
+            --ticketrush-black: #000000;
+            --ticketrush-white: #FFFFFF;
+        }
+
+        /* Base styling */
         body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
+            font-family: 'Poppins', sans-serif;  /* Clean, modern font */
+            color: var(--secondary);
+            background: var(--light);
         }
-        
-        .pricing-table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: white;
+
+        /* Header/Navigation */
+        .navbar {
+            background: var(--light);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border-radius: 8px;
+        }
+
+        .navbar-brand {
+            color: var(--primary) !important;
+            font-weight: 700;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: var(--primary);
+            border: none;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: darken(var(--primary), 10%);
+            transform: translateY(-1px);
+        }
+
+        /* Cards */
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Icons - Using Font Awesome */
+        .competitor-icon {
+            color: var(--secondary);
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Example icon classes */
+        .fa-ticket-alt,
+        .fa-users,
+        .fa-chart-line {
+            color: var(--primary);
+        }
+
+        .widget-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+        }
+
+        .brand-logo {
+            height: 60px;
+            margin-bottom: 20px;
+            object-fit: contain;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: var(--ticketrush-black);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 1.1em;
+        }
+
+        .calculator-section {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 40px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .calculator-inputs {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            color: #334155;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-group input,
+        .input-group select {
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 16px;
             overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
         }
-        
-        .pricing-table th {
-            background-color: #ff0000;
-            color: white;
-            padding: 15px;
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 20px;
             text-align: left;
+            border-bottom: 1px solid #e2e8f0;
         }
-        
-        .pricing-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
+
+        .comparison-table th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #334155;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
         }
-        
-        .pricing-table tr:last-child td {
-            border-bottom: none;
+
+        .platform-row {
+            transition: all 0.2s;
         }
-        
-        .pricing-table tr:hover {
-            background-color: #f8f8f8;
+
+        .platform-row:hover {
+            background-color: #f8fafc;
+            transform: scale(1.01);
         }
-        
-        .website-link {
-            color: #ff0000;
-            text-decoration: none;
-        }
-        
-        .website-link:hover {
-            text-decoration: underline;
-        }
-        
+
         .ticketrush-row {
-            background-color: #fff3f3;
+            background-color: rgba(255, 0, 0, 0.05);
         }
-        
+
+        .platform-name {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .platform-logo {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+        }
+
+        .platform-logo i {
+            font-size: 1.5em;
+        }
+
+        .savings {
+            color: #16a34a;
+            font-weight: 600;
+        }
+
+        .fee-amount {
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .cta-button {
+            background: var(--ticketrush-red);
+            color: var(--ticketrush-white);
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .cta-button:hover {
+            background: #cc0000;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
         @media (max-width: 768px) {
-            .pricing-table {
-                font-size: 14px;
+            .widget-container {
+                padding: 10px;
             }
-            
-            .pricing-table th,
-            .pricing-table td {
-                padding: 8px;
+
+            .calculator-section {
+                padding: 20px;
             }
+
+            .comparison-table th,
+            .comparison-table td {
+                padding: 15px 10px;
+            }
+        }
+
+        .disclaimer {
+            margin-top: 30px;
+            padding: 20px;
+            font-size: 0.85em;
+            color: #666;
+            border-top: 1px solid #eee;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <table class="pricing-table">
-        <thead>
-            <tr>
-                <th>Software</th>
-                <th>Features</th>
-                <th>Pricing</th>
-                <th>Website</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for software in software_pricing %}
-            <tr {% if software.name == 'Ticketrush' %}class="ticketrush-row"{% endif %}>
-                <td><strong>{{ software.name }}</strong></td>
-                <td>{{ software.features }}</td>
-                <td>{{ software.pricing }}</td>
-                <td><a href="https://{{ software.website }}" class="website-link" target="_blank">{{ software.website }}</a></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="widget-container">
+        <div class="header">
+            <img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T-1.png" alt="Ticketrush Logo" class="brand-logo">
+            <h1>Compare & Save with Ticketrush</h1>
+            <p>See how much you could save on your event ticketing fees</p>
+        </div>
+
+        <div class="calculator-section">
+            <div class="calculator-inputs">
+                <div class="input-group">
+                    <label for="ticketPrice">Ticket Price (£)</label>
+                    <input type="number" id="ticketPrice" value="20" min="0" step="0.01" placeholder="Enter ticket price">
+                </div>
+                <div class="input-group">
+                    <label for="ticketQuantity">Number of Tickets</label>
+                    <input type="number" id="ticketQuantity" value="100" min="1" placeholder="Enter quantity">
+                </div>
+            </div>
+        </div>
+
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Platform</th>
+                    <th>Fee Structure</th>
+                    <th>Total Fees</th>
+                    <th>Your Savings</th>
+                </tr>
+            </thead>
+            <tbody id="comparisonBody">
+                <!-- Filled dynamically by JavaScript -->
+            </tbody>
+        </table>
+
+        <div class="disclaimer">
+            <p>* Prices and fees checked as of November 2024. Actual fees may vary. Please check each provider's website for the most current pricing.</p>
+        </div>
+    </div>
+
+    <script>
+        const platforms = {
+            ticketrush: {
+                name: 'Ticketrush',
+                logo: '<img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T-1.png" alt="Ticketrush" style="height: 30px;">',
+                feeStructure: '£0.30 per ticket',
+                calculateFees: (price, quantity) => quantity * 0.30
+            },
+            ticketebo: {
+                name: 'Ticketebo',
+                logo: '<i class="fas fa-ticket"></i>',
+                feeStructure: '4.95% per transaction (min £0.75)',
+                calculateFees: (price, quantity) => Math.max(0.75, (price * quantity * 0.0495))
+            },
+            eventbrite: {
+                name: 'Eventbrite',
+                logo: '<i class="fas fa-ticket-alt"></i>',
+                feeStructure: '6.95% + £0.59 per ticket',
+                calculateFees: (price, quantity) => quantity * (price * 0.0695 + 0.59)
+            },
+            ticketTailor: {
+                name: 'Ticket Tailor',
+                logo: '<i class="fas fa-tags"></i>',
+                feeStructure: '£0.50 per ticket',
+                calculateFees: (price, quantity) => quantity * 0.50
+            },
+            ticketSource: {
+                name: 'TicketSource',
+                logo: '<i class="fas fa-qrcode"></i>',
+                feeStructure: '4.5% per ticket',
+                calculateFees: (price, quantity) => quantity * (price * 0.045)
+            }
+        };
+
+        function updateComparison() {
+            const price = parseFloat(document.getElementById('ticketPrice').value) || 0;
+            const quantity = parseInt(document.getElementById('ticketQuantity').value) || 0;
+            
+            const ticketrushFees = platforms.ticketrush.calculateFees(price, quantity);
+            const tbody = document.getElementById('comparisonBody');
+            tbody.innerHTML = '';
+
+            Object.values(platforms).forEach(platform => {
+                const fees = platform.calculateFees(price, quantity);
+                const savings = platform.name === 'Ticketrush' ? 0 : fees - ticketrushFees;
+                
+                const row = document.createElement('tr');
+                row.className = platform.name === 'Ticketrush' ? 'platform-row ticketrush-row' : 'platform-row';
+                
+                row.innerHTML = `
+                    <td>
+                        <div class="platform-name">
+                            <div class="platform-logo">${platform.logo}</div>
+                            <strong>${platform.name}</strong>
+                        </div>
+                    </td>
+                    <td>${platform.feeStructure}</td>
+                    <td class="fee-amount">£${fees.toFixed(2)}</td>
+                    <td class="savings">${platform.name === 'Ticketrush' ? 
+                        '<button class="cta-button">Get Started</button>' : 
+                        `Save £${savings.toFixed(2)}`}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Add event listeners
+        document.getElementById('ticketPrice').addEventListener('input', updateComparison);
+        document.getElementById('ticketQuantity').addEventListener('input', updateComparison);
+
+        // Initial calculation
+        updateComparison();
+    </script>
 </body>
 </html> 
