@@ -499,10 +499,7 @@
                                             <label>Discount (%)</label>
                                             <input type="number" name="early_bird_discount_percent[]" min="0" max="100" value="{{ rule.discount_percent }}">
                                         </div>
-                                        <div class="form-group">
-                                            <label>Maximum Tickets</label>
-                                            <input type="number" name="max_early_bird_tickets[]" min="1" value="{{ rule.max_early_bird_tickets }}">
-                                        </div>
+                                        <input type="hidden" name="max_early_bird_tickets[]" value="10000">
                                     </div>
                                 </div>
 
@@ -765,10 +762,7 @@
                             <label>Discount (%)</label>
                             <input type="number" name="early_bird_discount_percent[]" min="0" max="100">
                         </div>
-                        <div class="form-group">
-                            <label>Maximum Tickets</label>
-                            <input type="number" name="max_early_bird_tickets[]" min="1">
-                        </div>
+                        <input type="hidden" name="max_early_bird_tickets[]" value="10000">
                     </div>
                 </div>
 
