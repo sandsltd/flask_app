@@ -228,6 +228,11 @@
     var discountConfig = JSON.parse(document.getElementById('discount-config').textContent || '{}');
     var questions = JSON.parse(document.getElementById('questions-data').textContent || '[]');
 
+    // Get the total available tickets from the displayed text
+    const ticketsAvailableText = document.querySelector('.purchase-form p')?.textContent;
+    const totalTicketsAvailable = ticketsAvailableText ? 
+        parseInt(ticketsAvailableText.match(/Total Tickets Available: (\d+)/)?.[1]) : 0;
+
     // Initialize when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
         // Only initialize non-promo discounts
@@ -242,45 +247,7 @@
             input.addEventListener('input', updateQuestionForms);
         });
 
-        // Add input validation for ticket quantities
-        document.querySelectorAll('.ticket-input').forEach(function(input) {
-            input.addEventListener('input', function(e) {
-                const maxTickets = parseInt(this.getAttribute('data-max-tickets'));
-                let value = parseInt(this.value) || 0;
-                
-                // Ensure value is not negative
-                if (value < 0) {
-                    value = 0;
-                }
-                
-                // Calculate total tickets across all ticket types
-                const totalSelectedTickets = Array.from(document.querySelectorAll('.ticket-input'))
-                    .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
-                
-                // Subtract current input's value since we'll be adding the new value
-                const otherTickets = totalSelectedTickets - (parseInt(this.value) || 0);
-                
-                // Check against event capacity
-                if (otherTickets + value > totalEventCapacity) {
-                    value = totalEventCapacity - otherTickets;
-                    alert(`Sorry, only ${totalEventCapacity} total tickets are available for this event. You cannot select more than ${value} tickets for this ticket type.`);
-                }
-                // Also check individual ticket type limit if enforced
-                else if (maxTickets && value > maxTickets) {
-                    value = maxTickets;
-                    alert(`Sorry, only ${maxTickets} tickets are available for this ticket type.`);
-                }
-                
-                // Update input value
-                this.value = value;
-                
-                // Update forms and prices
-                updateQuestionForms();
-                updateTotalPrice();
-            });
-        });
-
-        // Handle plus/minus buttons
+        // Updated plus/minus button handlers
         document.querySelectorAll('.quantity-btn').forEach(button => {
             button.addEventListener('click', function() {
                 const inputId = this.getAttribute('data-input');
@@ -288,19 +255,15 @@
                 let value = parseInt(input.value) || 0;
                 
                 if (this.classList.contains('plus')) {
-                    // Check total event capacity before incrementing
+                    // Calculate total selected tickets excluding current input
                     const totalSelected = Array.from(document.querySelectorAll('.ticket-input'))
-                        .reduce((sum, inp) => sum + (parseInt(inp.value) || 0), 0);
+                        .reduce((sum, inp) => {
+                            return sum + (inp.id === inputId ? 0 : (parseInt(inp.value) || 0));
+                        }, 0);
                     
-                    if (totalSelected >= totalEventCapacity) {
-                        alert(`Sorry, only ${totalEventCapacity} total tickets are available for this event.`);
-                        return;
-                    }
-                    
-                    // Check individual ticket limit if enforced
-                    const maxTickets = parseInt(input.getAttribute('max'));
-                    if (maxTickets && value >= maxTickets) {
-                        alert(`Sorry, only ${maxTickets} tickets are available for this ticket type.`);
+                    // Check if adding one more would exceed available tickets
+                    if (totalSelected + value + 1 > totalTicketsAvailable) {
+                        alert(`Sorry, only ${totalTicketsAvailable} tickets are available for this event.`);
                         return;
                     }
                     
@@ -310,9 +273,38 @@
                 }
                 
                 input.value = value;
-                
-                // Trigger input event to update everything else
                 input.dispatchEvent(new Event('input'));
+            });
+        });
+
+        // Update input validation for direct number entry
+        document.querySelectorAll('.ticket-input').forEach(function(input) {
+            input.addEventListener('input', function(e) {
+                let value = parseInt(this.value) || 0;
+                
+                // Ensure value is not negative
+                if (value < 0) {
+                    value = 0;
+                }
+                
+                // Calculate total tickets across all ticket types except current input
+                const totalSelected = Array.from(document.querySelectorAll('.ticket-input'))
+                    .reduce((sum, inp) => {
+                        return sum + (inp === this ? 0 : (parseInt(inp.value) || 0));
+                    }, 0);
+                
+                // Check against available tickets
+                if (totalSelected + value > totalTicketsAvailable) {
+                    value = totalTicketsAvailable - totalSelected;
+                    alert(`Sorry, only ${totalTicketsAvailable} tickets are available for this event. You cannot select more than ${value} tickets for this ticket type.`);
+                }
+                
+                // Update input value
+                this.value = value;
+                
+                // Update forms and prices
+                updateQuestionForms();
+                updateTotalPrice();
             });
         });
     });
