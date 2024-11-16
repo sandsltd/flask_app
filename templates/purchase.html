@@ -279,6 +279,42 @@
                 updateTotalPrice();
             });
         });
+
+        // Handle plus/minus buttons
+        document.querySelectorAll('.quantity-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const inputId = this.getAttribute('data-input');
+                const input = document.getElementById(inputId);
+                let value = parseInt(input.value) || 0;
+                
+                if (this.classList.contains('plus')) {
+                    // Check total event capacity before incrementing
+                    const totalSelected = Array.from(document.querySelectorAll('.ticket-input'))
+                        .reduce((sum, inp) => sum + (parseInt(inp.value) || 0), 0);
+                    
+                    if (totalSelected >= totalEventCapacity) {
+                        alert(`Sorry, only ${totalEventCapacity} total tickets are available for this event.`);
+                        return;
+                    }
+                    
+                    // Check individual ticket limit if enforced
+                    const maxTickets = parseInt(input.getAttribute('max'));
+                    if (maxTickets && value >= maxTickets) {
+                        alert(`Sorry, only ${maxTickets} tickets are available for this ticket type.`);
+                        return;
+                    }
+                    
+                    value++;
+                } else if (this.classList.contains('minus')) {
+                    value = Math.max(0, value - 1);
+                }
+                
+                input.value = value;
+                
+                // Trigger input event to update everything else
+                input.dispatchEvent(new Event('input'));
+            });
+        });
     });
 
     function updatePriceDisplays(totalQuantity) {
