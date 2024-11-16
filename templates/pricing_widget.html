@@ -15,7 +15,7 @@
             --ticketrush-red: #FF0000;
             --ticketrush-black: #000000;
             --ticketrush-white: #FFFFFF;
-        }
+        } 
 
         /* Base styling */
         body {
@@ -76,44 +76,47 @@
         .widget-container {
             max-width: 1000px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 10px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-sizing: border-box;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 40px;
-            padding: 20px;
+            margin-bottom: 10px;
+            padding: 5px;
         }
 
         .brand-logo {
-            height: 60px;
-            margin-bottom: 20px;
-            object-fit: contain;
+            height: 30px;
+            margin-bottom: 5px;
         }
 
         .header h1 {
-            font-size: 2.5em;
-            color: var(--ticketrush-black);
-            margin-bottom: 10px;
+            font-size: 1.4em;
+            margin: 5px 0;
         }
 
         .header p {
+            font-size: 0.9em;
+            margin: 0;
             color: #64748b;
-            font-size: 1.1em;
         }
 
         .calculator-section {
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            margin-bottom: 40px;
-            border: 1px solid #e2e8f0;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
         }
 
         .calculator-inputs {
+            display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 30px;
+            gap: 20px;
+            margin-bottom: 15px;
         }
 
         .input-group {
@@ -123,143 +126,190 @@
         }
 
         .input-group label {
-            font-weight: 600;
-            color: #334155;
             font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-weight: 500;
+            white-space: nowrap;
         }
 
-        .input-group input,
-        .input-group select {
-            padding: 12px 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 16px;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
-
-        .input-group input:focus,
-        .input-group select:focus {
-            outline: none;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1em;
+            box-sizing: border-box;
         }
 
         .comparison-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            background: white;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e2e8f0;
+            flex: 1;
+            min-height: 0;
+            font-size: 0.9em;
+            border-radius: 8px;
         }
 
         .comparison-table th,
         .comparison-table td {
-            padding: 20px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .comparison-table th {
-            background: #f8fafc;
-            font-weight: 600;
-            color: #334155;
-            text-transform: uppercase;
-            font-size: 0.85em;
-            letter-spacing: 0.5px;
-        }
-
-        .platform-row {
-            transition: all 0.2s;
-        }
-
-        .platform-row:hover {
-            background-color: #f8fafc;
-            transform: scale(1.01);
-        }
-
-        .ticketrush-row {
-            background-color: rgba(255, 0, 0, 0.05);
-        }
-
-        .platform-name {
-            display: flex;
-            align-items: center;
-            gap: 15px;
+            padding: 8px 10px;
         }
 
         .platform-logo {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #64748b;
-        }
-
-        .platform-logo i {
-            font-size: 1.5em;
-        }
-
-        .savings {
-            color: #16a34a;
-            font-weight: 600;
-        }
-
-        .fee-amount {
-            font-weight: 600;
-            color: #334155;
+            width: 30px;
+            height: 30px;
         }
 
         .cta-button {
-            background: var(--ticketrush-red);
-            color: var(--ticketrush-white);
-            padding: 12px 24px;
+            background: linear-gradient(45deg, #DC2626, #FF0000);
+            color: white;
+            padding: 10px 20px;
             border: none;
-            border-radius: 12px;
+            border-radius: 25px;
+            font-size: 0.9em;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
             text-decoration: none;
-            display: inline-block;
-            transition: all 0.2s;
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         .cta-button:hover {
-            background: #cc0000;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+            box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+            background: linear-gradient(45deg, #FF0000, #DC2626);
+            color: white;
+            text-decoration: none;
         }
 
-        @media (max-width: 768px) {
-            .widget-container {
-                padding: 10px;
-            }
-
-            .calculator-section {
-                padding: 20px;
-            }
-
-            .comparison-table th,
-            .comparison-table td {
-                padding: 15px 10px;
-            }
+        .cta-button i {
+            font-size: 0.9em;
         }
 
         .disclaimer {
-            margin-top: 30px;
-            padding: 20px;
-            font-size: 0.85em;
-            color: #666;
-            border-top: 1px solid #eee;
+            font-size: 0.75em;
+            padding: 5px;
+            margin-top: 5px;
+        }
+
+        @media (max-height: 600px) {
+            .header h1 {
+                font-size: 1.2em;
+            }
+            
+            .brand-logo {
+                height: 25px;
+            }
+            
+            .comparison-table th,
+            .comparison-table td {
+                padding: 6px 8px;
+            }
+
+            .platform-logo {
+                width: 25px;
+                height: 25px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .calculator-inputs {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .input-group {
+                width: 100%;
+            }
+
+            .input-group label {
+                text-align: left;
+                margin-bottom: 4px;
+            }
+
+            .input-group input {
+                width: 100%;
+            }
+        }
+
+        /* Add these new styles */
+        .savings {
+            font-weight: bold;
+            color: #2F855A; /* Green color for savings */
+        }
+
+        .savings-amount {
+            font-size: 1.1em;
+            color: #059669;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .savings-icon {
+            color: #059669;
+        }
+
+        .total-savings {
+            background: #ECFDF5;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
             text-align: center;
+            font-weight: bold;
+        }
+
+        .total-savings-amount {
+            font-size: 1.4em;
+            color: #059669;
+        }
+
+        .savings-highlight {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Update existing styles */
+        .comparison-table td.savings {
+            font-weight: bold;
+        }
+
+        /* Add these styles */
+        .ticketrush-row {
+            background-color: #FEF2F2; /* Light red background */
+        }
+
+        .ticketrush-fees {
+            font-weight: bold;
+            color: #DC2626; /* Red color */
+        }
+
+        .highest-savings {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #059669;
+        }
+
+        /* Add animation for the free tag */
+        .free-tag {
+            background: #FEF2F2;
+            color: #DC2626;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-2px); }
         }
     </style>
 </head>
@@ -345,6 +395,23 @@
             const tbody = document.getElementById('comparisonBody');
             tbody.innerHTML = '';
 
+            let highestFees = 0;
+            let highestPlatform = '';
+
+            // First pass to find highest fees
+            Object.values(platforms).forEach(platform => {
+                if (platform.name !== 'Ticketrush') {
+                    const fees = platform.calculateFees(price, quantity);
+                    if (fees > highestFees) {
+                        highestFees = fees;
+                        highestPlatform = platform.name;
+                    }
+                }
+            });
+
+            const maxSavings = highestFees - ticketrushFees;
+
+            // Second pass to create table rows
             Object.values(platforms).forEach(platform => {
                 const fees = platform.calculateFees(price, quantity);
                 const savings = platform.name === 'Ticketrush' ? 0 : fees - ticketrushFees;
@@ -360,14 +427,42 @@
                         </div>
                     </td>
                     <td>${platform.feeStructure}</td>
-                    <td class="fee-amount">£${fees.toFixed(2)}</td>
+                    <td class="${platform.name === 'Ticketrush' ? 'ticketrush-fees' : 'fee-amount'}">
+                        £${fees.toFixed(2)}
+                        ${platform.name === 'Ticketrush' ? '<i class="fas fa-star" style="color: #DC2626;"></i>' : ''}
+                    </td>
                     <td class="savings">${platform.name === 'Ticketrush' ? 
-                        '<button class="cta-button">Get Started</button>' : 
-                        `Save £${savings.toFixed(2)}`}</td>
+                        `<a href="https://bookings.ticketrush.io/register" class="cta-button" target="_blank">
+                            <i class="fas fa-rocket"></i>
+                            Get Started
+                            <span class="free-tag">FREE</span>
+                        </a>` : 
+                        `<div class="savings-amount">
+                            <i class="fas fa-arrow-down savings-icon"></i>
+                            Save £${savings.toFixed(2)}
+                        </div>`}</td>
                 `;
                 
                 tbody.appendChild(row);
             });
+
+            // Add total savings display
+            const savingsDisplay = document.createElement('tr');
+            savingsDisplay.innerHTML = `
+                <td colspan="4">
+                    <div class="total-savings savings-highlight">
+                        <div>Maximum Savings with Ticketrush:</div>
+                        <div class="total-savings-amount highest-savings">
+                            <i class="fas fa-coins savings-icon"></i>
+                            Save up to £${maxSavings.toFixed(2)}!
+                        </div>
+                        <div style="font-size: 0.9em; color: #059669;">
+                            Compared to ${highestPlatform} - Switch to Ticketrush today!
+                        </div>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(savingsDisplay);
         }
 
         // Add event listeners
