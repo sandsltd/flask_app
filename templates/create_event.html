@@ -1584,11 +1584,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        if (startTime && endTime && endTime <= startTime) {
-            e.preventDefault();
-            alert('End time must be after start time');
-            return;
-        }
 
         if (date === todayStr) {
             const now = new Date();
