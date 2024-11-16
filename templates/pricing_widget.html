@@ -22,6 +22,11 @@
             font-family: 'Poppins', sans-serif;  /* Clean, modern font */
             color: var(--secondary);
             background: var(--light);
+            margin: 0;
+            padding: 15px;
+            overflow: hidden;
+            min-height: 100vh;
+            box-sizing: border-box;
         }
 
         /* Header/Navigation */
@@ -74,14 +79,9 @@
         }
 
         .widget-container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 10px;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            box-sizing: border-box;
+            transform: scale(1);
         }
 
         .header {
@@ -143,6 +143,7 @@
         .comparison-table {
             width: 100%;
             table-layout: fixed;
+            margin-bottom: 20px;
         }
 
         .comparison-table th,
@@ -231,12 +232,12 @@
             }
 
             .comparison-table {
-                font-size: 0.8em;
+                font-size: 14px;
             }
 
             .comparison-table th,
             .comparison-table td {
-                padding: 6px 4px;
+                padding: 8px 4px;
             }
 
             /* Adjust column widths */
@@ -285,6 +286,15 @@
             /* Adjust savings display */
             .savings-amount {
                 font-size: 0.9em;
+            }
+
+            body {
+                padding: 10px;
+            }
+
+            .widget-container {
+                transform: scale(0.9);
+                transform-origin: top left;
             }
         }
 
