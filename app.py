@@ -1153,7 +1153,7 @@ def embed_events(unique_id):
 
                     events_html += f'''
                     <div class="event-card">
-                        <div class="event-image" style="background-image: url('{escape(event.image_url or 'https://via.placeholder.com/400x200')}')"></div>
+                        <div class="event-image" style="background-image: url('{escape(event.image_url or 'https://ticketrush.io/wp-content/uploads/2024/10/3.png')}')"></div>
                         <div class="event-content">
                             <h3 class="event-title">{escape(event.name)}</h3>
                             
