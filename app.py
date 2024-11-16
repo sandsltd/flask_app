@@ -3539,64 +3539,58 @@ def reset_sequences():
 
 @app.route('/pricing-widget')
 def pricing_widget():
-    # Define the pricing data
-    software_pricing = [
-        {
-            'name': 'Eventbrite',
-            'features': 'Event promotion, ticketing, attendee management',
-            'pricing': 'Service fee: 6.95% + £0.59 per ticket for paid events; free events have no fees',
-            'website': 'eventbrite.co.uk'
-        },
-        {
-            'name': 'Ticket Tailor',
-            'features': 'Unlimited ticket sales, customizable event pages',
-            'pricing': 'Plans starting at £19/month with no per-ticket fees',
-            'website': 'capterra.co.uk'
-        },
-        {
-            'name': 'TicketSource',
-            'features': 'Professional-level ticket sales system, easy to use',
-            'pricing': 'Booking fee: 4.5% per ticket, can be passed to customer or absorbed by organizer',
-            'website': 'ticketsource.co.uk'
-        },
-        {
-            'name': 'Ticketebo',
-            'features': 'No setup costs, no monthly fees',
-            'pricing': 'Booking fee: 4.95% per transaction (minimum £0.75); free for free events',
-            'website': 'ticketebo.co.uk'
-        },
-        {
-            'name': 'Access Group',
-            'features': 'Tonic ticketing software with flexible rates',
-            'pricing': 'Free tickets: no fee; £39.99 and under: 10%; £40–£69.99: 8%; £70+: 6%',
-            'website': 'accessgroup.com'
-        },
-        {
-            'name': 'Eventix',
-            'features': 'Event management and ticketing',
-            'pricing': 'Service fee: €0.79 per ticket + 1.5% of ticket price; additional payment processing fees may apply',
-            'website': 'eventix.io'
-        },
-        {
-            'name': 'Eventcube',
-            'features': 'Customizable event pages, promotional tools, in-depth sales analytics',
-            'pricing': '£0.20 per ticket + 2% payment processing fee',
-            'website': 'eventcube.io'
-        },
-        {
+    """
+    Route to display the pricing comparison widget.
+    No authentication required as this is a public-facing comparison tool.
+    """
+    platforms = {
+        'ticketrush': {
             'name': 'Ticketrush',
-            'features': 'Online ticketing platform with features like seat selection and e-ticketing',
-            'pricing': '£0.30 per ticket + payment processing fees',
-            'website': 'ticketrush.io'
+            'logo_url': 'https://ticketrush.io/wp-content/uploads/2024/10/logo_T-1.png',
+            'fee_structure': '£0.30 per ticket',
+            'base_fee': 0.30,
+        },
+        'ticketebo': {
+            'name': 'Ticketebo',
+            'fee_structure': '4.95% per transaction (min £0.75)',
+            'percentage': 4.95,
+            'min_fee': 0.75,
+        },
+        'eventbrite': {
+            'name': 'Eventbrite',
+            'fee_structure': '6.95% + £0.59 per ticket',
+            'percentage': 6.95,
+            'base_fee': 0.59,
+        },
+        'ticket_tailor': {
+            'name': 'Ticket Tailor',
+            'fee_structure': '£0.50 per ticket',
+            'base_fee': 0.50,
+        },
+        'ticket_source': {
+            'name': 'TicketSource',
+            'fee_structure': '4.5% per ticket',
+            'percentage': 4.5,
         }
-    ]
+    }
     
-    # Render the widget template
-    return render_template('pricing_widget.html', software_pricing=software_pricing)
+    # Get current date for disclaimer
+    current_date = datetime.now().strftime('%B %Y')
+    
+    return render_template(
+        'pricing_widget.html',
+        platforms=platforms,
+        current_date=current_date,
+        title="Compare Ticketing Platform Fees | Ticketrush",
+        description="Compare Ticketrush's competitive pricing with other ticketing platforms. See how much you could save on your event ticketing fees."
+    )
 
 @app.route('/pricing-widget/embed')
 def pricing_widget_embed():
     """Returns the embed code for the pricing widget"""
+    # Add debug print
+    print("Generating embed code")
+    
     widget_url = url_for('pricing_widget', _external=True)
     embed_code = f'<iframe src="{widget_url}" style="width: 100%; height: 600px; border: none; overflow: auto;"></iframe>'
     return render_template('pricing_widget_embed.html', embed_code=embed_code)
