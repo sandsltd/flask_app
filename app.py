@@ -639,24 +639,14 @@ def create_event():
                 return redirect(url_for('create_event'))
 
             # Validate event times
+            # Simplify time validation if no specific checks are needed
             try:
                 start_datetime = datetime.strptime(start_time, '%H:%M')
                 end_datetime = datetime.strptime(end_time, '%H:%M')
-                
-                if end_datetime <= start_datetime:
-                    flash('End time must be after start time.', 'danger')
-                    return redirect(url_for('create_event'))
-
-                # If event is today, check if start time hasn't already passed
-                if event_date.date() == today:
-                    current_time = datetime.now().time()
-                    if start_datetime.time() < current_time:
-                        flash('For events today, start time must be in the future.', 'danger')
-                        return redirect(url_for('create_event'))
-
             except ValueError:
                 flash('Invalid time format. Please use HH:MM.', 'danger')
                 return redirect(url_for('create_event'))
+
 
             # Handle recurrence details
             recurrence = request.form.get('recurrence', 'none')  # Default to 'none'
