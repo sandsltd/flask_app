@@ -253,8 +253,20 @@
                     value = 0;
                 }
                 
-                // Ensure value doesn't exceed available tickets
-                if (maxTickets && value > maxTickets) {
+                // Calculate total tickets across all ticket types
+                const totalSelectedTickets = Array.from(document.querySelectorAll('.ticket-input'))
+                    .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
+                
+                // Subtract current input's value since we'll be adding the new value
+                const otherTickets = totalSelectedTickets - (parseInt(this.value) || 0);
+                
+                // Check against event capacity
+                if (otherTickets + value > totalEventCapacity) {
+                    value = totalEventCapacity - otherTickets;
+                    alert(`Sorry, only ${totalEventCapacity} total tickets are available for this event. You cannot select more than ${value} tickets for this ticket type.`);
+                }
+                // Also check individual ticket type limit if enforced
+                else if (maxTickets && value > maxTickets) {
                     value = maxTickets;
                     alert(`Sorry, only ${maxTickets} tickets are available for this ticket type.`);
                 }
@@ -640,6 +652,23 @@
                     break;
             }
         }
+
+        // Add this helper function to check total capacity
+        function checkTotalCapacity() {
+            const totalSelected = Array.from(document.querySelectorAll('.ticket-input'))
+                .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
+            return totalSelected <= totalEventCapacity;
+        }
+
+        // Update form submission handler to include capacity check
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (!checkTotalCapacity()) {
+                e.preventDefault();
+                alert(`Sorry, only ${totalEventCapacity} total tickets are available for this event.`);
+                return;
+            }
+            // ... rest of your existing form validation ...
+        });
 </script>
 
 <style>
