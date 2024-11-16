@@ -1578,10 +1578,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Form submission validation
     form.addEventListener('submit', function(e) {
-        const date = dateInput.value;
-        const startTime = startTimeInput.value;
-        const endTime = endTimeInput.value;
-
         if (date < todayStr) {
             e.preventDefault();
             alert('Event date cannot be in the past');
