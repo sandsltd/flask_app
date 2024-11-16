@@ -3535,6 +3535,73 @@ def reset_sequences():
         return f"Error resetting sequences: {str(e)}", 500
 
     
+
+
+@app.route('/pricing-widget')
+def pricing_widget():
+    # Define the pricing data
+    software_pricing = [
+        {
+            'name': 'Eventbrite',
+            'features': 'Event promotion, ticketing, attendee management',
+            'pricing': 'Service fee: 6.95% + £0.59 per ticket for paid events; free events have no fees',
+            'website': 'eventbrite.co.uk'
+        },
+        {
+            'name': 'Ticket Tailor',
+            'features': 'Unlimited ticket sales, customizable event pages',
+            'pricing': 'Plans starting at £19/month with no per-ticket fees',
+            'website': 'capterra.co.uk'
+        },
+        {
+            'name': 'TicketSource',
+            'features': 'Professional-level ticket sales system, easy to use',
+            'pricing': 'Booking fee: 4.5% per ticket, can be passed to customer or absorbed by organizer',
+            'website': 'ticketsource.co.uk'
+        },
+        {
+            'name': 'Ticketebo',
+            'features': 'No setup costs, no monthly fees',
+            'pricing': 'Booking fee: 4.95% per transaction (minimum £0.75); free for free events',
+            'website': 'ticketebo.co.uk'
+        },
+        {
+            'name': 'Access Group',
+            'features': 'Tonic ticketing software with flexible rates',
+            'pricing': 'Free tickets: no fee; £39.99 and under: 10%; £40–£69.99: 8%; £70+: 6%',
+            'website': 'accessgroup.com'
+        },
+        {
+            'name': 'Eventix',
+            'features': 'Event management and ticketing',
+            'pricing': 'Service fee: €0.79 per ticket + 1.5% of ticket price; additional payment processing fees may apply',
+            'website': 'eventix.io'
+        },
+        {
+            'name': 'Eventcube',
+            'features': 'Customizable event pages, promotional tools, in-depth sales analytics',
+            'pricing': '£0.20 per ticket + 2% payment processing fee',
+            'website': 'eventcube.io'
+        },
+        {
+            'name': 'Ticketrush',
+            'features': 'Online ticketing platform with features like seat selection and e-ticketing',
+            'pricing': '£0.30 per ticket + payment processing fees',
+            'website': 'ticketrush.io'
+        }
+    ]
+    
+    # Render the widget template
+    return render_template('pricing_widget.html', software_pricing=software_pricing)
+
+@app.route('/pricing-widget/embed')
+def pricing_widget_embed():
+    """Returns the embed code for the pricing widget"""
+    widget_url = url_for('pricing_widget', _external=True)
+    embed_code = f'<iframe src="{widget_url}" style="width: 100%; height: 600px; border: none; overflow: auto;"></iframe>'
+    return render_template('pricing_widget_embed.html', embed_code=embed_code)
+
+
 if __name__ == "__main__":
     app.run(debug=True)
 
