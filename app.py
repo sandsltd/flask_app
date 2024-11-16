@@ -3591,26 +3591,26 @@ def pricing_widget_embed():
     embed_code = f'''
         <iframe 
             src="{widget_url}" 
-            style="width: 100%; height: 520px; border: none; overflow: hidden;"
+            style="width: 100%; min-height: 700px; border: none; overflow: visible;"
             title="Ticketing Platform Comparison"
             loading="lazy"
-            allow="fullscreen"
+            scrolling="no"
         ></iframe>
         <script>
-            // Responsive iframe height adjustment
             function adjustIframeHeight() {{
                 const iframe = document.querySelector('iframe');
-                if (window.innerWidth <= 768) {{
-                    iframe.style.height = '600px';  // More height for mobile
-                }} else if (window.innerWidth <= 1024) {{
-                    iframe.style.height = '550px';  // Slightly more height for tablet
+                if (window.innerWidth <= 480) {{
+                    iframe.style.height = '800px';  // More height for mobile
+                }} else if (window.innerWidth <= 768) {{
+                    iframe.style.height = '750px';  // Height for tablet
                 }} else {{
-                    iframe.style.height = '520px';  // Default height for desktop
+                    iframe.style.height = '700px';  // Height for desktop
                 }}
             }}
             
+            // Run on load and resize
+            window.addEventListener('load', adjustIframeHeight);
             window.addEventListener('resize', adjustIframeHeight);
-            adjustIframeHeight();
         </script>
     '''
     return render_template('pricing_widget_embed.html', embed_code=embed_code)
