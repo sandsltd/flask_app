@@ -1310,24 +1310,24 @@ function toggleTicketStrategy() {
     // Show/hide quantity fields in ticket types
     quantityFields.forEach(field => {
         field.style.display = enforceLimits ? 'block' : 'none';
-    });
-
-    // Update required attributes
-    const quantityInputs = document.querySelectorAll('input[name="ticket_quantity[]"]');
-    quantityInputs.forEach(input => {
-        if (enforceLimits) {
-            input.setAttribute('required', 'required');
-        } else {
-            input.removeAttribute('required');
-            input.value = '';
+        // Get the input element within the field
+        const input = field.querySelector('input');
+        if (input) {
+            if (enforceLimits) {
+                input.setAttribute('required', '');
+            } else {
+                input.removeAttribute('required');
+                input.value = '';
+            }
         }
     });
 
+    // Update required attributes for total capacity
     if (enforceLimits) {
         totalCapacityInput.removeAttribute('required');
         totalCapacityInput.value = '';
     } else {
-        totalCapacityInput.setAttribute('required', 'required');
+        totalCapacityInput.setAttribute('required', '');
     }
 }
 
