@@ -232,7 +232,7 @@
             }
 
             .comparison-table {
-                font-size: 14px;
+                font-size: 12px;
             }
 
             .comparison-table th,
@@ -295,6 +295,27 @@
             .widget-container {
                 transform: scale(0.9);
                 transform-origin: top left;
+            }
+
+            /* Improve table text readability on mobile */
+            .comparison-table {
+                font-size: 12px;  /* Reduced from 14px */
+            }
+
+            /* Adjust platform name column */
+            .platform-name strong {
+                display: none;  /* Hide text names on mobile */
+            }
+
+            /* Keep Ticketebo visible since it has no logo */
+            .platform-name strong.ticketebo-name {
+                display: inline;
+            }
+
+            /* Make fee structure more compact */
+            .comparison-table td:nth-child(2) {
+                font-size: 11px;
+                line-height: 1.2;
             }
         }
 
@@ -423,12 +444,14 @@
             ticketrush: {
                 name: 'Ticketrush',
                 logo: '<img src="https://ticketrush.io/wp-content/uploads/2024/10/logo_T-1.png" alt="Ticketrush" style="height: 30px;">',
+                displayName: '',
                 feeStructure: '£0.30 per ticket',
                 calculateFees: (price, quantity) => quantity * 0.30
             },
             ticketebo: {
                 name: 'Ticketebo',
-                logo: '<i class="fas fa-ticket"></i>',
+                logo: '',
+                displayName: '<strong class="ticketebo-name">Ticketebo</strong>',
                 feeStructure: '4.95% per transaction (min £0.75)',
                 calculateFees: (price, quantity) => Math.max(0.75, (price * quantity * 0.0495))
             },
@@ -487,8 +510,8 @@
                 row.innerHTML = `
                     <td>
                         <div class="platform-name">
-                            <div class="platform-logo">${platform.logo}</div>
-                            <strong>${platform.name}</strong>
+                            ${platform.logo}
+                            ${platform.displayName || ''}
                         </div>
                     </td>
                     <td>${platform.feeStructure}</td>
