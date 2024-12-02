@@ -1635,15 +1635,16 @@ def purchase(event_id, promo_code=None):
                 # Calculate base amount (in pence)
                 print("\n=== PAYMENT CALCULATION DETAILS ===")
                 print("Calculating base amount for tickets:")
+
+                # Calculate base ticket amount
                 base_amount = 0
                 total_tickets = 0
                 for ticket_type_id, quantity in quantities.items():
                     if quantity > 0:
                         ticket_type = next(tt for tt in ticket_types if tt.id == ticket_type_id)
-                        ticket_total = ticket_type.price * quantity * 100
-                        print(f"- {ticket_type.name}: {quantity} x £{ticket_type.price:.2f} = £{ticket_total/100:.2f}")
+                        ticket_total = ticket_type.price * quantity * 100  # Convert to pence
                         base_amount += ticket_total
-                        total_tickets += quantity  # Add this line
+                        total_tickets += quantity
                 print(f"Base amount before discounts: £{base_amount/100:.2f}")
 
                 # Apply discount
@@ -1695,13 +1696,15 @@ def purchase(event_id, promo_code=None):
                 booking_fee_pence = 30 * total_tickets  # 30p per ticket
                 print(f"- Base booking fee: {total_tickets} tickets × 30p = £{booking_fee_pence/100:.2f}")
 
-                subtotal_before_stripe = total_amount_pence + booking_fee_pence
-                print(f"- Subtotal before Stripe fee: £{subtotal_before_stripe/100:.2f}")
+                # Calculate platform fee (30p per ticket)
+                platform_fee = 30 * total_tickets  # 30 pence per ticket
+                print(f"Platform fee: {total_tickets} tickets × 30p = £{platform_fee/100:.2f}")
 
-                stripe_fee_pence = int(subtotal_before_stripe * 0.014) + 20  # 1.4% + 20p
-                print(f"- Stripe fee: 1.4% + 20p = £{stripe_fee_pence/100:.2f}")
+                # Calculate Stripe's processing fee
+                stripe_fee = int(((base_amount + platform_fee) * 0.014) + 20)  # 1.4% + 20p
+                print(f"Stripe processing fee: 1.4% + 20p = £{stripe_fee/100:.2f}")
 
-                total_booking_fee_pence = booking_fee_pence + stripe_fee_pence
+                total_booking_fee_pence = booking_fee_pence + platform_fee + stripe_fee
                 print(f"- Total booking fee: £{total_booking_fee_pence/100:.2f}")
 
                 # Adjust platform fee to cover Stripe's processing cut
@@ -1804,27 +1807,50 @@ def purchase(event_id, promo_code=None):
                               f"£{item['price_data']['unit_amount']/100:.2f} × {item['quantity']}")
                     print(f"Total charge: £{total_charge_pence/100:.2f}\n")
 
-                    # Calculate the total amount the customer should pay
-                    ticket_price = 1000  # Example ticket price in pence (£10.00)
-                    platform_fee = 30  # Platform fee in pence (30p)
-                    stripe_fee = int((ticket_price + platform_fee) * 0.014) + 20  # Stripe fee (1.4% + 20p)
+                    # Calculate base ticket amount
+                    base_amount = 0
+                    total_tickets = 0
+                    for ticket_type_id, quantity in quantities.items():
+                        if quantity > 0:
+                            ticket_type = next(tt for tt in ticket_types if tt.id == ticket_type_id)
+                            ticket_total = ticket_type.price * quantity * 100  # Convert to pence
+                            base_amount += ticket_total
+                            total_tickets += quantity
+
+                    # Calculate platform fee (30p per ticket)
+                    platform_fee = 30 * total_tickets
+
+                    # Calculate Stripe's processing fee
+                    stripe_fee = int((base_amount + platform_fee) * 0.014) + 20
 
                     # Total amount the customer pays
-                    total_amount_pence = ticket_price + platform_fee + stripe_fee
+                    total_charge_pence = base_amount + platform_fee + stripe_fee
 
                     # Create Stripe checkout session
                     checkout_session = stripe.checkout.Session.create(
                         payment_method_types=['card'],
-                        line_items=[{
-                            'price_data': {
-                                'currency': 'gbp',
-                                'unit_amount': total_amount_pence,
-                                'product_data': {
-                                    'name': f"Ticket for {event.name}",
+                        line_items=[
+                            {
+                                'price_data': {
+                                    'currency': 'gbp',
+                                    'unit_amount': int(base_amount / total_tickets),  # Price per ticket
+                                    'product_data': {
+                                        'name': f"Ticket for {event.name}",
+                                    },
                                 },
+                                'quantity': total_tickets,
                             },
-                            'quantity': 1,
-                        }],
+                            {
+                                'price_data': {
+                                    'currency': 'gbp',
+                                    'unit_amount': platform_fee + stripe_fee,  # Combined fees
+                                    'product_data': {
+                                        'name': 'Booking and processing fee',
+                                    },
+                                },
+                                'quantity': 1,
+                            }
+                        ],
                         mode='payment',
                         success_url=url_for('success', session_id=session_id, _external=True),
                         cancel_url=url_for('cancel', _external=True),
@@ -2441,7 +2467,6 @@ def view_attendees(event_id):
         ticket_type_data=ticket_type_data,  # Pass ticket type data to template
         question_map=all_question_map  # Pass the question mapping
     )
-
 
 
 
