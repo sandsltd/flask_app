@@ -1404,12 +1404,13 @@ def purchase(event_id, promo_code=None):
                 total_booking_fee_pence = booking_fee_pence + stripe_fee_pence
                 print(f"- Total booking fee: £{total_booking_fee_pence/100:.2f}")
 
-                # Adjust platform fee to cover Stripe's processing cut
-                adjusted_platform_fee = int(booking_fee_pence / 0.971)  # Adjust for Stripe's cut
-                print(f"- Adjusted platform fee: £{adjusted_platform_fee/100:.2f}")
+                # Calculate the platform fee
+                platform_fee_per_ticket_pence = 30  # 30p per ticket
+                total_tickets = sum(quantities.values())  # Assuming quantities is a dictionary of ticket types and their quantities
+                platform_fee = total_tickets * platform_fee_per_ticket_pence
 
                 # Final charge amount
-                total_charge_pence = total_amount_pence + total_booking_fee_pence
+                total_charge_pence = total_amount_pence + total_booking_fee_pence + platform_fee
                 print(f"\nFinal charge amount: £{total_charge_pence/100:.2f}")
                 print("=== END PAYMENT CALCULATION ===\n")
 
@@ -1532,6 +1533,17 @@ def purchase(event_id, promo_code=None):
                         'quantity': 1,
                     })
 
+                    # Add the platform fee line item
+                    print(f"- Adding platform fee: £{platform_fee/100:.2f}")
+                    line_items.append({
+                        'price_data': {
+                            'currency': 'gbp',
+                            'product_data': {'name': 'Platform fee'},
+                            'unit_amount': platform_fee,
+                        },
+                        'quantity': 1,
+                    })
+
                     print("\nFinal line items breakdown:")
                     for item in line_items:
                         print(f"- {item['price_data']['product_data']['name']}: "
@@ -1547,10 +1559,11 @@ def purchase(event_id, promo_code=None):
                         cancel_url=url_for('cancel', _external=True),
                         metadata={
                             'session_id': session_id,
-                            'promo_code': submitted_promo_code if submitted_promo_code else None,  # Changed from active_promo
+                            'promo_code': submitted_promo_code if submitted_promo_code else None,
                             'discount_amount': str(discount_amount) if discount_amount > 0 else None
                         },
                         payment_intent_data={
+                            'application_fee_amount': platform_fee,  # Use the calculated platform fee
                             'on_behalf_of': organizer.stripe_connect_id,
                             'transfer_data': {
                                 'destination': organizer.stripe_connect_id,
@@ -1558,16 +1571,6 @@ def purchase(event_id, promo_code=None):
                         },
                         billing_address_collection='required',
                         customer_email=email
-                    )
-
-                    # Set up the transfer from organizer back to platform
-                    platform_fee = total_tickets * 30  # 30p per ticket
-                    transfer = stripe.Transfer.create(
-                        amount=platform_fee,
-                        currency='gbp',
-                        destination='acct_1QCfvnDPfrf78WmS',  # Replace with your platform's Stripe account ID
-                        source_transaction=checkout_session.payment_intent,
-                        transfer_group=f"{event.id}_{session_id}"
                     )
 
                     return redirect(checkout_session.url)
@@ -2148,6 +2151,7 @@ def delete_event(event_id):
         db.session.rollback()
         print(f"Error deleting event: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
 
 
 
