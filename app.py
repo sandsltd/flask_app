@@ -3180,6 +3180,3 @@ def pricing_widget_embed():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
-    
