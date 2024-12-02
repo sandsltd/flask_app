@@ -1804,21 +1804,32 @@ def purchase(event_id, promo_code=None):
                               f"£{item['price_data']['unit_amount']/100:.2f} × {item['quantity']}")
                     print(f"Total charge: £{total_charge_pence/100:.2f}\n")
 
+                    # Calculate the total amount the customer should pay
+                    ticket_price = 1000  # Example ticket price in pence (£10.00)
+                    platform_fee = 30  # Platform fee in pence (30p)
+                    stripe_fee = int((ticket_price + platform_fee) * 0.014) + 20  # Stripe fee (1.4% + 20p)
+
+                    # Total amount the customer pays
+                    total_amount_pence = ticket_price + platform_fee + stripe_fee
+
                     # Create Stripe checkout session
                     checkout_session = stripe.checkout.Session.create(
                         payment_method_types=['card'],
-                        line_items=line_items,
+                        line_items=[{
+                            'price_data': {
+                                'currency': 'gbp',
+                                'unit_amount': total_amount_pence,
+                                'product_data': {
+                                    'name': f"Ticket for {event.name}",
+                                },
+                            },
+                            'quantity': 1,
+                        }],
                         mode='payment',
                         success_url=url_for('success', session_id=session_id, _external=True),
                         cancel_url=url_for('cancel', _external=True),
-                        metadata={
-                            'session_id': session_id,
-                            'promo_code': submitted_promo_code if submitted_promo_code else None,
-                            'discount_amount': str(discount_amount) if discount_amount > 0 else None,
-                            'total_tickets': str(total_tickets),  # Add this to track number of tickets
-                            'platform_fee': str(booking_fee_pence)  # Add this to track platform fee
-                        },
                         payment_intent_data={
+                            'application_fee_amount': platform_fee,  # Deduct platform fee
                             'transfer_data': {
                                 'destination': organizer.stripe_connect_id,
                             },
