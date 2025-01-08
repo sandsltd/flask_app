@@ -1386,6 +1386,8 @@ def calculate_total_charge_and_booking_fee(n_tickets, ticket_price_gbp):
     # Round up and return the total charge to the buyer and platform fee
     return int(math.ceil(total_charge_pence)), int(math.ceil(total_platform_fee_pence))
 
+import traceback
+
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
 @app.route('/purchase/<int:event_id>/<string:promo_code>', methods=['GET', 'POST'])
 def purchase(event_id, promo_code=None):
@@ -1689,39 +1691,49 @@ def purchase(event_id, promo_code=None):
 
                 # Calculate fees and amounts first
                 print("\n=== PAYMENT CALCULATION LOG ===")
-                print("1. Base Calculations:")
-                print(f"- Original ticket amount: £{total_amount_pence/100:.2f}")
-                print(f"- Number of tickets: {total_tickets}")
+                print(f"1. Original ticket amount: £{total_amount_pence/100:.2f}")
+                print(f"Number of tickets: {total_tickets}")
                 
-                # 1. Calculate platform fee (30p per ticket)
+                # 1. Calculate base platform fee (30p per ticket)
                 base_platform_fee = 30  # 30p per ticket
                 total_base_platform_fee = base_platform_fee * total_tickets
 
-                # 2. Calculate subtotal (tickets + platform fees)
-                subtotal = total_amount_pence + total_base_platform_fee
-
-                # 3. Calculate Stripe fees on the subtotal
+                # 2. Calculate Stripe fees for the entire transaction
                 stripe_percentage = 0.014  # 1.4%
                 stripe_fixed = 20  # 20p fixed fee
-                stripe_percentage_fee = int(subtotal * stripe_percentage)
+                stripe_percentage_fee = int(total_amount_pence* stripe_percentage)  # 1.4% of ticket amount
                 total_stripe_fee = stripe_percentage_fee + stripe_fixed
 
-                # 4. Total fee to retain (platform fee + stripe fees)
+                # 3. Total fee to retain = (base platform fee × number oftickets) + all Stripe fees
                 total_platform_fee = total_base_platform_fee + total_stripe_fee
 
                 print("\n2. Fee Breakdown:")
-                print(f"- Ticket amount: £{total_amount_pence/100:.2f}")
-                print(f"- Platform fee (£0.30 × {total_tickets}): £{total_base_platform_fee/100:.2f}")
-                print(f"- Subtotal: £{subtotal/100:.2f}")
-                print(f"- Stripe fee (1.4% + £0.20): £{total_stripe_fee/100:.2f}")
-                print(f"- Total fees to retain: £{total_platform_fee/100:.2f}")
+                print(f"- Platform fee (£0.30 × {total_tickets} tickets): £{total_base_platform_fee/100:.2f}")
+                print(f"- Stripe percentage (1.4%): £{stripe_percentage_fee/100:.2f}")
+                print(f"- Stripe fixed fee: £{stripe_fixed/100:.2f}")
+                print(f"- Total fee to retain: £{total_platform_fee/100:.2f}")
 
-                # Add all fees as a single line item
-                total_fee_per_ticket = (total_platform_fee + total_stripe_fee) // total_tickets
+                # Add ticket prices to line items first
+                for ticket_type in ticket_types:
+                    quantity = quantities[ticket_type.id]
+                    if quantity > 0:
+                        line_items.append({
+                            'price_data': {
+                                'currency': 'gbp',
+                                'unit_amount': int(ticket_type.price * 100),  # Convert to pence
+                                'product_data': {
+                                    'name': f"{ticket_type.name} for {event.name}",
+                                },
+                            },
+                            'quantity': quantity,
+                        })
+
+                # Add fees as a separate line item
+                fee_per_ticket = (total_platform_fee) // total_tickets
                 line_items.append({
                     'price_data': {
                         'currency': 'gbp',
-                        'unit_amount': base_platform_fee + (total_stripe_fee // total_tickets),  # Platform fee + share of Stripe fees
+                        'unit_amount': fee_per_ticket,
                         'product_data': {
                             'name': 'Booking & Processing Fee',
                             'description': 'Includes platform and payment processing fees',
@@ -1747,11 +1759,11 @@ def purchase(event_id, promo_code=None):
                     cancel_url=url_for('cancel', _external=True),
                     metadata={
                         'session_id': session_id,
-                        'platform_fee': str(platform_fee_per_ticket * total_tickets),
+                        'platform_fee': str(total_platform_fee),  # Updated to use total_platform_fee
                         'total_tickets': str(total_tickets)
                     },
                     payment_intent_data={
-                        'application_fee_amount': platform_fee_per_ticket * total_tickets,  # Platform keeps all fees
+                        'application_fee_amount': total_platform_fee,  # Updated to use total_platform_fee
                         'on_behalf_of': organizer.stripe_connect_id,
                         'transfer_data': {
                             'destination': organizer.stripe_connect_id,
@@ -1885,8 +1897,6 @@ def purchase(event_id, promo_code=None):
         app.logger.error(traceback.format_exc())
         flash('An error occurred. Please try again.', 'error')
         return redirect(url_for('dashboard'))
-
-
 
 
 @app.route('/stripe-webhook', methods=['POST'])
