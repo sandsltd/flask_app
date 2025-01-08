@@ -2220,12 +2220,15 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
 # Update handle_checkout_session to generate QR codes
 def handle_checkout_session(session):
     session_id = session.get('metadata', {}).get('session_id')
+    print(f"Processing checkout session with session_id: {session_id}")
+    
     if not session_id:
         print("No session ID found in metadata.")
         return
 
     # Retrieve all attendees for this session ID
     attendees = Attendee.query.filter_by(session_id=session_id).all()
+    print(f"Found {len(attendees)} attendees for session {session_id}")
 
     if not attendees:
         print(f"No attendees found for session ID {session_id}.")
@@ -2927,43 +2930,82 @@ from io import BytesIO
 @app.route('/success')
 def success():
     session_id = request.args.get('session_id')
+    print(f"\n=== SUCCESS PAGE REQUEST ===")
+    print(f"Session ID: {session_id}")
+    
     if not session_id:
+        print("Error: No session_id provided")
         return "Invalid session. Unable to retrieve booking details.", 400
 
     # Fetch the attendee(s) associated with this session_id
-    attendees = Attendee.query.filter_by(session_id=session_id, payment_status='succeeded').all()
-    if not attendees:
+    attendees = Attendee.query.filter_by(session_id=session_id).all()
+    print(f"Found {len(attendees)} total attendees")
+    
+    # Filter for succeeded payments
+    succeeded_attendees = [a for a in attendees if a.payment_status == 'succeeded']
+    print(f"Found {len(succeeded_attendees)} succeeded attendees")
+    
+    if not succeeded_attendees:
+        print(f"No succeeded attendees found. Payment statuses: {[a.payment_status for a in attendees]}")
         return "No booking found for this session.", 404
 
-    # Assuming all attendees are for the same event
-    event = Event.query.get(attendees[0].event_id)
-    organizer = User.query.get(event.user_id)
+    try:
+        # Assuming all attendees are for the same event
+        event = Event.query.get(succeeded_attendees[0].event_id)
+        if not event:
+            print(f"Error: Event not found for ID {succeeded_attendees[0].event_id}")
+            return "Event not found.", 404
 
-    # Calculate total tickets purchased
-    total_tickets = len(attendees)
+        organizer = User.query.get(event.user_id)
+        if not organizer:
+            print(f"Error: Organizer not found for ID {event.user_id}")
+            return "Organizer not found.", 404
 
-    # Generate QR codes for each ticket
-    qr_codes = []
-    for attendee in attendees:
-        qr_data = attendee.ticket_number  # Data for QR code (the unique ticket number)
-        qr_img = qrcode.make(qr_data)
+        # Calculate total tickets purchased
+        total_tickets = len(succeeded_attendees)
 
-        # Convert the QR code image to base64 to embed in HTML
-        buffer = BytesIO()
-        qr_img.save(buffer, format="PNG")
-        qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-        qr_codes.append(qr_base64)  # Append each QR code to the list
+        # Generate QR codes for each ticket
+        qr_codes = []
+        for attendee in succeeded_attendees:
+            if not attendee.ticket_number:
+                print(f"Warning: No ticket number for attendee {attendee.id}")
+                continue
+                
+            try:
+                qr_data = attendee.ticket_number
+                qr_img = qrcode.make(qr_data)
 
-    # Prepare data to pass to the template
-    context = {
-        'event': event,
-        'organizer': organizer,
-        'attendee': attendees[0],  # Assumes buyer's details are the same
-        'total_tickets': total_tickets,
-        'qr_codes': qr_codes  # Pass the list of QR codes as base64 strings
-    }
+                # Convert the QR code image to base64
+                buffer = BytesIO()
+                qr_img.save(buffer, format="PNG")
+                qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+                qr_codes.append(qr_base64)
+            except Exception as e:
+                print(f"Error generating QR code for attendee {attendee.id}: {str(e)}")
+                continue
 
-    return render_template('success.html', **context)
+        # Prepare data to pass to the template
+        context = {
+            'event': event,
+            'organizer': organizer,
+            'attendee': succeeded_attendees[0],  # Assumes buyer's details are the same
+            'total_tickets': total_tickets,
+            'qr_codes': qr_codes
+        }
+
+        print("Success page rendered successfully")
+        print(f"Event: {event.name}")
+        print(f"Total tickets: {total_tickets}")
+        print(f"QR codes generated: {len(qr_codes)}")
+        print("=== END SUCCESS PAGE REQUEST ===\n")
+
+        return render_template('success.html', **context)
+
+    except Exception as e:
+        print(f"Error in success route: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return "An error occurred processing your booking.", 500
 
 
 
