@@ -1386,9 +1386,6 @@ def calculate_total_charge_and_booking_fee(n_tickets, ticket_price_gbp):
     # Round up and return the total charge to the buyer and platform fee
     return int(math.ceil(total_charge_pence)), int(math.ceil(total_platform_fee_pence))
 
-
-
-
 @app.route('/purchase/<int:event_id>', methods=['GET', 'POST'])
 @app.route('/purchase/<int:event_id>/<string:promo_code>', methods=['GET', 'POST'])
 def purchase(event_id, promo_code=None):
@@ -1690,148 +1687,96 @@ def purchase(event_id, promo_code=None):
                 total_amount_pence = int(base_amount - discount_amount)
                 print(f"\nAmount after discounts: £{total_amount_pence/100:.2f}")
 
-                # Calculate fees
-                print("\nCalculating fees:")
-                booking_fee_pence = 30 * total_tickets  # 30p per ticket
-                print(f"- Base booking fee: {total_tickets} tickets × 30p = £{booking_fee_pence/100:.2f}")
+                # Calculate fees and amounts first
+                print("\n=== PAYMENT CALCULATION LOG ===")
+                print("1. Base Calculations:")
+                print(f"- Original ticket amount: £{total_amount_pence/100:.2f}")
+                print(f"- Number of tickets: {total_tickets}")
+                
+                # 1. Calculate platform fee (30p per ticket)
+                base_platform_fee = 30  # 30p per ticket
+                total_base_platform_fee = base_platform_fee * total_tickets
 
-                subtotal_before_stripe = total_amount_pence + booking_fee_pence
-                print(f"- Subtotal before Stripe fee: £{subtotal_before_stripe/100:.2f}")
+                # 2. Calculate subtotal (tickets + platform fees)
+                subtotal = total_amount_pence + total_base_platform_fee
 
-                stripe_fee_pence = int(subtotal_before_stripe * 0.014) + 20  # 1.4% + 20p
-                print(f"- Stripe fee: 1.4% + 20p = £{stripe_fee_pence/100:.2f}")
+                # 3. Calculate Stripe fees on the subtotal
+                stripe_percentage = 0.014  # 1.4%
+                stripe_fixed = 20  # 20p fixed fee
+                stripe_percentage_fee = int(subtotal * stripe_percentage)
+                total_stripe_fee = stripe_percentage_fee + stripe_fixed
 
-                total_booking_fee_pence = booking_fee_pence + stripe_fee_pence
-                print(f"- Total booking fee: £{total_booking_fee_pence/100:.2f}")
+                # 4. Total fee to retain (platform fee + stripe fees)
+                total_platform_fee = total_base_platform_fee + total_stripe_fee
 
-                # Adjust platform fee to cover Stripe's processing cut
-                adjusted_platform_fee = int(booking_fee_pence / 0.971)  # Adjust for Stripe's cut
-                print(f"- Adjusted platform fee: £{adjusted_platform_fee/100:.2f}")
+                print("\n2. Fee Breakdown:")
+                print(f"- Ticket amount: £{total_amount_pence/100:.2f}")
+                print(f"- Platform fee (£0.30 × {total_tickets}): £{total_base_platform_fee/100:.2f}")
+                print(f"- Subtotal: £{subtotal/100:.2f}")
+                print(f"- Stripe fee (1.4% + £0.20): £{total_stripe_fee/100:.2f}")
+                print(f"- Total fees to retain: £{total_platform_fee/100:.2f}")
 
-                # Final charge amount
-                total_charge_pence = total_amount_pence + total_booking_fee_pence
-                print(f"\nFinal charge amount: £{total_charge_pence/100:.2f}")
-                print("=== END PAYMENT CALCULATION ===\n")
-
-                if not attendees:
-                    print("No attendees found - redirecting back to purchase page")
-                    flash('Please select at least one ticket.')
-                    return redirect(url_for('purchase', event_id=event_id))
-
-                db.session.commit()
-
-                # Handle free tickets
-                if total_amount_pence == 0:
-                    for attendee in attendees:
-                        attendee.payment_status = 'succeeded'  # Mark as paid for free tickets
-                    db.session.commit()
-
-                    # Set up billing details for the confirmation email
-                    billing_details = {'name': full_name, 'email': email, 'phone': phone_number}
-
-                    # Send confirmation emails for free tickets
-                    send_confirmation_email_to_attendee(attendees, billing_details)
-                    send_confirmation_email_to_organizer(organizer, attendees, billing_details, event)
-
-                    flash('Your free ticket(s) have been booked successfully!')
-                    return redirect(url_for('success', session_id=session_id))
-
-                else:
-                    # Convert quantities dictionary to use string keys
-                    quantities_for_stripe = {
-                        str(ticket_type_id): quantity 
-                        for ticket_type_id, quantity in quantities.items()
-                    }
-
-                    # Prepare ticket and attendee data for Stripe metadata
-                    ticket_data = {
-                        'quantities': quantities_for_stripe,
-                        'total_tickets': total_tickets_requested,
-                        'total_amount': total_amount_pence
-                    }
-
-                    attendee_data = {
-                        'full_name': full_name,
-                        'email': email,
-                        'phone_number': phone_number,
-                        'answers': {
-                            str(k): v for k, v in attendee_answers.items()
-                        }
-                    }
-
-                    # Initialize line_items with individual tickets and separate booking fee line item
-                    line_items = []
-
-                    print(f"\nCreating Stripe line items:")
-
-                    # Calculate the discount ratio
-                    discount_ratio = 1 - (discount_amount / base_amount) if base_amount > 0 else 1
-
-                    # Add tickets to line_items
-                    for ticket_type_id, quantity in quantities.items():
-                        ticket_type = next((t for t in ticket_types if t.id == ticket_type_id), None)
-                        if ticket_type and quantity > 0:
-                            # Calculate the price for this ticket type
-                            ticket_price = ticket_type.price * discount_ratio
-                            ticket_price_pence = int(ticket_price * 100)
-
-                            print(f"- Adding {quantity} x {ticket_type.name} at £{ticket_price:.2f} each")
-                            line_items.append({
-                                'price_data': {
-                                    'currency': 'gbp',
-                                    'unit_amount': ticket_price_pence,
-                                    'product_data': {
-                                        'name': f"{ticket_type.name} for {event.name}",
-                                    },
-                                },
-                                'quantity': quantity,
-                            })
-
-                    # Add the booking fee line item
-                    print(f"- Adding booking fee: £{total_booking_fee_pence/100:.2f}")
-                    line_items.append({
-                        'price_data': {
-                            'currency': 'gbp',
-                            'product_data': {'name': 'Booking, handling, and processing fee'},
-                            'unit_amount': total_booking_fee_pence,
+                # Add all fees as a single line item
+                total_fee_per_ticket = (total_platform_fee + total_stripe_fee) // total_tickets
+                line_items.append({
+                    'price_data': {
+                        'currency': 'gbp',
+                        'unit_amount': base_platform_fee + (total_stripe_fee // total_tickets),  # Platform fee + share of Stripe fees
+                        'product_data': {
+                            'name': 'Booking & Processing Fee',
+                            'description': 'Includes platform and payment processing fees',
                         },
-                        'quantity': 1,
-                    })
+                    },
+                    'quantity': total_tickets,
+                })
 
-                    print("\nFinal line items breakdown:")
-                    for item in line_items:
-                        print(f"- {item['price_data']['product_data']['name']}: "
-                              f"£{item['price_data']['unit_amount']/100:.2f} × {item['quantity']}")
-                    print(f"Total charge: £{total_charge_pence/100:.2f}\n")
+                # Calculate final total
+                total_charge = sum(item['price_data']['unit_amount'] * item['quantity'] for item in line_items)
+                print(f"\n=== FINAL BREAKDOWN ===")
+                print(f"Customer pays: £{total_charge/100:.2f}")
+                print(f"→ Ticket amount: £{total_amount_pence/100:.2f} (to organizer)")
+                print(f"→ Total fees: £{total_platform_fee/100:.2f} (retained)")
+                print("=== END CALCULATION ===\n")
 
-                    # Create Stripe checkout session
-                    checkout_session = stripe.checkout.Session.create(
-                        payment_method_types=['card'],
-                        line_items=line_items,
-                        mode='payment',
-                        success_url=url_for('success', session_id=session_id, _external=True),
-                        cancel_url=url_for('cancel', _external=True),
-                        metadata={
-                            'session_id': session_id,
-                            'promo_code': submitted_promo_code if submitted_promo_code else None,  # Changed from active_promo
-                            'discount_amount': str(discount_amount) if discount_amount > 0 else None
+                # Create Stripe checkout session
+                checkout_session = stripe.checkout.Session.create(
+                    payment_method_types=['card'],
+                    line_items=line_items,
+                    mode='payment',
+                    success_url=url_for('success', session_id=session_id, _external=True),
+                    cancel_url=url_for('cancel', _external=True),
+                    metadata={
+                        'session_id': session_id,
+                        'platform_fee': str(platform_fee_per_ticket * total_tickets),
+                        'total_tickets': str(total_tickets)
+                    },
+                    payment_intent_data={
+                        'application_fee_amount': platform_fee_per_ticket * total_tickets,  # Platform keeps all fees
+                        'on_behalf_of': organizer.stripe_connect_id,
+                        'transfer_data': {
+                            'destination': organizer.stripe_connect_id,
                         },
-                        payment_intent_data={
-                            'application_fee_amount': adjusted_platform_fee,
-                            'on_behalf_of': organizer.stripe_connect_id,
-                            'transfer_data': {
-                                'destination': organizer.stripe_connect_id,
-                            },
-                        },
-                        billing_address_collection='required',
-                        customer_email=email
-                    )
+                        'transfer_group': session_id,
+                    },
+                    billing_address_collection='required',
+                    customer_email=email
+                )
+                
+                print(f"Checkout session created: {checkout_session.id}")
+                print(f"Redirecting to: {checkout_session.url}")
+                
+                # Important: Return the redirect response
+                return redirect(checkout_session.url)
 
-                    return redirect(checkout_session.url)
-
+            except stripe.error.StripeError as e:
+                app.logger.error(f"Stripe Error: {str(e)}")
+                flash('An error occurred with the payment processor. Please try again.', 'error')
+                return redirect(url_for('purchase', event_id=event_id))
+                    
             except Exception as e:
-                app.logger.error(f"Error creating checkout session: {str(e)}")
-                flash('An error occurred while processing your payment. Please try again.', 'error')
+                app.logger.error(f"Error creating checkout: {str(e)}")
+                app.logger.error(traceback.format_exc())
+                flash('An error occurred. Please try again.', 'error')
                 return redirect(url_for('purchase', event_id=event_id))
 
         else:
