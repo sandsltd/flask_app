@@ -1468,7 +1468,10 @@ def purchase(event_id, promo_code=None):
 
         if request.method == 'POST':
             try:
-                session_id = str(uuid4())
+                # Generate session ID first
+                session_id = str(uuid.uuid4())
+                print(f"Generated session ID: {session_id}")
+                
                 full_name = request.form.get('full_name')
                 email = request.form.get('email')
                 phone_number = request.form.get('phone_number')
@@ -1569,7 +1572,6 @@ def purchase(event_id, promo_code=None):
                                 return redirect(url_for('purchase', event_id=event_id))
                             answers[question['id']] = answer
                         attendee_answers[(ticket_type.id, i)] = answers
-
 
                 # Create Attendee entries and calculate amounts
                 for ticket_type in ticket_types:
@@ -1691,27 +1693,45 @@ def purchase(event_id, promo_code=None):
 
                 # Calculate fees and amounts first
                 print("\n=== PAYMENT CALCULATION LOG ===")
-                print(f"1. Original ticket amount: £{total_amount_pence/100:.2f}")
-                print(f"Number of tickets: {total_tickets}")
-                
-                # 1. Calculate base platform fee (30p per ticket)
-                base_platform_fee = 30  # 30p per ticket
-                total_base_platform_fee = base_platform_fee * total_tickets
+                print(f"1. Base Calculations:")
+                print(f"- Original ticket amount: £{total_amount_pence/100:.2f}")
+                print(f"- Number of tickets: {total_tickets}")
 
-                # 2. Calculate Stripe fees for the entire transaction
+                # Calculate platform fee (30p per ticket)
+                platform_fee = total_tickets * 30  # 30p per ticket
+                print(f"- Platform fee (£0.30 × {total_tickets}): £{platform_fee/100:.2f}")
+
+                # Calculate subtotal including platform fee
+                subtotal = total_amount_pence + platform_fee
+                print(f"- Subtotal: £{subtotal/100:.2f}")
+
+                # Calculate Stripe fee (1.4% + 20p)
                 stripe_percentage = 0.014  # 1.4%
-                stripe_fixed = 20  # 20p fixed fee
-                stripe_percentage_fee = int(total_amount_pence* stripe_percentage)  # 1.4% of ticket amount
-                total_stripe_fee = stripe_percentage_fee + stripe_fixed
+                stripe_fixed = 20  # 20p
+                stripe_fee = int(subtotal * stripe_percentage) + stripe_fixed
+                print(f"- Stripe fee (1.4% + £0.20): £{stripe_fee/100:.2f}")
 
-                # 3. Total fee to retain = (base platform fee × number oftickets) + all Stripe fees
-                total_platform_fee = total_base_platform_fee + total_stripe_fee
+                # Calculate total fees to retain
+                total_platform_fee = platform_fee + stripe_fee
+                print(f"- Total fees to retain: £{total_platform_fee/100:.2f}")
 
-                print("\n2. Fee Breakdown:")
-                print(f"- Platform fee (£0.30 × {total_tickets} tickets): £{total_base_platform_fee/100:.2f}")
-                print(f"- Stripe percentage (1.4%): £{stripe_percentage_fee/100:.2f}")
-                print(f"- Stripe fixed fee: £{stripe_fixed/100:.2f}")
-                print(f"- Total fee to retain: £{total_platform_fee/100:.2f}")
+                # Calculate final total
+                total_charge = total_amount_pence + total_platform_fee
+
+                print("\n=== FINAL BREAKDOWN ===")
+                print(f"Customer pays: £{total_charge/100:.2f}")
+                print(f"→ Ticket amount: £{total_amount_pence/100:.2f} (to organizer)")
+                print(f"→ Total fees: £{total_platform_fee/100:.2f} (retained)")
+                print("=== END CALCULATION ===\n")
+
+                try:
+                    db.session.commit()
+                    print(f"Created {len(attendees)} attendee records with session_id {session_id}")
+                except Exception as e:
+                    print(f"Error creating attendee records: {str(e)}")
+                    db.session.rollback()
+                    flash('An error occurred. Please try again.', 'error')
+                    return redirect(url_for('purchase', event_id=event_id))
 
                 # Add ticket prices to line items first
                 for ticket_type in ticket_types:
@@ -1742,14 +1762,6 @@ def purchase(event_id, promo_code=None):
                     'quantity': total_tickets,
                 })
 
-                # Calculate final total
-                total_charge = sum(item['price_data']['unit_amount'] * item['quantity'] for item in line_items)
-                print(f"\n=== FINAL BREAKDOWN ===")
-                print(f"Customer pays: £{total_charge/100:.2f}")
-                print(f"→ Ticket amount: £{total_amount_pence/100:.2f} (to organizer)")
-                print(f"→ Total fees: £{total_platform_fee/100:.2f} (retained)")
-                print("=== END CALCULATION ===\n")
-
                 # Create Stripe checkout session
                 checkout_session = stripe.checkout.Session.create(
                     payment_method_types=['card'],
@@ -1759,11 +1771,11 @@ def purchase(event_id, promo_code=None):
                     cancel_url=url_for('cancel', _external=True),
                     metadata={
                         'session_id': session_id,
-                        'platform_fee': str(total_platform_fee),  # Updated to use total_platform_fee
+                        'platform_fee': str(total_platform_fee),
                         'total_tickets': str(total_tickets)
                     },
                     payment_intent_data={
-                        'application_fee_amount': total_platform_fee,  # Updated to use total_platform_fee
+                        'application_fee_amount': total_platform_fee,
                         'on_behalf_of': organizer.stripe_connect_id,
                         'transfer_data': {
                             'destination': organizer.stripe_connect_id,
@@ -1786,7 +1798,8 @@ def purchase(event_id, promo_code=None):
                 return redirect(url_for('purchase', event_id=event_id))
                     
             except Exception as e:
-                app.logger.error(f"Error creating checkout: {str(e)}")
+                app.logger.error(f"Error in purchase route: {str(e)}")
+                import traceback
                 app.logger.error(traceback.format_exc())
                 flash('An error occurred. Please try again.', 'error')
                 return redirect(url_for('purchase', event_id=event_id))
