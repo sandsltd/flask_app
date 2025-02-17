@@ -1208,16 +1208,7 @@ def embed_events(unique_id):
         '''
 
         # Return JavaScript
-        response = f"""
-            (function() {{
-                var container = document.getElementById('ticketrush-embed-container');
-                if (container) {{
-                    container.innerHTML = `{events_html}`;
-                }} else {{
-                    console.error("Ticketrush Embed Error: No container found.");
-                }}
-            }})();
-        """
+        response = f"document.write(`{events_html}`);"
         return Response(response, mimetype='application/javascript')
 
     except Exception as e:
