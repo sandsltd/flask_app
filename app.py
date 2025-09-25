@@ -67,7 +67,7 @@ s3 = boto3.client(
 # Set your Stripe secret key from the environment variable
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
-app.secret_key = 'supersecretkey'
+app.secret_key = os.getenv('SECRET_KEY', 'dev-' + str(uuid.uuid4()))
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'  # Add this line to specify
@@ -224,7 +224,15 @@ class Attendee(db.Model):
         if not hasattr(self, '_ticket_answers_dict'):
             if self.ticket_answers:
                 try:
-                    self._ticket_answers_dict = json.loads(self.ticket_answers)
+                    parsed_data = json.loads(self.ticket_answers)
+                    # Handle both dict and list formats
+                    if isinstance(parsed_data, dict):
+                        self._ticket_answers_dict = parsed_data
+                    elif isinstance(parsed_data, list):
+                        # Convert list to dict with index as key
+                        self._ticket_answers_dict = {str(i): item for i, item in enumerate(parsed_data)}
+                    else:
+                        self._ticket_answers_dict = {}
                 except json.JSONDecodeError:
                     self._ticket_answers_dict = {}
             else:
