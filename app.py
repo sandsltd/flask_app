@@ -625,6 +625,13 @@ def create_event():
             # 1. Collect and Validate Form Data
             # ------------------------------
             
+            # Check if admin is creating event for another user
+            target_user_id = current_user.id
+            if current_user.is_admin:
+                selected_user_id = request.form.get('target_user_id')
+                if selected_user_id and selected_user_id != 'self':
+                    target_user_id = int(selected_user_id)
+            
             # Basic event details
             name = request.form.get('name', '').strip()
             date_str = request.form.get('date', '').strip()
@@ -731,8 +738,8 @@ def create_event():
 
             print(f"Captured custom questions: {custom_questions}")  # Debug print
 
-            # Fetch default questions from the database
-            default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
+            # Fetch default questions from the database (use target user's questions)
+            default_questions = DefaultQuestion.query.filter_by(user_id=target_user_id).all()
             default_question_texts = [dq.question for dq in default_questions]
 
             # ------------------------------
@@ -762,7 +769,7 @@ def create_event():
             for i in range(occurrences):
                 # Create event instance with custom and default questions
                 event = Event(
-                    user_id=current_user.id,
+                    user_id=target_user_id,
                     name=name,
                     date=current_date.strftime('%Y-%m-%d'),  # Store as string
                     start_time=start_time,
@@ -882,7 +889,15 @@ def create_event():
 
     # Fetch and pass default questions for display in form
     default_questions = DefaultQuestion.query.filter_by(user_id=current_user.id).all()
-    return render_template('create_event.html', default_questions=default_questions)
+    
+    # If admin, fetch all users for selection dropdown
+    users_list = None
+    if current_user.is_admin:
+        users_list = User.query.order_by(User.business_name).all()
+    
+    return render_template('create_event.html', 
+                         default_questions=default_questions,
+                         users_list=users_list)
 
 
 
