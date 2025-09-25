@@ -378,7 +378,11 @@ def login():
 @login_required
 def dashboard():
     filter_value = request.args.get('filter', 'upcoming')  # Set 'upcoming' as the default filter
-    user_events = Event.query.filter_by(user_id=current_user.id).all()
+    # If user is admin, show all events; otherwise show only their events
+    if current_user.is_admin:
+        user_events = Event.query.all()
+    else:
+        user_events = Event.query.filter_by(user_id=current_user.id).all()
 
     # Helper function to convert string dates to datetime for comparison
     def str_to_date(date_str):
@@ -2292,8 +2296,8 @@ from datetime import datetime
 def view_attendees(event_id):
     event = Event.query.get_or_404(event_id)
 
-    # Ensure the user has permission to view the attendees
-    if event.user_id != current_user.id:
+    # Ensure the user has permission to view the attendees (allow admin access)
+    if event.user_id != current_user.id and not current_user.is_admin:
         flash("You don't have permission to view the attendees for this event.")
         return redirect(url_for('dashboard'))
 
@@ -2395,8 +2399,8 @@ def delete_event(event_id):
     try:
         event = Event.query.get_or_404(event_id)
 
-        # Check if current user owns the event
-        if event.user_id != current_user.id:
+        # Check if current user owns the event (allow admin access)
+        if event.user_id != current_user.id and not current_user.is_admin:
             flash("You do not have permission to delete this event.", "error")
             return redirect(url_for('dashboard'))
 
@@ -2427,7 +2431,8 @@ def delete_event(event_id):
 def edit_event(event_id):
     event = Event.query.get_or_404(event_id)
     
-    if event.user_id != current_user.id:
+    # Allow admin to edit any event
+    if event.user_id != current_user.id and not current_user.is_admin:
         flash('You do not have permission to edit this event.', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -2647,7 +2652,7 @@ def delete_attendee(attendee_id):
 
     # Ensure the user has permission to delete the attendee
     event = Event.query.get(attendee.event_id)
-    if event.user_id != current_user.id:
+    if event.user_id != current_user.id and not current_user.is_admin:
         flash("You don't have permission to delete this attendee.")
         return redirect(url_for('dashboard'))
 
@@ -2666,7 +2671,7 @@ def edit_attendee(attendee_id):
 
     # Ensure the user has permission to edit the attendee
     event = Event.query.get(attendee.event_id)
-    if event.user_id != current_user.id:
+    if event.user_id != current_user.id and not current_user.is_admin:
         flash("You don't have permission to edit this attendee.")
         return redirect(url_for('dashboard'))
 
@@ -2700,7 +2705,7 @@ def edit_attendee(attendee_id):
 def add_attendee(event_id):
     event = Event.query.get_or_404(event_id)
     
-    if event.user_id != current_user.id:
+    if event.user_id != current_user.id and not current_user.is_admin:
         flash("You don't have permission to add attendees to this event.")
         return redirect(url_for('dashboard'))
 
@@ -2810,7 +2815,7 @@ def export_attendees(event_id):
     event = Event.query.get_or_404(event_id)
 
     # Ensure the user has permission to export the attendees
-    if event.user_id != current_user.id:
+    if event.user_id != current_user.id and not current_user.is_admin:
         flash("You don't have permission to export the attendees for this event.")
         return redirect(url_for('dashboard'))
 
@@ -3359,7 +3364,7 @@ def resend_ticket(attendee_id):
     event = Event.query.get(attendee.event_id)
 
     # Ensure the user has permission to resend tickets
-    if event.user_id != current_user.id:
+    if event.user_id != current_user.id and not current_user.is_admin:
         flash("You don't have permission to resend tickets for this attendee.")
         return redirect(url_for('dashboard'))
 
@@ -3422,7 +3427,7 @@ def check_in_attendee(event_id):
     event = Event.query.get_or_404(event_id)
     
     # Check if user owns this event
-    if event.user_id != current_user.id:
+    if event.user_id != current_user.id and not current_user.is_admin:
         return jsonify({'error': 'Unauthorized'}), 403
     
     ticket_number = request.json.get('ticket_number')
