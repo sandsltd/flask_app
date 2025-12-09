@@ -301,6 +301,29 @@ def purchase(event_id, promo_code=None):
                 total_amount_pence = int(base_amount - discount_amount)
                 print(f"\nAmount after discounts: £{total_amount_pence/100:.2f}")
 
+                # Check if tickets are free (after discounts)
+                if total_amount_pence == 0:
+                    print("Free tickets detected - skipping Stripe checkout")
+                    # Mark all attendees as succeeded for free tickets
+                    for attendee in attendees:
+                        attendee.payment_status = 'succeeded'
+                    db.session.commit()
+                    
+                    # Prepare billing details for emails
+                    billing_details = {
+                        'name': full_name,
+                        'email': email,
+                        'phone': phone_number,
+                        'address': {}
+                    }
+                    
+                    # Send confirmation emails
+                    send_confirmation_email_to_attendee(attendees, billing_details)
+                    send_confirmation_email_to_organizer(organizer, attendees, billing_details, event)
+                    
+                    flash('Your free ticket(s) have been booked successfully!')
+                    return redirect(url_for('success', session_id=session_id))
+
                 # Calculate fees and amounts first
                 print("\n=== PAYMENT CALCULATION LOG ===")
                 print(f"1. Original ticket amount: £{total_amount_pence/100:.2f}")
