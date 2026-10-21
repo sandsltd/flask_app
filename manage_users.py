@@ -4,9 +4,11 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, Float, Fore
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from werkzeug.security import generate_password_hash
+from dotenv import load_dotenv
 
-# Set the database URI directly
-db_url = 'REDACTED_DATABASE_URL'
+# Load the database URI from the environment rather than storing credentials in source.
+load_dotenv()
+db_url = os.environ['DATABASE_URL']
 
 # Set up the database engine
 engine = create_engine(db_url)
