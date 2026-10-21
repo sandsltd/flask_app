@@ -3,6 +3,7 @@ Werkzeug>=2.1.0
 gunicorn
 Flask-Login>=0.5.0
 Flask-SQLAlchemy
+SQLAlchemy>=2.0,<2.1
 psycopg2-binary
 Flask-Migrate
 stripe>=3.0.0  # Consider using a range to allow updates, e.g., stripe>=3.0.0,<4.0.0

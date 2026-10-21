@@ -73,8 +73,6 @@ STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-print("Database URI:", app.config['SQLALCHEMY_DATABASE_URI'])
-
 # Configuration for Flask-Mail
 app.config['MAIL_SERVER'] = 'mail.ticketrush.io'
 app.config['MAIL_PORT'] = 465
