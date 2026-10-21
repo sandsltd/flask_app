@@ -80,8 +80,6 @@ if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-print("Database URI:", app.config['SQLALCHEMY_DATABASE_URI'])
-
 # Configuration for Flask-Mail
 app.config['MAIL_SERVER'] = 'mail.ticketrush.io'
 app.config['MAIL_PORT'] = 465
