@@ -1812,7 +1812,7 @@ def purchase(event_id, promo_code=None):
 
                 # Create Stripe checkout session
                 checkout_session = stripe.checkout.Session.create(
-                    payment_method_types=['card'],
+                    allowed_payment_method_types=['card'],
                     line_items=line_items,
                     mode='payment',
                     success_url=url_for('success', session_id=session_id, _external=True),

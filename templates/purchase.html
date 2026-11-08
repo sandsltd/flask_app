@@ -53,6 +53,13 @@
 
 <!-- Purchase Form -->
 <div class="purchase-form">
+    {% with messages = get_flashed_messages() %}
+        {% for message in messages %}
+            <div role="alert" style="margin-bottom: 16px; padding: 16px; border: 1px solid #b42318; border-radius: 8px; color: #8a1c13; background: #fff4f2;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endwith %}
     {% if enforce_individual_ticket_limits %}
         <p>Please select the number of tickets for each ticket type (limited availability):</p>
     {% else %}
@@ -1926,4 +1933,4 @@ input, select, textarea, button {
         <button type="submit" form="purchase-form" class="submit-btn">Continue to Payment</button>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
