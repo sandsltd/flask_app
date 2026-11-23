@@ -2280,36 +2280,49 @@ def send_confirmation_email_to_organizer(organizer, attendees, billing_details, 
 
 # Update handle_checkout_session to generate QR codes
 def handle_checkout_session(session):
+    # Stripe SDK resources no longer implement dict methods. Convert nested
+    # metadata as well, so both signed webhooks and reconciliation use plain data.
+    if isinstance(session, stripe.StripeObject):
+        session = session.to_dict(for_json=True)
+    if session.get('payment_status') != 'paid':
+        return
     session_id = session.get('metadata', {}).get('session_id')
-    print(f"Processing checkout session with session_id: {session_id}")
     
     if not session_id:
         print("No session ID found in metadata.")
         return
 
     # Retrieve all attendees for this session ID
-    attendees = Attendee.query.filter_by(session_id=session_id).all()
-    print(f"Found {len(attendees)} attendees for session {session_id}")
+    attendees = Attendee.query.filter_by(session_id=session_id).with_for_update().all()
 
     if not attendees:
-        print(f"No attendees found for session ID {session_id}.")
+        print("No attendees found for checkout reference.")
+        return
+
+    # Stripe retries failed deliveries. Keep paid tickets and their existing
+    # ticket numbers intact, and send the normal confirmations only once.
+    pending_attendees = [a for a in attendees if a.payment_status == 'pending']
+    if not pending_attendees:
+        db.session.rollback()
         return
 
     # Retrieve the PaymentIntent and charge details
     payment_intent_id = session.get('payment_intent')
     payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id, expand=['latest_charge'])
-    charge = payment_intent.latest_charge
-
-    # Extract billing details
-    billing_details = charge.billing_details
-    if billing_details is None:
-        print("No billing details found for this session.")
+    if isinstance(payment_intent, stripe.StripeObject):
+        payment_intent = payment_intent.to_dict(for_json=True)
+    charge = payment_intent.get('latest_charge') or {}
+    if payment_intent.get('status') != 'succeeded' or not charge.get('paid'):
+        db.session.rollback()
         return
 
+    # Extract billing details
+    billing_details = charge.get('billing_details') or session.get('customer_details') or {}
+
     # Update attendee records
-    for attendee in attendees:
+    for attendee in pending_attendees:
         attendee.billing_details = json.dumps(billing_details)
-        attendee.stripe_charge_id = charge.id
+        attendee.stripe_charge_id = charge['id']
         attendee.payment_status = 'succeeded'
         
         # Generate ticket number if it is None
